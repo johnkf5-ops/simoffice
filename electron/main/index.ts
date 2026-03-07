@@ -269,8 +269,8 @@ async function initialize(): Promise<void> {
     hostEventBus.emit('oauth:start', payload);
   });
 
-  deviceOAuthManager.on('oauth:success', (provider) => {
-    hostEventBus.emit('oauth:success', { provider, success: true });
+  deviceOAuthManager.on('oauth:success', (payload) => {
+    hostEventBus.emit('oauth:success', { ...payload, success: true });
   });
 
   deviceOAuthManager.on('oauth:error', (error) => {

@@ -92,6 +92,8 @@ const defaultSkills: DefaultSkill[] = [
 
 import {
   SETUP_PROVIDERS,
+  type ProviderAccount,
+  type ProviderType,
   type ProviderTypeInfo,
   getProviderIconUrl,
   resolveProviderApiKeyForSave,
@@ -99,6 +101,12 @@ import {
   shouldInvertInDark,
   shouldShowProviderModelId,
 } from '@/lib/providers';
+import {
+  buildProviderAccountId,
+  fetchProviderSnapshot,
+  hasConfiguredCredentials,
+  pickPreferredAccount,
+} from '@/lib/provider-accounts';
 import clawxIcon from '@/assets/logo.svg';
 
 // Use the shared provider registry for setup providers
@@ -698,7 +706,7 @@ function ProviderContent({
   const [showKey, setShowKey] = useState(false);
   const [validating, setValidating] = useState(false);
   const [keyValid, setKeyValid] = useState<boolean | null>(null);
-  const [selectedProviderConfigId, setSelectedProviderConfigId] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
   const [modelId, setModelId] = useState('');
   const [providerMenuOpen, setProviderMenuOpen] = useState(false);
@@ -714,6 +722,7 @@ function ProviderContent({
     expiresIn: number;
   } | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
+  const pendingOAuthRef = useRef<{ accountId: string; label: string } | null>(null);
 
   // Manage OAuth events
   useEffect(() => {
@@ -722,22 +731,27 @@ function ProviderContent({
       setOauthError(null);
     };
 
-    const handleSuccess = async () => {
+    const handleSuccess = async (data: unknown) => {
       setOauthFlowing(false);
       setOauthData(null);
       setKeyValid(true);
 
-      if (selectedProvider) {
+      const payload = (data as { accountId?: string } | undefined) || undefined;
+      const accountId = payload?.accountId || pendingOAuthRef.current?.accountId;
+
+      if (accountId) {
         try {
-          await hostApiFetch('/api/providers/default', {
+          await hostApiFetch('/api/provider-accounts/default', {
             method: 'PUT',
-            body: JSON.stringify({ providerId: selectedProvider }),
+            body: JSON.stringify({ accountId }),
           });
+          setSelectedAccountId(accountId);
         } catch (error) {
-          console.error('Failed to set default provider:', error);
+          console.error('Failed to set default provider account:', error);
         }
       }
 
+      pendingOAuthRef.current = null;
       onConfiguredChange(true);
       toast.success(t('provider.valid'));
     };
@@ -745,6 +759,7 @@ function ProviderContent({
     const handleError = (data: unknown) => {
       setOauthError((data as { message: string }).message);
       setOauthData(null);
+      pendingOAuthRef.current = null;
     };
 
     const offCode = subscribeHostEvent('oauth:code', handleCode);
@@ -756,19 +771,19 @@ function ProviderContent({
       offSuccess();
       offError();
     };
-  }, [onConfiguredChange, t, selectedProvider]);
+  }, [onConfiguredChange, t]);
 
   const handleStartOAuth = async () => {
     if (!selectedProvider) return;
 
     try {
-      const list = await hostApiFetch<Array<{ type: string }>>('/api/providers');
-      const existingTypes = new Set(list.map(l => l.type));
-      if (selectedProvider === 'minimax-portal' && existingTypes.has('minimax-portal-cn')) {
+      const snapshot = await fetchProviderSnapshot();
+      const existingVendorIds = new Set(snapshot.accounts.map((account) => account.vendorId));
+      if (selectedProvider === 'minimax-portal' && existingVendorIds.has('minimax-portal-cn')) {
         toast.error(t('settings:aiProviders.toast.minimaxConflict'));
         return;
       }
-      if (selectedProvider === 'minimax-portal-cn' && existingTypes.has('minimax-portal')) {
+      if (selectedProvider === 'minimax-portal-cn' && existingVendorIds.has('minimax-portal')) {
         toast.error(t('settings:aiProviders.toast.minimaxConflict'));
         return;
       }
@@ -781,13 +796,22 @@ function ProviderContent({
     setOauthError(null);
 
     try {
+      const snapshot = await fetchProviderSnapshot();
+      const accountId = buildProviderAccountId(
+        selectedProvider as ProviderType,
+        selectedAccountId,
+        snapshot.vendors,
+      );
+      const label = selectedProviderData?.name || selectedProvider;
+      pendingOAuthRef.current = { accountId, label };
       await hostApiFetch('/api/providers/oauth/start', {
         method: 'POST',
-        body: JSON.stringify({ provider: selectedProvider }),
+        body: JSON.stringify({ provider: selectedProvider, accountId, label }),
       });
     } catch (e) {
       setOauthError(String(e));
       setOauthFlowing(false);
+      pendingOAuthRef.current = null;
     }
   };
 
@@ -795,6 +819,7 @@ function ProviderContent({
     setOauthFlowing(false);
     setOauthData(null);
     setOauthError(null);
+    pendingOAuthRef.current = null;
     await hostApiFetch('/api/providers/oauth/cancel', { method: 'POST' });
   };
 
@@ -803,29 +828,28 @@ function ProviderContent({
     let cancelled = false;
     (async () => {
       try {
-        const list = await hostApiFetch<Array<{ id: string; type: string; hasKey: boolean }>>('/api/providers');
-        const defaultInfo = await hostApiFetch<{ providerId: string | null }>('/api/providers/default');
-        const defaultId = defaultInfo.providerId;
+        const snapshot = await fetchProviderSnapshot();
+        const statusMap = new Map(snapshot.statuses.map((status) => [status.id, status]));
         const setupProviderTypes = new Set<string>(providers.map((p) => p.id));
-        const setupCandidates = list.filter((p) => setupProviderTypes.has(p.type));
+        const setupCandidates = snapshot.accounts.filter((account) => setupProviderTypes.has(account.vendorId));
         const preferred =
-          (defaultId && setupCandidates.find((p) => p.id === defaultId))
-          || setupCandidates.find((p) => p.hasKey)
+          (snapshot.defaultAccountId
+            && setupCandidates.find((account) => account.id === snapshot.defaultAccountId))
+          || setupCandidates.find((account) => hasConfiguredCredentials(account, statusMap.get(account.id)))
           || setupCandidates[0];
         if (preferred && !cancelled) {
-          onSelectProvider(preferred.type);
-          setSelectedProviderConfigId(preferred.id);
-          const typeInfo = providers.find((p) => p.id === preferred.type);
+          onSelectProvider(preferred.vendorId);
+          setSelectedAccountId(preferred.id);
+          const typeInfo = providers.find((p) => p.id === preferred.vendorId);
           const requiresKey = typeInfo?.requiresApiKey ?? false;
-          onConfiguredChange(!requiresKey || preferred.hasKey);
+          onConfiguredChange(!requiresKey || hasConfiguredCredentials(preferred, statusMap.get(preferred.id)));
           const storedKey = (await hostApiFetch<{ apiKey: string | null }>(
             `/api/providers/${encodeURIComponent(preferred.id)}/api-key`,
           )).apiKey;
-          if (storedKey) {
-            onApiKeyChange(storedKey);
-          }
+          onApiKeyChange(storedKey || '');
         } else if (!cancelled) {
           onConfiguredChange(false);
+          onApiKeyChange('');
         }
       } catch (error) {
         if (!cancelled) {
@@ -842,27 +866,25 @@ function ProviderContent({
     (async () => {
       if (!selectedProvider) return;
       try {
-        const list = await hostApiFetch<Array<{ id: string; type: string; hasKey: boolean }>>('/api/providers');
-        const defaultInfo = await hostApiFetch<{ providerId: string | null }>('/api/providers/default');
-        const defaultId = defaultInfo.providerId;
-        const sameType = list.filter((p) => p.type === selectedProvider);
-        const preferredInstance =
-          (defaultId && sameType.find((p) => p.id === defaultId))
-          || sameType.find((p) => p.hasKey)
-          || sameType[0];
-        const providerIdForLoad = preferredInstance?.id || selectedProvider;
-        setSelectedProviderConfigId(providerIdForLoad);
+        const snapshot = await fetchProviderSnapshot();
+        const statusMap = new Map(snapshot.statuses.map((status) => [status.id, status]));
+        const preferredAccount = pickPreferredAccount(
+          snapshot.accounts,
+          snapshot.defaultAccountId,
+          selectedProvider,
+          statusMap,
+        );
+        const accountIdForLoad = preferredAccount?.id || selectedProvider;
+        setSelectedAccountId(preferredAccount?.id || null);
 
         const savedProvider = await hostApiFetch<{ baseUrl?: string; model?: string } | null>(
-          `/api/providers/${encodeURIComponent(providerIdForLoad)}`,
+          `/api/providers/${encodeURIComponent(accountIdForLoad)}`,
         );
         const storedKey = (await hostApiFetch<{ apiKey: string | null }>(
-          `/api/providers/${encodeURIComponent(providerIdForLoad)}/api-key`,
+          `/api/providers/${encodeURIComponent(accountIdForLoad)}/api-key`,
         )).apiKey;
         if (!cancelled) {
-          if (storedKey) {
-            onApiKeyChange(storedKey);
-          }
+          onApiKeyChange(storedKey || '');
 
           const info = providers.find((p) => p.id === selectedProvider);
           setBaseUrl(savedProvider?.baseUrl || info?.defaultBaseUrl || '');
@@ -915,13 +937,13 @@ function ProviderContent({
     if (!selectedProvider) return;
 
     try {
-      const list = await hostApiFetch<Array<{ type: string }>>('/api/providers');
-      const existingTypes = new Set(list.map(l => l.type));
-      if (selectedProvider === 'minimax-portal' && existingTypes.has('minimax-portal-cn')) {
+      const snapshot = await fetchProviderSnapshot();
+      const existingVendorIds = new Set(snapshot.accounts.map((account) => account.vendorId));
+      if (selectedProvider === 'minimax-portal' && existingVendorIds.has('minimax-portal-cn')) {
         toast.error(t('settings:aiProviders.toast.minimaxConflict'));
         return;
       }
-      if (selectedProvider === 'minimax-portal-cn' && existingTypes.has('minimax-portal')) {
+      if (selectedProvider === 'minimax-portal-cn' && existingVendorIds.has('minimax-portal')) {
         toast.error(t('settings:aiProviders.toast.minimaxConflict'));
         return;
       }
@@ -938,7 +960,7 @@ function ProviderContent({
       if (isApiKeyRequired && apiKey) {
         const result = await window.electron.ipcRenderer.invoke(
           'provider:validateKey',
-          selectedProviderConfigId || selectedProvider,
+          selectedAccountId || selectedProvider,
           apiKey,
           { baseUrl: baseUrl.trim() || undefined }
         ) as { valid: boolean; error?: string };
@@ -959,46 +981,70 @@ function ProviderContent({
         modelId,
         devModeUnlocked
       );
-
-      const providerIdForSave =
-        selectedProvider === 'custom'
-          ? (selectedProviderConfigId?.startsWith('custom-')
-            ? selectedProviderConfigId
-            : `custom-${crypto.randomUUID()}`)
-          : selectedProvider;
+      const snapshot = await fetchProviderSnapshot();
+      const accountIdForSave = buildProviderAccountId(
+        selectedProvider as ProviderType,
+        selectedAccountId,
+        snapshot.vendors,
+      );
 
       const effectiveApiKey = resolveProviderApiKeyForSave(selectedProvider, apiKey);
+      const accountPayload: ProviderAccount = {
+        id: accountIdForSave,
+        vendorId: selectedProvider as ProviderType,
+        label: selectedProvider === 'custom'
+          ? t('settings:aiProviders.custom')
+          : (selectedProviderData?.name || selectedProvider),
+        authMode: selectedProvider === 'ollama'
+          ? 'local'
+          : 'api_key',
+        baseUrl: baseUrl.trim() || undefined,
+        model: effectiveModelId,
+        enabled: true,
+        isDefault: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-      // Save provider config + API key, then set as default
-      const saveResult = await window.electron.ipcRenderer.invoke(
-        'provider:save',
-        {
-          id: providerIdForSave,
-          name: selectedProvider === 'custom' ? t('settings:aiProviders.custom') : (selectedProviderData?.name || selectedProvider),
-          type: selectedProvider,
-          baseUrl: baseUrl.trim() || undefined,
-          model: effectiveModelId,
-          enabled: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        effectiveApiKey
-      ) as { success: boolean; error?: string };
+      const saveResult = selectedAccountId
+        ? await hostApiFetch<{ success: boolean; error?: string }>(
+          `/api/provider-accounts/${encodeURIComponent(accountIdForSave)}`,
+          {
+            method: 'PUT',
+            body: JSON.stringify({
+              updates: {
+                label: accountPayload.label,
+                authMode: accountPayload.authMode,
+                baseUrl: accountPayload.baseUrl,
+                model: accountPayload.model,
+                enabled: accountPayload.enabled,
+              },
+              apiKey: effectiveApiKey,
+            }),
+          },
+        )
+        : await hostApiFetch<{ success: boolean; error?: string }>('/api/provider-accounts', {
+          method: 'POST',
+          body: JSON.stringify({ account: accountPayload, apiKey: effectiveApiKey }),
+        });
 
       if (!saveResult.success) {
         throw new Error(saveResult.error || 'Failed to save provider config');
       }
 
-      const defaultResult = await window.electron.ipcRenderer.invoke(
-        'provider:setDefault',
-        providerIdForSave
-      ) as { success: boolean; error?: string };
+      const defaultResult = await hostApiFetch<{ success: boolean; error?: string }>(
+        '/api/provider-accounts/default',
+        {
+          method: 'PUT',
+          body: JSON.stringify({ accountId: accountIdForSave }),
+        },
+      );
 
       if (!defaultResult.success) {
         throw new Error(defaultResult.error || 'Failed to set default provider');
       }
 
-      setSelectedProviderConfigId(providerIdForSave);
+      setSelectedAccountId(accountIdForSave);
       onConfiguredChange(true);
       toast.success(t('provider.valid'));
     } catch (error) {
@@ -1020,7 +1066,7 @@ function ProviderContent({
 
   const handleSelectProvider = (providerId: string) => {
     onSelectProvider(providerId);
-    setSelectedProviderConfigId(null);
+    setSelectedAccountId(null);
     onConfiguredChange(false);
     onApiKeyChange('');
     setKeyValid(null);

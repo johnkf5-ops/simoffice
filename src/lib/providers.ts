@@ -74,6 +74,48 @@ export interface ProviderTypeInfo {
   apiKeyUrl?: string;
 }
 
+export type ProviderAuthMode =
+  | 'api_key'
+  | 'oauth_device'
+  | 'oauth_browser'
+  | 'local';
+
+export type ProviderVendorCategory =
+  | 'official'
+  | 'compatible'
+  | 'local'
+  | 'custom';
+
+export interface ProviderVendorInfo extends ProviderTypeInfo {
+  category: ProviderVendorCategory;
+  envVar?: string;
+  supportedAuthModes: ProviderAuthMode[];
+  defaultAuthMode: ProviderAuthMode;
+  supportsMultipleAccounts: boolean;
+}
+
+export interface ProviderAccount {
+  id: string;
+  vendorId: ProviderType;
+  label: string;
+  authMode: ProviderAuthMode;
+  baseUrl?: string;
+  apiProtocol?: 'openai-completions' | 'openai-responses' | 'anthropic-messages';
+  model?: string;
+  fallbackModels?: string[];
+  fallbackAccountIds?: string[];
+  enabled: boolean;
+  isDefault: boolean;
+  metadata?: {
+    region?: string;
+    email?: string;
+    resourceUrl?: string;
+    customModels?: string[];
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 import { providerIcons } from '@/assets/providers';
 
 /** All supported provider types with UI metadata */
