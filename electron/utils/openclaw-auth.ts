@@ -376,7 +376,10 @@ export async function setOpenClawDefaultModel(
 ): Promise<void> {
   const config = await readOpenClawJson();
 
-  const model = modelOverride || getProviderDefaultModel(provider);
+  const rawModel = modelOverride || getProviderDefaultModel(provider);
+  const model = rawModel
+    ? (rawModel.startsWith(`${provider}/`) ? rawModel : `${provider}/${rawModel}`)
+    : undefined;
   if (!model) {
     console.warn(`No default model mapping for provider "${provider}"`);
     return;
@@ -534,7 +537,10 @@ export async function setOpenClawDefaultModelWithOverride(
 ): Promise<void> {
   const config = await readOpenClawJson();
 
-  const model = modelOverride || getProviderDefaultModel(provider);
+  const rawModel = modelOverride || getProviderDefaultModel(provider);
+  const model = rawModel
+    ? (rawModel.startsWith(`${provider}/`) ? rawModel : `${provider}/${rawModel}`)
+    : undefined;
   if (!model) {
     console.warn(`No default model mapping for provider "${provider}"`);
     return;

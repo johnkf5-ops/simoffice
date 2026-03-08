@@ -56,7 +56,14 @@ export function getProviderModelRef(config: ProviderConfig): string | undefined 
       : `${providerKey}/${config.model}`;
   }
 
-  return getProviderDefaultModel(config.type);
+  const defaultModel = getProviderDefaultModel(config.type);
+  if (!defaultModel) {
+    return undefined;
+  }
+
+  return defaultModel.startsWith(`${providerKey}/`)
+    ? defaultModel
+    : `${providerKey}/${defaultModel}`;
 }
 
 export async function getProviderFallbackModelRefs(config: ProviderConfig): Promise<string[]> {

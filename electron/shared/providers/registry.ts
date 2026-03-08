@@ -63,7 +63,6 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     model: 'Multi-Model',
     requiresApiKey: true,
     showModelId: true,
-    showModelIdInDevModeOnly: true,
     modelIdPlaceholder: 'anthropic/claude-opus-4.6',
     defaultModelId: 'anthropic/claude-opus-4.6',
     category: 'compatible',
