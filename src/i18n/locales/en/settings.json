@@ -85,6 +85,7 @@
       "cancel": "Cancel",
       "codeCopied": "Code copied to clipboard",
       "authFailed": "Authentication Failed",
+      "browserFlowUnavailable": "Browser OAuth is not wired for this provider yet.",
       "tryAgain": "Try Again",
       "approveLogin": "Approve Login",
       "step1": "Copy the authorization code below.",

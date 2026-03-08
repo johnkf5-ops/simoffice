@@ -90,17 +90,17 @@ export function ProvidersSettings() {
   const { t } = useTranslation('settings');
   const devModeUnlocked = useSettingsStore((state) => state.devModeUnlocked);
   const {
-    providers,
+    statuses,
     accounts,
     vendors,
     defaultAccountId,
     loading,
-    fetchProviders,
-    addAccount,
-    deleteAccount,
+    refreshProviderSnapshot,
+    createAccount,
+    removeAccount,
     updateAccount,
     setDefaultAccount,
-    validateApiKey,
+    validateAccountApiKey,
   } = useProviderStore();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -108,14 +108,14 @@ export function ProvidersSettings() {
   const vendorMap = new Map(vendors.map((vendor) => [vendor.id, vendor]));
   const existingVendorIds = new Set(accounts.map((account) => account.vendorId));
   const displayProviders = useMemo(
-    () => buildProviderListItems(accounts, providers, vendors, defaultAccountId),
-    [accounts, providers, vendors, defaultAccountId],
+    () => buildProviderListItems(accounts, statuses, vendors, defaultAccountId),
+    [accounts, statuses, vendors, defaultAccountId],
   );
 
   // Fetch providers on mount
   useEffect(() => {
-    fetchProviders();
-  }, [fetchProviders]);
+    refreshProviderSnapshot();
+  }, [refreshProviderSnapshot]);
 
   const handleAddProvider = async (
     type: ProviderType,
@@ -127,7 +127,7 @@ export function ProvidersSettings() {
     const id = buildProviderAccountId(type, null, vendors);
     const effectiveApiKey = resolveProviderApiKeyForSave(type, apiKey);
     try {
-      await addAccount({
+      await createAccount({
         id,
         vendorId: type,
         label: name,
@@ -155,7 +155,7 @@ export function ProvidersSettings() {
 
   const handleDeleteProvider = async (providerId: string) => {
     try {
-      await deleteAccount(providerId);
+      await removeAccount(providerId);
       toast.success(t('aiProviders.toast.deleted'));
     } catch (error) {
       toast.error(`${t('aiProviders.toast.failedDelete')}: ${error}`);
@@ -177,7 +177,7 @@ export function ProvidersSettings() {
         <ProviderAccountsOverview
           accounts={accounts}
           vendors={vendors}
-          defaultProviderId={defaultAccountId}
+          defaultAccountId={defaultAccountId}
         />
       )}
 
@@ -236,7 +236,7 @@ export function ProvidersSettings() {
                 );
                 setEditingProvider(null);
               }}
-              onValidateKey={(key, options) => validateApiKey(item.account.id, key, options)}
+              onValidateKey={(key, options) => validateAccountApiKey(item.account.id, key, options)}
               devModeUnlocked={devModeUnlocked}
             />
           ))}
@@ -250,7 +250,7 @@ export function ProvidersSettings() {
           vendors={vendors}
           onClose={() => setShowAddDialog(false)}
           onAdd={handleAddProvider}
-          onValidateKey={(type, key, options) => validateApiKey(type, key, options)}
+          onValidateKey={(type, key, options) => validateAccountApiKey(type, key, options)}
           devModeUnlocked={devModeUnlocked}
         />
       )}
@@ -261,11 +261,11 @@ export function ProvidersSettings() {
 function ProviderAccountsOverview({
   accounts,
   vendors,
-  defaultProviderId,
+  defaultAccountId,
 }: {
   accounts: ProviderAccount[];
   vendors: ProviderVendorInfo[];
-  defaultProviderId: string | null;
+  defaultAccountId: string | null;
 }) {
   const vendorMap = new Map(vendors.map((vendor) => [vendor.id, vendor]));
 
@@ -291,7 +291,7 @@ function ProviderAccountsOverview({
                   <span className="font-medium truncate">{account.label}</span>
                   <Badge variant="secondary">{vendor?.name || account.vendorId}</Badge>
                   <Badge variant="outline">{getAuthModeLabel(account.authMode)}</Badge>
-                  {account.id === defaultProviderId || account.isDefault ? (
+                  {account.id === defaultAccountId || account.isDefault ? (
                     <Badge>Default</Badge>
                   ) : null}
                 </div>
@@ -739,6 +739,12 @@ function AddProviderDialog({
   const isOAuth = typeInfo?.isOAuth ?? false;
   const supportsApiKey = typeInfo?.supportsApiKey ?? false;
   const vendorMap = new Map(vendors.map((vendor) => [vendor.id, vendor]));
+  const selectedVendor = selectedType ? vendorMap.get(selectedType) : undefined;
+  const preferredOAuthMode = selectedVendor?.supportedAuthModes.includes('oauth_browser')
+    ? 'oauth_browser'
+    : (selectedVendor?.supportedAuthModes.includes('oauth_device')
+      ? 'oauth_device'
+      : (selectedType === 'google' ? 'oauth_browser' : null));
   // Effective OAuth mode: pure OAuth providers, or dual-mode with oauth selected
   const useOAuthFlow = isOAuth && (!supportsApiKey || authMode === 'oauth');
 
@@ -771,7 +777,7 @@ function AddProviderDialog({
       // So we just fetch the latest list from the backend to update the UI.
       try {
         const store = useProviderStore.getState();
-        await store.fetchProviders();
+        await store.refreshProviderSnapshot();
 
         // Auto-set as default if no default is currently configured
         if (!store.defaultAccountId && accountId) {
@@ -902,7 +908,7 @@ function AddProviderDialog({
         {
           baseUrl: baseUrl.trim() || undefined,
           model: resolveProviderModelForSave(typeInfo, modelId, devModeUnlocked),
-          authMode: useOAuthFlow ? 'oauth_device' : selectedType === 'ollama'
+          authMode: useOAuthFlow ? (preferredOAuthMode || 'oauth_device') : selectedType === 'ollama'
             ? 'local'
             : (isOAuth && supportsApiKey && authMode === 'apikey')
               ? 'api_key'

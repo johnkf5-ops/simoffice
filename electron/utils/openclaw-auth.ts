@@ -20,6 +20,15 @@ import {
 
 const AUTH_STORE_VERSION = 1;
 const AUTH_PROFILE_FILENAME = 'auth-profiles.json';
+const OAUTH_PROVIDERS = ['qwen-portal', 'minimax-portal', 'minimax-portal-cn', 'google-gemini-cli'];
+
+function shouldEnableOAuthPlugin(provider: string): boolean {
+  return provider === 'minimax-portal' || provider === 'qwen-portal' || provider === 'google-gemini-cli';
+}
+
+function getOAuthPluginId(provider: string): string {
+  return `${provider}-auth`;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -71,6 +80,8 @@ interface OAuthProfileEntry {
   access: string;
   refresh: string;
   expires: number;
+  email?: string;
+  projectId?: string;
 }
 
 interface AuthProfilesStore {
@@ -141,7 +152,7 @@ async function writeOpenClawJson(config: Record<string, unknown>): Promise<void>
  */
 export async function saveOAuthTokenToOpenClaw(
   provider: string,
-  token: { access: string; refresh: string; expires: number },
+  token: { access: string; refresh: string; expires: number; email?: string; projectId?: string },
   agentId?: string
 ): Promise<void> {
   const agentIds = agentId ? [agentId] : await discoverAgentIds();
@@ -157,6 +168,8 @@ export async function saveOAuthTokenToOpenClaw(
       access: token.access,
       refresh: token.refresh,
       expires: token.expires,
+      email: token.email,
+      projectId: token.projectId,
     };
 
     if (!store.order) store.order = {};
@@ -207,7 +220,6 @@ export async function saveProviderKeyToOpenClaw(
   apiKey: string,
   agentId?: string
 ): Promise<void> {
-  const OAUTH_PROVIDERS = ['qwen-portal', 'minimax-portal', 'minimax-portal-cn'];
   if (OAUTH_PROVIDERS.includes(provider) && !apiKey) {
     console.log(`Skipping auth-profiles write for OAuth provider "${provider}" (no API key provided, using OAuth)`);
     return;
@@ -242,7 +254,6 @@ export async function removeProviderKeyFromOpenClaw(
   provider: string,
   agentId?: string
 ): Promise<void> {
-  const OAUTH_PROVIDERS = ['qwen-portal', 'minimax-portal', 'minimax-portal-cn'];
   if (OAUTH_PROVIDERS.includes(provider)) {
     console.log(`Skipping auth-profiles removal for OAuth provider "${provider}" (managed by OpenClaw plugin)`);
     return;
@@ -495,10 +506,16 @@ export async function syncProviderConfigToOpenClaw(
   }
 
   // Ensure extension is enabled for oauth providers to prevent gateway wiping config
-  if (provider === 'minimax-portal' || provider === 'qwen-portal') {
+  if (shouldEnableOAuthPlugin(provider)) {
     const plugins = (config.plugins || {}) as Record<string, unknown>;
+    const allow = Array.isArray(plugins.allow) ? [...plugins.allow as string[]] : [];
     const pEntries = (plugins.entries || {}) as Record<string, unknown>;
-    pEntries[`${provider}-auth`] = { enabled: true };
+    const pluginId = getOAuthPluginId(provider);
+    if (!allow.includes(pluginId)) {
+      allow.push(pluginId);
+    }
+    pEntries[pluginId] = { enabled: true };
+    plugins.allow = allow;
     plugins.entries = pEntries;
     config.plugins = plugins;
   }
@@ -573,10 +590,16 @@ export async function setOpenClawDefaultModelWithOverride(
   config.gateway = gateway;
 
   // Ensure the extension plugin is marked as enabled in openclaw.json
-  if (provider === 'minimax-portal' || provider === 'qwen-portal') {
+  if (shouldEnableOAuthPlugin(provider)) {
     const plugins = (config.plugins || {}) as Record<string, unknown>;
+    const allow = Array.isArray(plugins.allow) ? [...plugins.allow as string[]] : [];
     const pEntries = (plugins.entries || {}) as Record<string, unknown>;
-    pEntries[`${provider}-auth`] = { enabled: true };
+    const pluginId = getOAuthPluginId(provider);
+    if (!allow.includes(pluginId)) {
+      allow.push(pluginId);
+    }
+    pEntries[pluginId] = { enabled: true };
+    plugins.allow = allow;
     plugins.entries = pEntries;
     config.plugins = plugins;
   }

@@ -35,6 +35,7 @@ import { updateSkillConfig, getSkillConfig, getAllSkillConfigs } from '../utils/
 import { whatsAppLoginManager } from '../utils/whatsapp-login';
 import { getProviderConfig } from '../utils/provider-registry';
 import { deviceOAuthManager, OAuthProviderType } from '../utils/device-oauth';
+import { browserOAuthManager, type BrowserOAuthProviderType } from '../utils/browser-oauth';
 import { applyProxySettings } from './proxy';
 import { getRecentTokenUsageHistory } from '../utils/token-usage';
 import { getProviderService } from '../services/providers/provider-service';
@@ -892,19 +893,24 @@ function registerWhatsAppHandlers(mainWindow: BrowserWindow): void {
  */
 function registerDeviceOAuthHandlers(mainWindow: BrowserWindow): void {
   deviceOAuthManager.setWindow(mainWindow);
+  browserOAuthManager.setWindow(mainWindow);
 
   // Request Provider OAuth initialization
   ipcMain.handle(
     'provider:requestOAuth',
     async (
       _,
-      provider: OAuthProviderType,
+      provider: OAuthProviderType | BrowserOAuthProviderType,
       region?: 'global' | 'cn',
       options?: { accountId?: string; label?: string },
     ) => {
     try {
       logger.info(`provider:requestOAuth for ${provider}`);
-      await deviceOAuthManager.startFlow(provider, region, options);
+      if (provider === 'google') {
+        await browserOAuthManager.startFlow(provider, options);
+      } else {
+        await deviceOAuthManager.startFlow(provider, region, options);
+      }
       return { success: true };
     } catch (error) {
       logger.error('provider:requestOAuth failed', error);
@@ -917,6 +923,7 @@ function registerDeviceOAuthHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('provider:cancelOAuth', async () => {
     try {
       await deviceOAuthManager.stopFlow();
+      await browserOAuthManager.stopFlow();
       return { success: true };
     } catch (error) {
       logger.error('provider:cancelOAuth failed', error);
@@ -937,6 +944,10 @@ function registerProviderHandlers(gatewayManager: GatewayManager): void {
   // restart.  Without this, the OAuth restart fires first with stale config, and the
   // subsequent provider:setDefault restart is deferred and dropped.
   deviceOAuthManager.on('oauth:success', ({ provider, accountId }) => {
+    logger.info(`[IPC] Scheduling Gateway restart after ${provider} OAuth success for ${accountId}...`);
+    gatewayManager.debouncedRestart(8000);
+  });
+  browserOAuthManager.on('oauth:success', ({ provider, accountId }) => {
     logger.info(`[IPC] Scheduling Gateway restart after ${provider} OAuth success for ${accountId}...`);
     gatewayManager.debouncedRestart(8000);
   });

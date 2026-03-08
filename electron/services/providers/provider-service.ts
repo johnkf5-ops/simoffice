@@ -55,6 +55,7 @@ export class ProviderService {
   async createAccount(account: ProviderAccount, apiKey?: string): Promise<ProviderAccount> {
     await ensureProviderStoreMigrated();
     await saveProvider(providerAccountToConfig(account));
+    await saveProviderAccount(account);
     if (apiKey !== undefined && apiKey.trim()) {
       await storeApiKey(account.id, apiKey.trim());
     }
@@ -80,6 +81,7 @@ export class ProviderService {
     };
 
     await saveProvider(providerAccountToConfig(nextAccount));
+    await saveProviderAccount(nextAccount);
     if (apiKey !== undefined) {
       const trimmedKey = apiKey.trim();
       if (trimmedKey) {

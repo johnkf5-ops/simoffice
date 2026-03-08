@@ -16,6 +16,7 @@ import {
   getProviderConfig,
 } from '../../utils/provider-registry';
 import { deviceOAuthManager, type OAuthProviderType } from '../../utils/device-oauth';
+import { browserOAuthManager, type BrowserOAuthProviderType } from '../../utils/browser-oauth';
 import type { HostApiContext } from '../context';
 import { parseJsonBody, sendJson } from '../route-utils';
 import {
@@ -106,14 +107,26 @@ export async function handleProviderRoutes(
     const accountId = decodeURIComponent(url.pathname.slice('/api/provider-accounts/'.length));
     try {
       const existing = await providerService.getAccount(accountId);
+      const runtimeProviderKey = existing?.vendorId === 'google' && existing.authMode === 'oauth_browser'
+        ? 'google-gemini-cli'
+        : undefined;
       if (url.searchParams.get('apiKeyOnly') === '1') {
         await providerService.deleteLegacyProviderApiKey(accountId);
-        await syncDeletedProviderApiKeyToRuntime(existing ? providerAccountToConfig(existing) : null, accountId);
+        await syncDeletedProviderApiKeyToRuntime(
+          existing ? providerAccountToConfig(existing) : null,
+          accountId,
+          runtimeProviderKey,
+        );
         sendJson(res, 200, { success: true });
         return true;
       }
       await providerService.deleteAccount(accountId);
-      await syncDeletedProviderToRuntime(existing ? providerAccountToConfig(existing) : null, accountId, ctx.gatewayManager);
+      await syncDeletedProviderToRuntime(
+        existing ? providerAccountToConfig(existing) : null,
+        accountId,
+        ctx.gatewayManager,
+        runtimeProviderKey,
+      );
       sendJson(res, 200, { success: true });
     } catch (error) {
       sendJson(res, 500, { success: false, error: String(error) });
@@ -160,15 +173,22 @@ export async function handleProviderRoutes(
   if (url.pathname === '/api/providers/oauth/start' && req.method === 'POST') {
     try {
       const body = await parseJsonBody<{
-        provider: OAuthProviderType;
+        provider: OAuthProviderType | BrowserOAuthProviderType;
         region?: 'global' | 'cn';
         accountId?: string;
         label?: string;
       }>(req);
-      await deviceOAuthManager.startFlow(body.provider, body.region, {
-        accountId: body.accountId,
-        label: body.label,
-      });
+      if (body.provider === 'google') {
+        await browserOAuthManager.startFlow(body.provider, {
+          accountId: body.accountId,
+          label: body.label,
+        });
+      } else {
+        await deviceOAuthManager.startFlow(body.provider, body.region, {
+          accountId: body.accountId,
+          label: body.label,
+        });
+      }
       sendJson(res, 200, { success: true });
     } catch (error) {
       sendJson(res, 500, { success: false, error: String(error) });
@@ -179,6 +199,7 @@ export async function handleProviderRoutes(
   if (url.pathname === '/api/providers/oauth/cancel' && req.method === 'POST') {
     try {
       await deviceOAuthManager.stopFlow();
+      await browserOAuthManager.stopFlow();
       sendJson(res, 200, { success: true });
     } catch (error) {
       sendJson(res, 500, { success: false, error: String(error) });

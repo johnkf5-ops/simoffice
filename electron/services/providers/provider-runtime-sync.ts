@@ -1,9 +1,12 @@
 import type { GatewayManager } from '../../gateway/manager';
+import { getProviderAccount } from './provider-store';
+import { getProviderSecret } from '../secrets/secret-store';
 import type { ProviderConfig } from '../../utils/secure-storage';
 import { getAllProviders, getApiKey, getDefaultProvider, getProvider } from '../../utils/secure-storage';
 import { getProviderConfig, getProviderDefaultModel } from '../../utils/provider-registry';
 import {
   removeProviderFromOpenClaw,
+  saveOAuthTokenToOpenClaw,
   saveProviderKeyToOpenClaw,
   setOpenClawDefaultModel,
   setOpenClawDefaultModelWithOverride,
@@ -11,6 +14,9 @@ import {
   updateAgentModelProvider,
 } from '../../utils/openclaw-auth';
 import { logger } from '../../utils/logger';
+
+const GOOGLE_OAUTH_RUNTIME_PROVIDER = 'google-gemini-cli';
+const GOOGLE_OAUTH_DEFAULT_MODEL_REF = `${GOOGLE_OAUTH_RUNTIME_PROVIDER}/gemini-3-pro-preview`;
 
 export function getOpenClawProviderKey(type: string, providerId: string): string {
   if (type === 'custom' || type === 'ollama') {
@@ -21,6 +27,24 @@ export function getOpenClawProviderKey(type: string, providerId: string): string
     return 'minimax-portal';
   }
   return type;
+}
+
+async function resolveRuntimeProviderKey(config: ProviderConfig): Promise<string> {
+  const account = await getProviderAccount(config.id);
+  if (config.type === 'google' && account?.authMode === 'oauth_browser') {
+    return GOOGLE_OAUTH_RUNTIME_PROVIDER;
+  }
+  return getOpenClawProviderKey(config.type, config.id);
+}
+
+async function isGoogleBrowserOAuthProvider(config: ProviderConfig): Promise<boolean> {
+  const account = await getProviderAccount(config.id);
+  if (config.type !== 'google' || account?.authMode !== 'oauth_browser') {
+    return false;
+  }
+
+  const secret = await getProviderSecret(config.id);
+  return secret?.type === 'oauth';
 }
 
 export function getProviderModelRef(config: ProviderConfig): string | undefined {
@@ -201,12 +225,13 @@ export async function syncDeletedProviderToRuntime(
   provider: ProviderConfig | null,
   providerId: string,
   gatewayManager?: GatewayManager,
+  runtimeProviderKey?: string,
 ): Promise<void> {
   if (!provider?.type) {
     return;
   }
 
-  const ock = getOpenClawProviderKey(provider.type, providerId);
+  const ock = runtimeProviderKey ?? await resolveRuntimeProviderKey({ ...provider, id: providerId });
   await removeProviderFromOpenClaw(ock);
 
   scheduleGatewayRestart(
@@ -218,12 +243,13 @@ export async function syncDeletedProviderToRuntime(
 export async function syncDeletedProviderApiKeyToRuntime(
   provider: ProviderConfig | null,
   providerId: string,
+  runtimeProviderKey?: string,
 ): Promise<void> {
   if (!provider?.type) {
     return;
   }
 
-  const ock = getOpenClawProviderKey(provider.type, providerId);
+  const ock = runtimeProviderKey ?? await resolveRuntimeProviderKey({ ...provider, id: providerId });
   await removeProviderFromOpenClaw(ock);
 }
 
@@ -236,11 +262,12 @@ export async function syncDefaultProviderToRuntime(
     return;
   }
 
-  const ock = getOpenClawProviderKey(provider.type, providerId);
+  const ock = await resolveRuntimeProviderKey(provider);
   const providerKey = await getApiKey(providerId);
   const fallbackModels = await getProviderFallbackModelRefs(provider);
   const oauthTypes = ['qwen-portal', 'minimax-portal', 'minimax-portal-cn'];
-  const isOAuthProvider = oauthTypes.includes(provider.type) && !providerKey;
+  const isGoogleOAuthProvider = await isGoogleBrowserOAuthProvider(provider);
+  const isOAuthProvider = (oauthTypes.includes(provider.type) && !providerKey) || isGoogleOAuthProvider;
 
   if (!isOAuthProvider) {
     const modelOverride = provider.model
@@ -260,6 +287,33 @@ export async function syncDefaultProviderToRuntime(
       await saveProviderKeyToOpenClaw(ock, providerKey);
     }
   } else {
+    if (isGoogleOAuthProvider) {
+      const secret = await getProviderSecret(provider.id);
+      if (secret?.type === 'oauth') {
+        await saveOAuthTokenToOpenClaw(GOOGLE_OAUTH_RUNTIME_PROVIDER, {
+          access: secret.accessToken,
+          refresh: secret.refreshToken,
+          expires: secret.expiresAt,
+          email: secret.email,
+          projectId: secret.subject,
+        });
+      }
+
+      const modelOverride = provider.model
+        ? (provider.model.startsWith(`${GOOGLE_OAUTH_RUNTIME_PROVIDER}/`)
+          ? provider.model
+          : `${GOOGLE_OAUTH_RUNTIME_PROVIDER}/${provider.model}`)
+        : GOOGLE_OAUTH_DEFAULT_MODEL_REF;
+
+      await setOpenClawDefaultModel(GOOGLE_OAUTH_RUNTIME_PROVIDER, modelOverride, fallbackModels);
+      logger.info(`Configured openclaw.json for Google browser OAuth provider "${provider.id}"`);
+      scheduleGatewayRestart(
+        gatewayManager,
+        `Scheduling Gateway restart after provider switch to "${GOOGLE_OAUTH_RUNTIME_PROVIDER}"`,
+      );
+      return;
+    }
+
     const defaultBaseUrl = provider.type === 'minimax-portal'
       ? 'https://api.minimax.io/anthropic'
       : (provider.type === 'minimax-portal-cn' ? 'https://api.minimaxi.com/anthropic' : 'https://portal.qwen.ai/v1');

@@ -84,6 +84,7 @@
       "cancel": "キャンセル",
       "codeCopied": "コードをクリップボードにコピーしました",
       "authFailed": "認証に失敗しました",
+      "browserFlowUnavailable": "このプロバイダーのブラウザ OAuth はまだ接続されていません。",
       "tryAgain": "再試行",
       "approveLogin": "ログインを承認",
       "step1": "以下の認証コードをコピーしてください。",

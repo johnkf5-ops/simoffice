@@ -24,6 +24,7 @@ import { ensureBuiltinSkillsInstalled } from '../utils/skill-config';
 import { startHostApiServer } from '../api/server';
 import { HostEventBus } from '../api/event-bus';
 import { deviceOAuthManager } from '../utils/device-oauth';
+import { browserOAuthManager } from '../utils/browser-oauth';
 import { whatsAppLoginManager } from '../utils/whatsapp-login';
 
 // Disable GPU hardware acceleration globally for maximum stability across
@@ -274,6 +275,18 @@ async function initialize(): Promise<void> {
   });
 
   deviceOAuthManager.on('oauth:error', (error) => {
+    hostEventBus.emit('oauth:error', error);
+  });
+
+  browserOAuthManager.on('oauth:start', (payload) => {
+    hostEventBus.emit('oauth:start', payload);
+  });
+
+  browserOAuthManager.on('oauth:success', (payload) => {
+    hostEventBus.emit('oauth:success', { ...payload, success: true });
+  });
+
+  browserOAuthManager.on('oauth:error', (error) => {
     hostEventBus.emit('oauth:error', error);
   });
 

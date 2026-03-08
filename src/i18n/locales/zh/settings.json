@@ -85,6 +85,7 @@
       "cancel": "取消",
       "codeCopied": "代码已复制到剪贴板",
       "authFailed": "认证失败",
+      "browserFlowUnavailable": "该提供商的浏览器 OAuth 登录链路暂未接通。",
       "tryAgain": "重试",
       "approveLogin": "确认登录",
       "step1": "复制下方的授权码。",
