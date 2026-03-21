@@ -57,16 +57,21 @@ export function Onboarding() {
   const [buildingTeam, setBuildingTeam] = useState(false);
   const [agentCatalog, setAgentCatalog] = useState<Array<{ id: string; category: string; name: string; role: string; path: string }>>([]);
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
+  const [soulTemplates, setSoulTemplates] = useState<Record<string, string>>({});
 
   const providerData = SETUP_PROVIDERS.find(p => p.id === selectedProvider);
   const needsKey = providerData?.requiresApiKey ?? true;
   const docsUrl = providerData ? getProviderDocsUrl(providerData, 'en') : null;
 
-  // Load agent catalog
+  // Load agent catalog + soul templates
   useEffect(() => {
     fetch('/agent-templates.json')
       .then(r => r.json())
       .then(data => setAgentCatalog(data.agents || []))
+      .catch(() => {});
+    fetch('/agent-souls.json')
+      .then(r => r.json())
+      .then(data => setSoulTemplates(data || {}))
       .catch(() => {});
   }, []);
 
@@ -548,8 +553,20 @@ export function Onboarding() {
                     const agent = agentCatalog.find(a => a.id === agentId);
                     if (agent) {
                       const name = agent.name || agent.id.replace(/-/g, ' ');
+                      const displayName = name.charAt(0).toUpperCase() + name.slice(1);
                       try {
-                        await createAgent(name.charAt(0).toUpperCase() + name.slice(1));
+                        await createAgent(displayName);
+                        // Find the newly created agent to get its actual ID
+                        const updatedAgents = useAgentsStore.getState().agents;
+                        const created = updatedAgents.find(a => a.name === displayName);
+                        // Write SOUL.md template if available
+                        const soul = soulTemplates[agentId];
+                        if (soul && created) {
+                          await hostApiFetch(`/api/agents/${encodeURIComponent(created.id)}/soul`, {
+                            method: 'PUT',
+                            body: JSON.stringify({ content: soul }),
+                          });
+                        }
                       } catch { /* skip if already exists */ }
                     }
                   }

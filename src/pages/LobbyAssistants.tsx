@@ -9,6 +9,7 @@ import { useGatewayStore } from '@/stores/gateway';
 import { useChatStore } from '@/stores/chat';
 import { StatusDot } from '@/components/common/StatusDot';
 import { CATEGORY_LABELS } from '@/lib/career-templates';
+import { hostApiFetch } from '@/lib/host-api';
 
 export function LobbyAssistants() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export function LobbyAssistants() {
 
   // Template catalog
   const [catalog, setCatalog] = useState<Array<{ id: string; category: string; name: string; role: string; path: string }>>([]);
+  const [soulTemplates, setSoulTemplates] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [showCatalog, setShowCatalog] = useState(false);
@@ -43,6 +45,10 @@ export function LobbyAssistants() {
     fetch('/agent-templates.json')
       .then(r => r.json())
       .then(data => setCatalog(data.agents || []))
+      .catch(() => {});
+    fetch('/agent-souls.json')
+      .then(r => r.json())
+      .then(data => setSoulTemplates(data || {}))
       .catch(() => {});
   }, []);
 
@@ -59,8 +65,20 @@ export function LobbyAssistants() {
 
   const handleAddFromCatalog = async (agent: { id: string; name: string }) => {
     const name = agent.name || agent.id.replace(/-/g, ' ');
+    const displayName = name.charAt(0).toUpperCase() + name.slice(1);
     try {
-      await createAgent(name.charAt(0).toUpperCase() + name.slice(1));
+      await createAgent(displayName);
+      // Find the newly created agent to get its actual ID
+      const updatedAgents = useAgentsStore.getState().agents;
+      const created = updatedAgents.find(a => a.name === displayName);
+      // Write SOUL.md template if available
+      const soul = soulTemplates[agent.id];
+      if (soul && created) {
+        await hostApiFetch(`/api/agents/${encodeURIComponent(created.id)}/soul`, {
+          method: 'PUT',
+          body: JSON.stringify({ content: soul }),
+        });
+      }
       await fetchAgents();
     } catch { /* handled by store */ }
   };

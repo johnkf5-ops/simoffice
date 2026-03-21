@@ -86,7 +86,9 @@ export const useAgentsStore = create<AgentsState>((set) => ({
   },
 
   deleteAgent: async (agentId: string) => {
-    set({ error: null });
+    // Optimistically remove from local state immediately — prevents flicker
+    const prevAgents = useAgentsStore.getState().agents;
+    set({ error: null, agents: prevAgents.filter(a => a.id !== agentId) });
     try {
       const snapshot = await hostApiFetch<AgentsSnapshot & { success?: boolean }>(
         `/api/agents/${encodeURIComponent(agentId)}`,
@@ -94,7 +96,8 @@ export const useAgentsStore = create<AgentsState>((set) => ({
       );
       set(applySnapshot(snapshot));
     } catch (error) {
-      set({ error: String(error) });
+      // Restore on failure
+      set({ error: String(error), agents: prevAgents });
       throw error;
     }
   },

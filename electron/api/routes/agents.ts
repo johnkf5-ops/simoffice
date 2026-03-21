@@ -1,4 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { homedir } from 'os';
 import {
   assignChannelToAgent,
   clearChannelBinding,
@@ -215,6 +218,41 @@ export async function handleAgentRoutes(
         const snapshot = await listAgentsSnapshot();
         scheduleGatewayReload(ctx, 'remove-agent-channel');
         sendJson(res, 200, { success: true, ...snapshot });
+      } catch (error) {
+        sendJson(res, 500, { success: false, error: String(error) });
+      }
+      return true;
+    }
+  }
+
+  // PUT /api/agents/{id}/soul — Write SOUL.md to agent workspace
+  if (url.pathname.startsWith('/api/agents/') && req.method === 'PUT') {
+    const suffix = url.pathname.slice('/api/agents/'.length);
+    const parts = suffix.split('/').filter(Boolean);
+
+    if (parts.length === 2 && parts[1] === 'soul') {
+      try {
+        const agentId = decodeURIComponent(parts[0]);
+        const body = await parseJsonBody(req);
+        const soulContent = body.content;
+        if (typeof soulContent !== 'string') {
+          sendJson(res, 400, { success: false, error: 'content (string) is required' });
+          return true;
+        }
+
+        // Determine workspace path
+        const openclawDir = join(homedir(), '.openclaw');
+        const workspaceDir = agentId === 'main'
+          ? join(openclawDir, 'workspace')
+          : join(openclawDir, `workspace-${agentId}`);
+
+        await mkdir(workspaceDir, { recursive: true });
+        await writeFile(join(workspaceDir, 'SOUL.md'), soulContent, 'utf-8');
+
+        // Reload gateway so the agent picks up the new SOUL.md
+        scheduleGatewayReload(ctx, 'soul-update');
+
+        sendJson(res, 200, { success: true, agentId, path: join(workspaceDir, 'SOUL.md') });
       } catch (error) {
         sendJson(res, 500, { success: false, error: String(error) });
       }
