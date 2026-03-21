@@ -40,7 +40,9 @@ export const useAgentsStore = create<AgentsState>((set) => ({
   error: null,
 
   fetchAgents: async () => {
-    set({ loading: true, error: null });
+    // Only show loading spinner if we have no agents yet — prevents flicker on refresh
+    const hasAgents = useAgentsStore.getState().agents.length > 0;
+    set({ loading: !hasAgents, error: null });
     try {
       const snapshot = await hostApiFetch<AgentsSnapshot & { success?: boolean }>('/api/agents');
       set({

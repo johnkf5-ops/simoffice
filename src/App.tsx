@@ -1,6 +1,5 @@
 /**
- * Root Application Component
- * Handles routing and global providers
+ * OpenLobby — Root Application
  */
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Component, useEffect } from 'react';
@@ -9,22 +8,25 @@ import { Toaster } from 'sonner';
 import i18n from './i18n';
 import { MainLayout } from './components/layout/MainLayout';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Models } from './pages/Models';
-import { Chat } from './pages/Chat';
-import { Agents } from './pages/Agents';
-import { Channels } from './pages/Channels';
-import { Skills } from './pages/Skills';
-import { Cron } from './pages/Cron';
+
+// Pages
+import { Lobby } from './pages/Lobby';
+import { LobbyChat } from './pages/LobbyChat';
+import { LobbyAssistants } from './pages/LobbyAssistants';
+import { LobbyConnections } from './pages/LobbyConnections';
+import { LobbyPowers } from './pages/LobbyPowers';
+import { LobbyAutomations } from './pages/LobbyAutomations';
+import { LobbyAISetup } from './pages/LobbyAISetup';
 import { Settings } from './pages/Settings';
+import { LobbySettings } from './pages/LobbySettings';
 import { Setup } from './pages/Setup';
+import { Onboarding } from './pages/Onboarding';
+
 import { useSettingsStore } from './stores/settings';
 import { useGatewayStore } from './stores/gateway';
 import { applyGatewayTransportPreference } from './lib/api-client';
 
 
-/**
- * Error Boundary to catch and display React rendering errors
- */
 class ErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean; error: Error | null }
@@ -95,86 +97,68 @@ function App() {
   const setupComplete = useSettingsStore((state) => state.setupComplete);
   const initGateway = useGatewayStore((state) => state.init);
 
-  useEffect(() => {
-    initSettings();
-  }, [initSettings]);
+  useEffect(() => { initSettings(); }, [initSettings]);
 
-  // Sync i18n language with persisted settings on mount
   useEffect(() => {
     if (language && language !== i18n.language) {
       i18n.changeLanguage(language);
     }
   }, [language]);
 
-  // Initialize Gateway connection on mount
-  useEffect(() => {
-    initGateway();
-  }, [initGateway]);
+  useEffect(() => { initGateway(); }, [initGateway]);
 
-  // Redirect to setup wizard if not complete
+  // Redirect to onboarding if not complete
   useEffect(() => {
-    if (!setupComplete && !location.pathname.startsWith('/setup')) {
-      navigate('/setup');
+    if (!setupComplete && !location.pathname.startsWith('/setup') && !location.pathname.startsWith('/onboarding')) {
+      navigate('/onboarding');
     }
   }, [setupComplete, location.pathname, navigate]);
 
-  // Listen for navigation events from main process
   useEffect(() => {
     const handleNavigate = (...args: unknown[]) => {
       const path = args[0];
-      if (typeof path === 'string') {
-        navigate(path);
-      }
+      if (typeof path === 'string') navigate(path);
     };
-
     const unsubscribe = window.electron.ipcRenderer.on('navigate', handleNavigate);
-
-    return () => {
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
-    };
+    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, [navigate]);
 
-  // Apply theme
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
-
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       root.classList.add(systemTheme);
     } else {
       root.classList.add(theme);
     }
   }, [theme]);
 
-  useEffect(() => {
-    applyGatewayTransportPreference();
-  }, []);
+  useEffect(() => { applyGatewayTransportPreference(); }, []);
 
   return (
     <ErrorBoundary>
       <TooltipProvider delayDuration={300}>
         <Routes>
-          {/* Setup wizard (shown on first launch) */}
-          <Route path="/setup/*" element={<Setup />} />
+          {/* Onboarding */}
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/setup/*" element={<Onboarding />} />
 
-          {/* Main application routes */}
+          {/* Main application */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<Chat />} />
-            <Route path="/models" element={<Models />} />
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/channels" element={<Channels />} />
-            <Route path="/skills" element={<Skills />} />
-            <Route path="/cron" element={<Cron />} />
-            <Route path="/settings/*" element={<Settings />} />
+            {/* OpenLobby routes */}
+            <Route path="/" element={<Lobby />} />
+            <Route path="/chat" element={<LobbyChat />} />
+            <Route path="/assistants" element={<LobbyAssistants />} />
+            <Route path="/connections" element={<LobbyConnections />} />
+            <Route path="/powers" element={<LobbyPowers />} />
+            <Route path="/automations" element={<LobbyAutomations />} />
+            <Route path="/ai-setup" element={<LobbyAISetup />} />
+            <Route path="/settings" element={<LobbySettings />} />
+            <Route path="/settings/*" element={<LobbySettings />} />
           </Route>
         </Routes>
 
-        {/* Global toast notifications */}
         <Toaster
           position="bottom-right"
           richColors
