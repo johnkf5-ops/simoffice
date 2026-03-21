@@ -60,7 +60,7 @@ const WINDOWS_APP_USER_MODEL_ID = 'app.clawx.desktop';
 //
 // Users who want GPU acceleration can pass `--enable-gpu` on the CLI or
 // set `"disable-hardware-acceleration": false` in the app config (future).
-app.disableHardwareAcceleration();
+// app.disableHardwareAcceleration(); // DISABLED for OpenLobby — we need GPU for 3D office
 
 // On Linux, set CHROME_DESKTOP so Chromium can find the correct .desktop file.
 // On Wayland this maps the running window to clawx.desktop (→ icon + app grouping);

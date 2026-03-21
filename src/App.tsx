@@ -21,6 +21,8 @@ import { Settings } from './pages/Settings';
 import { LobbySettings } from './pages/LobbySettings';
 import { Setup } from './pages/Setup';
 import { Onboarding } from './pages/Onboarding';
+import { WebGLTest } from './pages/WebGLTest';
+import { Office3D } from './pages/Office3D';
 
 import { useSettingsStore } from './stores/settings';
 import { useGatewayStore } from './stores/gateway';
@@ -156,6 +158,8 @@ function App() {
             <Route path="/ai-setup" element={<LobbyAISetup />} />
             <Route path="/settings" element={<LobbySettings />} />
             <Route path="/settings/*" element={<LobbySettings />} />
+            <Route path="/webgl-test" element={<WebGLTest />} />
+            <Route path="/office" element={<Office3D />} />
           </Route>
         </Routes>
 

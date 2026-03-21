@@ -154,44 +154,9 @@ export function Lobby() {
 
   useEffect(() => { void fetchAgents(); }, [fetchAgents]);
 
-  const toolbarItems = [
-    { icon: '💬', label: 'Chat', onClick: () => { newSession(); navigate('/chat'); } },
-    { icon: '🤖', label: 'Assistants', onClick: () => navigate('/assistants') },
-    { icon: '🔌', label: 'Connections', onClick: () => navigate('/connections') },
-    { icon: '⚡', label: 'Skills', onClick: () => navigate('/powers') },
-    { icon: '⏰', label: 'Automations', onClick: () => navigate('/automations') },
-    { icon: '🧠', label: 'AI Setup', onClick: () => navigate('/ai-setup') },
-    { icon: '⚙️', label: 'Settings', onClick: () => navigate('/settings') },
-    { icon: '🚀', label: 'Setup', onClick: () => navigate('/onboarding') },
-  ];
-
   return (
     <div className="flex flex-col h-full">
-
-      {/* ═══ TOP TOOLBAR ═══ */}
-      <div
-        className="shrink-0 flex items-center gap-1 px-3 py-1.5 border-b-2"
-        style={{ background: 'linear-gradient(180deg, #e8e8e8 0%, #c8c8c8 100%)', borderColor: '#999' }}
-      >
-        {toolbarItems.map((item) => (
-          <button
-            key={item.label}
-            onClick={item.onClick}
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-md hover:bg-white/50 active:bg-black/5 transition-all group"
-          >
-            <span className="text-2xl group-hover:scale-110 transition-transform">{item.icon}</span>
-            <span className="text-[9px] font-bold text-gray-600 uppercase tracking-wide">{item.label}</span>
-          </button>
-        ))}
-        <div className="ml-auto flex items-center gap-2 px-3">
-          <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
-          <span className="text-[10px] font-semibold" style={{ color: isOnline ? '#16a34a' : '#dc2626' }}>
-            {isOnline ? 'Online' : 'Offline'}
-          </span>
-        </div>
-      </div>
-
-      {/* ═══ MAIN: Buddy List + (3D Hero + Channels) ═══ */}
+      {/* ═══ MAIN: Buddy List + (Office Hero + Channels) ═══ */}
       <div className="flex flex-1 overflow-hidden">
 
         {/* BUDDY LIST */}

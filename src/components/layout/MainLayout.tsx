@@ -1,10 +1,11 @@
 /**
  * OpenLobby Main Layout
- * Hides sidebar on Lobby page — Lobby IS the full interface.
+ * Toolbar always visible at top. Sidebar hidden on OpenLobby pages.
  */
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TitleBar } from './TitleBar';
+import { Toolbar } from './Toolbar';
 
 export function MainLayout() {
   const location = useLocation();
@@ -14,6 +15,7 @@ export function MainLayout() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <TitleBar />
+      <Toolbar />
 
       <div className="flex flex-1 overflow-hidden">
         {!isFullScreen && <Sidebar />}
