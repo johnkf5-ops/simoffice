@@ -1,6 +1,6 @@
 /**
- * OpenLobby Powers — Built from scratch. No ClawX UI.
- * Dark buddy panel + skills management matching OpenLobby design.
+ * SimOffice Powers — Built from scratch. No ClawX UI.
+ * Dark buddy panel + skills management matching SimOffice design.
  */
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

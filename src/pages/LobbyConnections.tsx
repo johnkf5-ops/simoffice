@@ -1,6 +1,6 @@
 /**
- * OpenLobby Connections — Built from scratch. No ClawX UI.
- * Dark buddy panel + connections management matching OpenLobby design.
+ * SimOffice Connections — Built from scratch. No ClawX UI.
+ * Dark buddy panel + connections management matching SimOffice design.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

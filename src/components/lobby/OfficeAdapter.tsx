@@ -138,7 +138,7 @@ export function OfficeAdapter() {
   // Desk assignments: deskUid → agentId (persisted in localStorage)
   const [deskAssignments, setDeskAssignments] = useState<Record<string, string>>(() => {
     try {
-      const saved = localStorage.getItem('openlobby:desk-assignments');
+      const saved = localStorage.getItem('simoffice:desk-assignments');
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
@@ -278,14 +278,14 @@ export function OfficeAdapter() {
   const handleDeskAssignmentChange = useCallback((deskUid: string, agentId: string) => {
     setDeskAssignments(prev => {
       const next = { ...prev, [deskUid]: agentId };
-      localStorage.setItem('openlobby:desk-assignments', JSON.stringify(next));
+      localStorage.setItem('simoffice:desk-assignments', JSON.stringify(next));
       return next;
     });
   }, []);
 
   const handleDeskAssignmentsReset = useCallback(() => {
     setDeskAssignments({});
-    localStorage.removeItem('openlobby:desk-assignments');
+    localStorage.removeItem('simoffice:desk-assignments');
   }, []);
 
   // Room hold release callbacks

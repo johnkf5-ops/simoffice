@@ -1,5 +1,5 @@
 /**
- * OpenLobby Chat — Built from scratch. No ClawX UI.
+ * SimOffice Chat — Built from scratch. No ClawX UI.
  * Buddy panel + chat area. Properly handles agent switching and message dedup.
  */
 import { useEffect, useRef, useState } from 'react';

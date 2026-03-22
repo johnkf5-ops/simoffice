@@ -1,6 +1,6 @@
 /**
- * OpenLobby AI Setup — Built from scratch. No ClawX UI.
- * Dark buddy panel + AI provider management matching OpenLobby design.
+ * SimOffice AI Setup — Built from scratch. No ClawX UI.
+ * Dark buddy panel + AI provider management matching SimOffice design.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

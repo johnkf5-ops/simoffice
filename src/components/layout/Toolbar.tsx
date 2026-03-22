@@ -1,5 +1,5 @@
 /**
- * OpenLobby Toolbar — Always visible at the top of every page.
+ * SimOffice Toolbar — Always visible at the top of every page.
  * AOL-style icon navigation.
  */
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -27,8 +27,8 @@ export function Toolbar() {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 2, padding: '4px 12px',
-      background: 'linear-gradient(180deg, #e8e8e8 0%, #c8c8c8 100%)',
-      borderBottom: '2px solid #999', flexShrink: 0,
+      background: 'hsl(var(--card))',
+      borderBottom: '1px solid hsl(var(--border))', flexShrink: 0,
     }}>
       {TOOLBAR_ITEMS.map((item) => {
         const isActive = location.pathname === item.path;
@@ -39,15 +39,15 @@ export function Toolbar() {
             style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
               padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              background: isActive ? 'rgba(0,0,0,0.08)' : 'transparent',
+              background: isActive ? 'hsl(var(--accent))' : 'transparent',
               transition: 'all 0.15s',
             }}
-            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.5)'; }}
-            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'rgba(0,0,0,0.08)' : 'transparent'; }}
+            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'hsl(var(--muted))'; }}
+            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'hsl(var(--accent))' : 'transparent'; }}
           >
             <span style={{ fontSize: 22, lineHeight: 1, transition: 'transform 0.15s' }}>{item.icon}</span>
             <span style={{
-              fontSize: 9, fontWeight: 700, color: isActive ? '#1a1a1a' : '#666',
+              fontSize: 9, fontWeight: 700, color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
               textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>{item.label}</span>
           </button>

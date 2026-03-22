@@ -1,6 +1,6 @@
 /**
- * OpenLobby Main Layout
- * Toolbar always visible at top. Sidebar hidden on OpenLobby pages.
+ * SimOffice Main Layout
+ * Toolbar always visible at top. Sidebar hidden on SimOffice pages.
  */
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';

@@ -1,5 +1,5 @@
 /**
- * AgentState type — adapted from Claw3D for OpenLobby
+ * AgentState type — adapted from Claw3D for SimOffice
  * Minimal interface matching what eventTriggers.ts uses
  */
 

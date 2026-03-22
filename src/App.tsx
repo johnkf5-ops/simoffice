@@ -1,5 +1,5 @@
 /**
- * OpenLobby — Root Application
+ * SimOffice — Root Application
  */
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Component, useEffect } from 'react';
@@ -148,7 +148,7 @@ function App() {
 
           {/* Main application */}
           <Route element={<MainLayout />}>
-            {/* OpenLobby routes */}
+            {/* SimOffice routes */}
             <Route path="/" element={<Lobby />} />
             <Route path="/chat" element={<LobbyChat />} />
             <Route path="/assistants" element={<LobbyAssistants />} />

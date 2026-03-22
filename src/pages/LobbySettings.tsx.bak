@@ -1,6 +1,6 @@
 /**
- * OpenLobby Settings — Built from scratch. No ClawX UI.
- * Dark buddy panel + settings management matching OpenLobby design.
+ * SimOffice Settings — Built from scratch. No ClawX UI.
+ * Dark buddy panel + settings management matching SimOffice design.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -314,7 +314,7 @@ export function LobbySettings() {
             Settings
           </h1>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 6, fontFamily: 'Inter, sans-serif' }}>
-            Customize how OpenLobby works for you
+            Customize how SimOffice works for you
           </p>
         </div>
 
@@ -367,7 +367,7 @@ export function LobbySettings() {
 
           {/* 2. Startup */}
           <Section title="Startup">
-            <SettingRow label="Launch when computer starts" description="Automatically open OpenLobby on login">
+            <SettingRow label="Launch when computer starts" description="Automatically open SimOffice on login">
               <Toggle enabled={launchAtStartup} onChange={setLaunchAtStartup} />
             </SettingRow>
             <SettingRow label="Start engine automatically" description="Boot the engine when the app opens">
@@ -471,7 +471,7 @@ export function LobbySettings() {
                 />
               </SettingRow>
             )}
-            <SettingRow label="Telemetry" description="Help improve OpenLobby by sharing anonymous usage data">
+            <SettingRow label="Telemetry" description="Help improve SimOffice by sharing anonymous usage data">
               <Toggle enabled={telemetryEnabled} onChange={setTelemetryEnabled} />
             </SettingRow>
             <SettingRow label="WebSocket diagnostics" description="Enable verbose logging for engine communication">
@@ -487,7 +487,7 @@ export function LobbySettings() {
 
           {/* 6. About */}
           <Section title="About">
-            <SettingRow label="OpenLobby">
+            <SettingRow label="SimOffice">
               <span style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', fontFamily: 'Inter, sans-serif' }}>
                 v{currentVersion}
               </span>

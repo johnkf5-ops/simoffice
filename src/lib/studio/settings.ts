@@ -1,4 +1,4 @@
-// Stub — Claw3D studio settings not needed in OpenLobby
+// Stub — Claw3D studio settings not needed in SimOffice
 export function useStudioSettings() { return { gatewayUrl: '', token: '' }; }
 export function getStudioSettings() { return { gatewayUrl: '', token: '' }; }
 

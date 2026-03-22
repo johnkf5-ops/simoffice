@@ -1,5 +1,5 @@
 /**
- * OpenLobby Sidebar
+ * SimOffice Sidebar
  * Human language. AOL energy. AIM buddy vibes.
  */
 import { useEffect, useMemo, useState } from 'react';
@@ -158,7 +158,7 @@ export function Sidebar() {
               <Powers className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
             <div className="flex flex-col">
-              <span className="text-sm font-bold tracking-tight">OpenLobby</span>
+              <span className="text-sm font-bold tracking-tight">SimOffice</span>
               <span className="text-[10px] text-muted-foreground leading-none">for OpenClaw</span>
             </div>
           </div>

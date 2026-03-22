@@ -1,6 +1,6 @@
 /**
- * OpenLobby Assistants — Built from scratch. No ClawX UI.
- * Dark buddy panel + assistants management matching OpenLobby design.
+ * SimOffice Assistants — Built from scratch. No ClawX UI.
+ * Dark buddy panel + assistants management matching SimOffice design.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

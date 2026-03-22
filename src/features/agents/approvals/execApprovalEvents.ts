@@ -1,5 +1,5 @@
 /**
- * Exec Approval Events — stub for OpenLobby
+ * Exec Approval Events — stub for SimOffice
  * These handle tool execution approval workflows which we skip for MVP
  */
 import type { EventFrame } from "@/lib/gateway/GatewayClient";

@@ -1,6 +1,6 @@
 /**
- * OpenLobby Onboarding — 3 steps, 90 seconds, done.
- * No ClawX UI. Pure OpenLobby design.
+ * SimOffice Onboarding — 3 steps, 90 seconds, done.
+ * No ClawX UI. Pure SimOffice design.
  * Step 1: Welcome
  * Step 2: Pick your AI + paste secret code
  * Step 3: Done — enter the lobby
@@ -190,7 +190,7 @@ export function Onboarding() {
             </div>
 
             <h1 style={{ fontSize: 40, fontWeight: 900, color: 'white', fontFamily: 'Space Grotesk, sans-serif', marginBottom: 8, letterSpacing: '-0.02em' }}>
-              Welcome to OpenLobby
+              Welcome to SimOffice
             </h1>
             <p style={{ fontSize: 16, color: 'rgba(191,219,254,0.6)', marginBottom: 40, lineHeight: 1.6 }}>
               Your personal AI assistant, right on your computer.<br />

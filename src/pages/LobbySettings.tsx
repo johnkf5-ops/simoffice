@@ -1,5 +1,5 @@
 /**
- * OpenLobby Settings — Built from scratch. No ClawX UI.
+ * SimOffice Settings — Built from scratch. No ClawX UI.
  */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -113,7 +113,7 @@ export function LobbySettings() {
           <div style={row}>
             <div>
               <div style={label}>Launch when computer starts</div>
-              <div style={desc}>Automatically open OpenLobby on login</div>
+              <div style={desc}>Automatically open SimOffice on login</div>
             </div>
             <Toggle on={launchAtStartup} onChange={setLaunchAtStartup} />
           </div>
@@ -191,7 +191,7 @@ export function LobbySettings() {
               <div style={row}>
                 <div>
                   <div style={label}>Telemetry</div>
-                  <div style={desc}>Help improve OpenLobby with anonymous usage data</div>
+                  <div style={desc}>Help improve SimOffice with anonymous usage data</div>
                 </div>
                 <Toggle on={telemetryEnabled} onChange={setTelemetryEnabled} />
               </div>
@@ -226,7 +226,7 @@ export function LobbySettings() {
           {/* About */}
           <div style={sectionTitle}>About</div>
           <div style={{ padding: '14px 0', fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
-            <strong style={{ color: 'hsl(var(--foreground))' }}>OpenLobby</strong> for OpenClaw · v{currentVersion}
+            <strong style={{ color: 'hsl(var(--foreground))' }}>SimOffice</strong> for OpenClaw · v{currentVersion}
           </div>
 
         </div>

@@ -1,5 +1,5 @@
 /**
- * OpenLobby — The Office (3D)
+ * SimOffice — The Office (3D)
  * Standalone 3D retro office. Renders agents walking around.
  * Uses Three.js + React Three Fiber directly without Claw3D's full stack.
  */

@@ -1,5 +1,5 @@
 /**
- * TranscriptEntry type — adapted from Claw3D for OpenLobby
+ * TranscriptEntry type — adapted from Claw3D for SimOffice
  */
 
 export type TranscriptEntry = {

@@ -1,5 +1,5 @@
 /**
- * Runtime Event Bridge — adapted from Claw3D for OpenLobby
+ * Runtime Event Bridge — adapted from Claw3D for SimOffice
  * Types and classifiers for gateway events
  */
 

@@ -1,5 +1,5 @@
 /**
- * Gateway Client types — adapted from Claw3D for OpenLobby
+ * Gateway Client types — adapted from Claw3D for SimOffice
  * Only the types and helpers that eventTriggers.ts needs
  */
 

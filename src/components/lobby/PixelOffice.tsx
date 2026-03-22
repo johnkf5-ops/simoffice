@@ -212,8 +212,8 @@ export function PixelOffice() {
             className="absolute top-1/2 -translate-y-1/2 whitespace-nowrap font-mono animate-[ticker_30s_linear_infinite]"
             style={{ fontSize: 9 * (renderScale / SCALE), color: 'rgba(0,229,255,0.7)' }}
           >
-            /// OPENLOBBY /// {agents?.length ?? 0} ASSISTANTS ONLINE /// ENGINE: {isOnline ? 'RUNNING' : 'OFFLINE'} /// ALL SYSTEMS NOMINAL ///&nbsp;&nbsp;&nbsp;
-            /// OPENLOBBY /// {agents?.length ?? 0} ASSISTANTS ONLINE /// ENGINE: {isOnline ? 'RUNNING' : 'OFFLINE'} /// ALL SYSTEMS NOMINAL ///
+            /// SIMOFFICE /// {agents?.length ?? 0} ASSISTANTS ONLINE /// ENGINE: {isOnline ? 'RUNNING' : 'OFFLINE'} /// ALL SYSTEMS NOMINAL ///&nbsp;&nbsp;&nbsp;
+            /// SIMOFFICE /// {agents?.length ?? 0} ASSISTANTS ONLINE /// ENGINE: {isOnline ? 'RUNNING' : 'OFFLINE'} /// ALL SYSTEMS NOMINAL ///
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* OpenLobby — Warm, rich, inviting */
+    /* SimOffice — Warm, rich, inviting */
     --background: 30 25% 96%;
     --foreground: 240 20% 12%;
     --card: 30 30% 98%;
@@ -28,7 +28,7 @@
     --ring: 24 100% 50%;
     --radius: 1rem;
 
-    /* OpenLobby custom palette */
+    /* SimOffice custom palette */
     --lobby-warm: 30 40% 94%;
     --lobby-glow: 24 100% 50%;
     --lobby-deep: 240 20% 12%;
@@ -50,40 +50,43 @@
     --gradient-lobby: linear-gradient(135deg, #f97316, #f59e0b);
   }
 
+  /* ═══ DARK MODE: Neon Isometric Executive ═══ */
   .dark {
-    --background: 240 12% 8%;
-    --foreground: 30 20% 94%;
-    --card: 240 10% 12%;
-    --card-foreground: 30 20% 94%;
-    --popover: 240 10% 12%;
-    --popover-foreground: 30 20% 94%;
-    --primary: 24 100% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 8% 16%;
-    --secondary-foreground: 30 20% 94%;
-    --muted: 240 8% 16%;
-    --muted-foreground: 30 10% 60%;
-    --accent: 240 8% 20%;
-    --accent-foreground: 24 100% 65%;
+    /* Surface hierarchy — deep midnight void */
+    --background: 230 15% 7%;        /* #121318 — base layer */
+    --foreground: 185 90% 92%;       /* #dbfcff — primary text */
+    --card: 230 10% 11%;             /* #1a1b21 — surface_container_low */
+    --card-foreground: 185 90% 92%;
+    --popover: 230 8% 16%;           /* #292a2f — surface_container_high */
+    --popover-foreground: 185 90% 92%;
+    --primary: 160 90% 61%;          /* #44f6a8 — neon green accent */
+    --primary-foreground: 160 100% 11%; /* #003822 — on primary */
+    --secondary: 230 8% 16%;         /* #292a2f */
+    --secondary-foreground: 185 90% 92%;
+    --muted: 230 6% 13%;             /* dark muted surface */
+    --muted-foreground: 185 15% 55%; /* subdued cyan text */
+    --accent: 185 100% 47%;          /* #00f0ff — cyan accent */
+    --accent-foreground: 230 15% 7%;
     --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 8% 18%;
-    --input: 240 8% 16%;
-    --ring: 24 100% 55%;
+    --border: 185 20% 18%;           /* ghost border — etched look */
+    --input: 230 10% 9%;             /* sunken input field */
+    --ring: 160 90% 61%;             /* neon green ring */
 
-    --lobby-warm: 240 10% 12%;
-    --lobby-glow: 24 100% 55%;
-    --lobby-deep: 30 20% 94%;
-    --lobby-surface: 240 8% 14%;
-    --lobby-blue: 217 91% 64%;
+    /* Lobby palette — terminal greens */
+    --lobby-warm: 230 10% 11%;       /* dark panel bg */
+    --lobby-glow: 160 90% 61%;       /* neon green */
+    --lobby-deep: 185 90% 92%;       /* light text */
+    --lobby-surface: 230 8% 9%;
+    --lobby-blue: 185 100% 47%;      /* cyan */
 
-    --gradient-chat: linear-gradient(135deg, #60a5fa, #818cf8);
-    --gradient-assistants: linear-gradient(135deg, #a78bfa, #a855f7);
-    --gradient-connections: linear-gradient(135deg, #2dd4bf, #34d399);
-    --gradient-powers: linear-gradient(135deg, #fb7185, #f472b6);
-    --gradient-automations: linear-gradient(135deg, #38bdf8, #22d3ee);
-    --gradient-ai: linear-gradient(135deg, #fbbf24, #f59e0b);
-    --gradient-lobby: linear-gradient(135deg, #fb923c, #fbbf24);
+    --gradient-chat: linear-gradient(135deg, #00f0ff, #0088cc);
+    --gradient-assistants: linear-gradient(135deg, #44f6a8, #00cc88);
+    --gradient-connections: linear-gradient(135deg, #00f0ff, #44f6a8);
+    --gradient-powers: linear-gradient(135deg, #f6447a, #ff0066);
+    --gradient-automations: linear-gradient(135deg, #00f0ff, #0066ff);
+    --gradient-ai: linear-gradient(135deg, #44f6a8, #00ff88);
+    --gradient-lobby: linear-gradient(135deg, #44f6a8, #00f0ff);
   }
 }
 
@@ -131,7 +134,7 @@
   -webkit-app-region: no-drag;
 }
 
-/* ═══ OpenLobby Card System ═══ */
+/* ═══ SimOffice Card System ═══ */
 
 .lobby-card {
   @apply relative rounded-2xl overflow-hidden transition-all duration-300;

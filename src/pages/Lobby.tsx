@@ -1,5 +1,5 @@
 /**
- * OpenLobby — The Lobby
+ * SimOffice — The Lobby
  * Full-screen 3D office. Your agents working. That's it.
  * Navigation lives in the toolbar.
  */
@@ -90,7 +90,7 @@ export function Lobby() {
       }}>
         <div style={{ textAlign: 'center', padding: '16px 12px' }}>
           <div style={{ fontSize: 20, fontWeight: 900, color: 'white', fontFamily: 'Space Grotesk, sans-serif' }}>
-            Open<span style={{ background: 'linear-gradient(135deg, #f97316, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Lobby</span>
+            Sim<span style={{ background: 'linear-gradient(135deg, #f97316, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Office</span>
           </div>
         </div>
         <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.1)' }} />

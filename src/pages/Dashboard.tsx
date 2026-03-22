@@ -1,5 +1,5 @@
 /**
- * OpenLobby Dashboard
+ * SimOffice Dashboard
  * The command center — everything at a glance, nothing buried.
  */
 import { useEffect } from 'react';
