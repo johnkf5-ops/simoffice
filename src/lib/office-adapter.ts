@@ -36,11 +36,11 @@ export function mapAgentToOffice(agent: {
   id: string;
   name: string;
   [key: string]: unknown;
-}): OfficeAgent {
+}, isWorking = false): OfficeAgent {
   return {
     id: agent.id,
     name: agent.name || 'Unknown',
-    status: 'idle',
+    status: isWorking ? 'working' : 'idle',
     color: stringToColor(agent.id),
     item: getDeterministicItem(agent.id),
   };

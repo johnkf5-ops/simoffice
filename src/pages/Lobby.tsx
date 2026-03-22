@@ -1,299 +1,235 @@
 /**
  * OpenLobby — The Lobby
- * 3D office hero at top. AOL channel grid below. Buddy list on left.
+ * Full-screen 3D office. Your agents working. That's it.
+ * Navigation lives in the toolbar.
  */
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGatewayStore } from '@/stores/gateway';
+import { Send, Loader2, X } from 'lucide-react';
 import { useAgentsStore } from '@/stores/agents';
-import { useChatStore } from '@/stores/chat';
+import { useGatewayStore } from '@/stores/gateway';
+import { useChatStore, type RawMessage } from '@/stores/chat';
 import { StatusDot } from '@/components/common/StatusDot';
-import { PixelOffice } from '@/components/lobby/PixelOffice';
-
-/* ═══ 3D Office Components ═══ */
-
-function Floor() {
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-      <planeGeometry args={[30, 20]} />
-      <meshStandardMaterial color="#c4a882" />
-    </mesh>
-  );
-}
-
-function Walls() {
-  return (
-    <group>
-      <mesh position={[0, 1.5, -10]}>
-        <boxGeometry args={[30, 3, 0.2]} />
-        <meshStandardMaterial color="#e8dcc8" />
-      </mesh>
-      <mesh position={[-15, 1.5, 0]}>
-        <boxGeometry args={[0.2, 3, 20]} />
-        <meshStandardMaterial color="#e0d4be" />
-      </mesh>
-      <mesh position={[15, 1.5, 0]}>
-        <boxGeometry args={[0.2, 3, 20]} />
-        <meshStandardMaterial color="#e0d4be" />
-      </mesh>
-    </group>
-  );
-}
-
-function Desk({ position }: { position: [number, number, number] }) {
-  return (
-    <group position={position}>
-      <mesh position={[0, 0.75, 0]} castShadow>
-        <boxGeometry args={[1.4, 0.05, 0.7]} />
-        <meshStandardMaterial color="#8b6f4e" />
-      </mesh>
-      {[[-0.6, 0.375, -0.3], [0.6, 0.375, -0.3], [-0.6, 0.375, 0.3], [0.6, 0.375, 0.3]].map((pos, i) => (
-        <mesh key={i} position={pos as [number, number, number]}>
-          <boxGeometry args={[0.05, 0.75, 0.05]} />
-          <meshStandardMaterial color="#5a4a3a" />
-        </mesh>
-      ))}
-      <mesh position={[0, 1.1, -0.2]}>
-        <boxGeometry args={[0.5, 0.35, 0.03]} />
-        <meshStandardMaterial color="#222" />
-      </mesh>
-      <mesh position={[0, 1.1, -0.18]}>
-        <planeGeometry args={[0.44, 0.29]} />
-        <meshStandardMaterial color="#4488ff" emissive="#4488ff" emissiveIntensity={0.3} />
-      </mesh>
-    </group>
-  );
-}
-
-function AgentAvatar({ agent, position }: { agent: OfficeAgent; position: [number, number, number] }) {
-  const meshRef = useRef<THREE.Group>(null);
-  const walkPhase = useRef(Math.random() * Math.PI * 2);
-
-  useFrame((_, delta) => {
-    if (!meshRef.current) return;
-    walkPhase.current += delta * 2;
-    meshRef.current.position.y = position[1] + Math.sin(walkPhase.current) * 0.02;
-  });
-
-  const color = new THREE.Color(agent.color);
-
-  return (
-    <group ref={meshRef} position={position}>
-      <mesh position={[0, 0.5, 0]} castShadow>
-        <cylinderGeometry args={[0.15, 0.18, 0.5, 8]} />
-        <meshStandardMaterial color={color} />
-      </mesh>
-      <mesh position={[0, 0.9, 0]} castShadow>
-        <sphereGeometry args={[0.15, 8, 8]} />
-        <meshStandardMaterial color={color.clone().lerp(new THREE.Color('#ffffff'), 0.3)} />
-      </mesh>
-      <mesh position={[0.12, 1.1, 0]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <meshStandardMaterial
-          color={agent.status === 'working' ? '#22c55e' : agent.status === 'error' ? '#ef4444' : '#fbbf24'}
-          emissive={agent.status === 'working' ? '#22c55e' : agent.status === 'error' ? '#ef4444' : '#fbbf24'}
-          emissiveIntensity={0.5}
-        />
-      </mesh>
-      <Billboard position={[0, 1.3, 0]}>
-        <Text fontSize={0.12} color="white" anchorX="center" anchorY="middle" outlineWidth={0.02} outlineColor="#000000">
-          {agent.name}
-        </Text>
-      </Billboard>
-    </group>
-  );
-}
-
-function OfficeScene({ agents }: { agents: OfficeAgent[] }) {
-  const deskPositions: [number, number, number][] = [
-    [-4, 0, -3], [-1.5, 0, -3], [1.5, 0, -3], [4, 0, -3],
-    [-4, 0, 0], [-1.5, 0, 0], [1.5, 0, 0], [4, 0, 0],
-  ];
-
-  const agentPositions: [number, number, number][] = agents.map((_, i) => {
-    if (i < deskPositions.length) {
-      const desk = deskPositions[i];
-      return [desk[0], 0, desk[2] + 0.6];
-    }
-    return [8 + (i % 3) * 2, 0, -4 + Math.floor(i / 3) * 2];
-  });
-
-  return (
-    <>
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[10, 15, 10]} intensity={1.2} castShadow />
-      <hemisphereLight args={['#87CEEB', '#c4a882', 0.4]} />
-      <Floor />
-      <Walls />
-      {deskPositions.slice(0, Math.max(agents.length, 4)).map((pos, i) => (
-        <Desk key={i} position={pos} />
-      ))}
-      {agents.map((agent, i) => (
-        <AgentAvatar key={agent.id} agent={agent} position={agentPositions[i] || [0, 0, 0]} />
-      ))}
-      <OrbitControls makeDefault minPolarAngle={0.2} maxPolarAngle={Math.PI / 2.2} minDistance={5} maxDistance={20} target={[0, 1, 0]} enablePan={false} />
-      {/* Sky/ceiling color */}
-      <color attach="background" args={['#87CEEB']} />
-      <fog attach="fog" args={['#87CEEB', 20, 40]} />
-    </>
-  );
-}
-
-/* ═══ LOBBY PAGE ═══ */
+import { extractText } from '@/pages/Chat/message-utils';
+import { OfficeAdapter } from '@/components/lobby/OfficeAdapter';
 
 export function Lobby() {
   const navigate = useNavigate();
-  const gatewayStatus = useGatewayStore((s) => s.status);
-  const startGateway = useGatewayStore((s) => s.start);
-  const isOnline = gatewayStatus.state === 'running';
-
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
+  const gatewayStatus = useGatewayStore((s) => s.status);
+  const messages = useChatStore((s) => s.messages);
   const sessions = useChatStore((s) => s.sessions);
+  const currentSessionKey = useChatStore((s) => s.currentSessionKey);
+  const currentAgentId = useChatStore((s) => s.currentAgentId);
+  const sessionLabels = useChatStore((s) => s.sessionLabels);
+  const sending = useChatStore((s) => s.sending);
+  const switchSession = useChatStore((s) => s.switchSession);
   const newSession = useChatStore((s) => s.newSession);
+  const sendMessage = useChatStore((s) => s.sendMessage);
+  const isOnline = gatewayStatus.state === 'running';
 
   useEffect(() => { void fetchAgents(); }, [fetchAgents]);
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* ═══ MAIN: Buddy List + (Office Hero + Channels) ═══ */}
-      <div className="flex flex-1 overflow-hidden">
 
-        {/* BUDDY LIST */}
-        <div
-          className="w-[200px] shrink-0 flex flex-col border-r-2"
-          style={{ background: 'linear-gradient(180deg, #1a1a6e 0%, #0d0d3b 100%)', borderColor: '#333' }}
-        >
-          <div className="text-center py-4 px-3">
-            <div className="text-xl font-black text-white tracking-tight" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
-              Open<span style={{ background: 'linear-gradient(135deg, #f97316, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Lobby</span>
-            </div>
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll chat
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const handleChatSend = () => {
+    const trimmed = chatInput.trim();
+    if (!trimmed || sending) return;
+    sendMessage(trimmed);
+    setChatInput('');
+  };
+
+  const handleAgentClick = (agentId: string) => {
+    const agent = agents.find(a => a.id === agentId);
+    if (agent?.mainSessionKey) {
+      switchSession(agent.mainSessionKey);
+    }
+    setChatOpen(true);
+  };
+
+  const currentAgent = agents.find(a => a.id === currentAgentId);
+
+  // Dedupe messages by ID + consecutive content
+  const displayMessages = useMemo(() => {
+    const seenIds = new Set<string>();
+    const seenTexts = new Set<string>();
+    const result: RawMessage[] = [];
+    for (const msg of messages) {
+      if (msg.role === 'toolresult') continue;
+      if (msg.id && seenIds.has(msg.id)) continue;
+      if (msg.id) seenIds.add(msg.id);
+      if (msg.role === 'assistant') {
+        const text = extractText(msg);
+        if (text && seenTexts.has(text)) continue;
+        if (text) seenTexts.add(text);
+      }
+      result.push(msg);
+    }
+    return result;
+  }, [messages]);
+
+  return (
+    <div style={{ display: 'flex', height: '100%' }}>
+      {/* Buddy panel */}
+      <div style={{
+        width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column',
+        background: 'linear-gradient(180deg, #1a1a6e 0%, #0d0d3b 100%)',
+        borderRight: '2px solid #333',
+      }}>
+        <div style={{ textAlign: 'center', padding: '16px 12px' }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: 'white', fontFamily: 'Space Grotesk, sans-serif' }}>
+            Open<span style={{ background: 'linear-gradient(135deg, #f97316, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Lobby</span>
           </div>
-          <div className="w-full h-px bg-white/10" />
-          <div className="flex-1 overflow-y-auto px-2 py-2">
-            <div className="mb-3">
-              <div className="px-2 py-1 text-[10px] font-bold text-emerald-400/70 uppercase tracking-wider">
-                Online ({isOnline ? (agents?.length ?? 0) : 0})
+        </div>
+        <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
+          <div style={{ padding: '4px 8px', fontSize: 10, fontWeight: 700, color: 'rgba(52,211,153,0.7)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+            Online ({isOnline ? (agents?.length ?? 0) : 0})
+          </div>
+          {isOnline && agents?.map((agent) => (
+            <button key={agent.id} onClick={() => handleAgentClick(agent.id)}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white' }}>
+                {agent.name?.charAt(0).toUpperCase() || 'A'}
               </div>
-              {isOnline && agents?.map((agent) => (
-                <button
-                  key={agent.id}
-                  onClick={() => { newSession(); navigate('/chat'); }}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-white/10 transition-all"
-                >
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #7c3aed, #a78bfa)' }}>
-                    {agent.name?.charAt(0).toUpperCase() || 'A'}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-white truncate">{agent.name}</div>
-                    <div className="text-[9px] text-blue-200/40 truncate">{agent.modelDisplay || 'Ready'}</div>
-                  </div>
-                  <StatusDot status="online" size="sm" />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agent.name}</div>
+                <div style={{ fontSize: 9, color: 'rgba(191,219,254,0.4)' }}>{agent.modelDisplay || 'Ready'}</div>
+              </div>
+              <StatusDot status="online" size="sm" />
+            </button>
+          ))}
+
+          {/* Conversations */}
+          {!chatOpen && sessions?.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ padding: '4px 8px', fontSize: 10, fontWeight: 700, color: 'rgba(147,197,253,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                Conversations
+              </div>
+              {sessions.slice(0, 5).map((s) => {
+                const label = sessionLabels[s.key] || s.label || s.displayName || 'Conversation';
+                return (
+                  <button key={s.key} onClick={() => { switchSession(s.key); setChatOpen(true); }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                    <span style={{ fontSize: 10 }}>💬</span>
+                    <span style={{ fontSize: 10, color: 'rgba(191,219,254,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        {/* ═══ INLINE CHAT PANEL ═══ */}
+        {chatOpen && (
+          <div style={{
+            borderTop: '1px solid rgba(255,255,255,0.15)',
+            display: 'flex', flexDirection: 'column',
+            flex: 1, minHeight: 0,
+            background: 'rgba(0,0,0,0.2)',
+          }}>
+            {/* Chat header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: 'white' }}>
+                  {currentAgent?.name?.charAt(0).toUpperCase() || 'A'}
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'white' }}>{currentAgent?.name || 'Chat'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button onClick={() => navigate('/chat')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 9, textDecoration: 'underline' }}>
+                  Full
                 </button>
-              ))}
-              {(!isOnline || !agents?.length) && (
-                <div className="px-2 py-1.5 text-[10px] text-blue-200/30 italic">
-                  {isOnline ? 'No assistants yet' : 'Engine offline'}
+                <button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 2 }}>
+                  <X style={{ width: 12, height: 12 }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div ref={chatScrollRef} style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+              {displayMessages.length === 0 && (
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: '16px 0' }}>
+                  Say something...
+                </div>
+              )}
+              {displayMessages.slice(-20).map((msg, i) => {
+                const text = extractText(msg);
+                if (!text) return null;
+                const isUser = msg.role === 'user';
+                return (
+                  <div key={msg.id || `m-${i}`} style={{ marginBottom: 6 }}>
+                    <div style={{
+                      fontSize: 11, lineHeight: 1.4, padding: '6px 8px', borderRadius: 8,
+                      background: isUser ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)',
+                      color: isUser ? '#93c5fd' : 'rgba(255,255,255,0.8)',
+                      wordBreak: 'break-word',
+                    }}>
+                      {text}
+                    </div>
+                  </div>
+                );
+              })}
+              {sending && (
+                <div style={{ padding: '4px 8px' }}>
+                  <Loader2 style={{ width: 12, height: 12, animation: 'spin 1s linear infinite', color: 'rgba(255,255,255,0.4)' }} />
                 </div>
               )}
             </div>
-            {sessions?.length > 0 && (
-              <div>
-                <div className="px-2 py-1 text-[10px] font-bold text-blue-300/40 uppercase tracking-wider">Recent Chats</div>
-                {sessions.slice(0, 8).map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => { useChatStore.getState().switchSession(s.key); navigate('/chat'); }}
-                    className="w-full flex items-center gap-1.5 px-2 py-1 rounded-lg text-left hover:bg-white/10 transition-all"
-                  >
-                    <span className="text-[10px] text-blue-300/30">💬</span>
-                    <span className="text-[10px] text-blue-100/50 truncate">
-                      {useChatStore.getState().sessionLabels[s.key] || s.label || s.displayName || 'Conversation'}
-                    </span>
-                  </button>
-                ))}
+
+            {/* Input */}
+            <div style={{ padding: '6px 8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleChatSend(); }}
+                  placeholder="Message..."
+                  style={{
+                    flex: 1, padding: '6px 8px', borderRadius: 6, border: 'none',
+                    background: 'rgba(255,255,255,0.08)', color: 'white', fontSize: 11, outline: 'none',
+                  }}
+                />
+                <button onClick={handleChatSend} disabled={!chatInput.trim() || sending}
+                  style={{
+                    width: 28, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
+                    background: chatInput.trim() && !sending ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'rgba(255,255,255,0.05)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: chatInput.trim() && !sending ? 1 : 0.3,
+                  }}>
+                  <Send style={{ width: 10, height: 10, color: 'white' }} />
+                </button>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT SIDE: 3D Office Hero + Channel Grid */}
-        <div className="flex-1 flex flex-col overflow-auto" style={{ background: 'linear-gradient(180deg, #d4d4d4 0%, #b8b8b8 100%)' }}>
-
-          {/* ═══ PIXEL ART OFFICE HERO ═══ */}
-          <div className="shrink-0 mx-4 mt-4">
-            <PixelOffice />
-          </div>
-
-          {/* ═══ CHANNEL GRID ═══ */}
-          <div className="flex-1 p-4">
-            <div className="grid grid-cols-3 gap-3" style={{ gridAutoRows: 'minmax(80px, 1fr)' }}>
-
-              {/* CHAT */}
-              <button onClick={() => { newSession(); navigate('/chat'); }}
-                className="col-span-2 rounded-xl overflow-hidden transition-all hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] cursor-pointer relative group"
-                style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #1e40af 100%)', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.15), inset 0 -2px 0 rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.4)' }}>
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-4xl font-black text-white" style={{ fontFamily: 'Space Grotesk, sans-serif', textShadow: '0 0 40px rgba(59,130,246,0.6), 2px 2px 4px rgba(0,0,0,0.5)' }}>💬 CHAT</div>
-                </div>
-                <div className="absolute top-0 right-0 w-40 h-40 opacity-10 group-hover:opacity-20 transition-opacity" style={{ background: 'radial-gradient(circle, #60a5fa 0%, transparent 70%)' }} />
-              </button>
-
-              {/* ASSISTANTS */}
-              <button onClick={() => navigate('/assistants')}
-                className="row-span-2 rounded-xl overflow-hidden transition-all hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] cursor-pointer"
-                style={{ background: 'linear-gradient(180deg, #7c3aed 0%, #5b21b6 50%, #3b0764 100%)', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.2), inset 0 -2px 0 rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.3)' }}>
-                <div className="flex flex-col items-center justify-center h-full">
-                  <div className="text-4xl mb-2">🤖</div>
-                  <div className="text-xl font-black text-white text-center" style={{ fontFamily: 'Space Grotesk, sans-serif', textShadow: '2px 2px 8px rgba(0,0,0,0.5)' }}>ASSISTANTS</div>
-                  <div className="text-violet-200/40 text-[10px] mt-1 uppercase tracking-widest">{agents?.length ?? 0} active</div>
-                </div>
-              </button>
-
-              {/* CONNECTIONS */}
-              <button onClick={() => navigate('/connections')}
-                className="col-span-2 rounded-xl overflow-hidden transition-all hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] cursor-pointer"
-                style={{ background: 'linear-gradient(90deg, #065f46 0%, #0d9488 50%, #2dd4bf 100%)', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.2), inset 0 -2px 0 rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.3)' }}>
-                <div className="flex items-center h-full px-6">
-                  <div>
-                    <div className="text-2xl font-black text-white" style={{ fontFamily: 'Space Grotesk, sans-serif', textShadow: '2px 2px 6px rgba(0,0,0,0.4)' }}>🔌 CONNECTIONS</div>
-                    <div className="text-teal-100/50 text-xs mt-0.5">Discord · WhatsApp · Slack · Telegram</div>
-                  </div>
-                </div>
-              </button>
-
-              {/* SKILLS */}
-              <button onClick={() => navigate('/powers')}
-                className="rounded-xl overflow-hidden transition-all hover:scale-[1.03] hover:shadow-xl active:scale-[0.98] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #be123c 0%, #e11d48 60%, #fb7185 100%)', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.2), inset 0 -2px 0 rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.3)' }}>
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center"><div className="text-3xl">⚡</div><div className="text-lg font-black text-white" style={{ fontFamily: 'Space Grotesk, sans-serif', textShadow: '2px 2px 4px rgba(0,0,0,0.4)' }}>SKILLS</div></div>
-                </div>
-              </button>
-
-              {/* AUTOMATE */}
-              <button onClick={() => navigate('/automations')}
-                className="rounded-xl overflow-hidden transition-all hover:scale-[1.03] hover:shadow-xl active:scale-[0.98] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0ea5e9 100%)', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.2), inset 0 -2px 0 rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.3)' }}>
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center"><div className="text-3xl">⏰</div><div className="text-lg font-black text-white" style={{ fontFamily: 'Space Grotesk, sans-serif', textShadow: '2px 2px 4px rgba(0,0,0,0.4)' }}>AUTOMATE</div></div>
-                </div>
-              </button>
-
-              {/* AI SETUP */}
-              <button onClick={() => navigate('/ai-setup')}
-                className="rounded-xl overflow-hidden transition-all hover:scale-[1.03] hover:shadow-xl active:scale-[0.98] cursor-pointer"
-                style={{ background: 'linear-gradient(135deg, #78350f 0%, #d97706 50%, #fbbf24 100%)', boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.2), inset 0 -2px 0 rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.3)' }}>
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center"><div className="text-3xl">🧠</div><div className="text-lg font-black text-white" style={{ fontFamily: 'Space Grotesk, sans-serif', textShadow: '2px 2px 4px rgba(0,0,0,0.4)' }}>AI SETUP</div></div>
-                </div>
-              </button>
-
             </div>
           </div>
+        )}
 
+        <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
+          <span style={{ fontSize: 10, fontWeight: 500, color: isOnline ? '#86efac' : '#fca5a5' }}>
+            {isOnline ? 'Engine running' : 'Engine offline'}
+          </span>
         </div>
+      </div>
+
+      {/* 3D Office */}
+      <div style={{ flex: 1 }}>
+        <OfficeAdapter />
       </div>
     </div>
   );

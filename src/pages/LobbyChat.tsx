@@ -33,19 +33,19 @@ function MessageBubble({ message }: { message: RawMessage }) {
   );
 }
 
-/** Deduplicate messages by content — if two consecutive assistant messages have identical text, skip the second */
+/** Deduplicate messages — by ID and by assistant content text */
 function dedupeMessages(messages: RawMessage[]): RawMessage[] {
+  const seenIds = new Set<string>();
+  const seenTexts = new Set<string>();
   const result: RawMessage[] = [];
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
+  for (const msg of messages) {
     if (msg.role === 'toolresult') continue;
-    if (msg.role === 'assistant' && i > 0) {
-      const prev = result[result.length - 1];
-      if (prev?.role === 'assistant') {
-        const prevText = extractText(prev);
-        const thisText = extractText(msg);
-        if (prevText && thisText && prevText === thisText) continue; // skip dupe
-      }
+    if (msg.id && seenIds.has(msg.id)) continue;
+    if (msg.id) seenIds.add(msg.id);
+    if (msg.role === 'assistant') {
+      const text = extractText(msg);
+      if (text && seenTexts.has(text)) continue;
+      if (text) seenTexts.add(text);
     }
     result.push(msg);
   }
