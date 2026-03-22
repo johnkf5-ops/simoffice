@@ -10,6 +10,8 @@ import { useUpdateStore } from '@/stores/update';
 export function LobbySettings() {
   const navigate = useNavigate();
 
+  const businessName = useSettingsStore((s) => s.businessName);
+  const setBusinessName = useSettingsStore((s) => s.setBusinessName);
   const theme = useSettingsStore((s) => s.theme);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const language = useSettingsStore((s) => s.language);
@@ -31,7 +33,8 @@ export function LobbySettings() {
   const restartGateway = useGatewayStore((s) => s.restart);
   const isOnline = gatewayStatus.state === 'running';
 
-  const currentVersion = useUpdateStore((s) => s.currentVersion);
+  const rawVersion = useUpdateStore((s) => s.currentVersion);
+  const currentVersion = rawVersion && rawVersion !== '0.0.0' ? rawVersion : '1.0.0';
   const updateStatus = useUpdateStore((s) => s.status);
   const checkForUpdates = useUpdateStore((s) => s.checkForUpdates);
 
@@ -69,6 +72,25 @@ export function LobbySettings() {
 
         {/* Settings list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 40px 40px' }}>
+
+          {/* Office */}
+          <div style={sectionTitle}>Office</div>
+
+          <div style={row}>
+            <div>
+              <div style={label}>Office Name</div>
+              <div style={desc}>Shown at the top of your 3D office</div>
+            </div>
+            <input
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              style={{
+                padding: '8px 12px', borderRadius: 8, border: '1px solid hsl(var(--border))',
+                background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 13,
+                width: 200, outline: 'none',
+              }}
+            />
+          </div>
 
           {/* Look & Feel */}
           <div style={sectionTitle}>Look & Feel</div>
@@ -225,8 +247,10 @@ export function LobbySettings() {
 
           {/* About */}
           <div style={sectionTitle}>About</div>
-          <div style={{ padding: '14px 0', fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
-            <strong style={{ color: 'hsl(var(--foreground))' }}>SimOffice</strong> for OpenClaw · v{currentVersion}
+          <div style={{ padding: '14px 0', fontSize: 13, color: 'hsl(var(--muted-foreground))', lineHeight: 1.8 }}>
+            <strong style={{ color: 'hsl(var(--foreground))', fontSize: 15 }}>SimOffice</strong> · v{currentVersion}<br />
+            Copyright © 2026 CrashOverride LLC. All rights reserved.<br />
+            <span style={{ fontSize: 11, opacity: 0.6 }}>This software is proprietary. Unauthorized use, reproduction, or distribution is prohibited.</span>
           </div>
 
         </div>

@@ -10,7 +10,7 @@ import { useAgentsStore } from '@/stores/agents';
 import { useGatewayStore } from '@/stores/gateway';
 import { useChatStore, type RawMessage } from '@/stores/chat';
 import { StatusDot } from '@/components/common/StatusDot';
-import { extractText } from '@/pages/Chat/message-utils';
+import { extractText } from '@/lib/message-utils';
 import { OfficeAdapter } from '@/components/lobby/OfficeAdapter';
 
 export function Lobby() {

@@ -40,10 +40,12 @@ interface SettingsState {
 
   // Setup
   setupComplete: boolean;
+  businessName: string;
 
   // Actions
   init: () => Promise<void>;
   setTheme: (theme: Theme) => void;
+  setBusinessName: (name: string) => void;
   setLanguage: (language: string) => void;
   setStartMinimized: (value: boolean) => void;
   setLaunchAtStartup: (value: boolean) => void;
@@ -85,6 +87,7 @@ const defaultSettings = {
   sidebarCollapsed: false,
   devModeUnlocked: false,
   setupComplete: false,
+  businessName: 'My Headquarters',
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -168,6 +171,7 @@ export const useSettingsStore = create<SettingsState>()(
           body: JSON.stringify({ value: devModeUnlocked }),
         }).catch(() => { });
       },
+      setBusinessName: (businessName) => set({ businessName }),
       markSetupComplete: () => set({ setupComplete: true }),
       resetSettings: () => set(defaultSettings),
     }),

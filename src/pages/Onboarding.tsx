@@ -39,6 +39,9 @@ const OTHER_PROVIDERS = SETUP_PROVIDERS.filter(p =>
 export function Onboarding() {
   const navigate = useNavigate();
   const markSetupComplete = useSettingsStore((s) => s.markSetupComplete);
+  const setupComplete = useSettingsStore((s) => s.setupComplete);
+  const businessName = useSettingsStore((s) => s.businessName);
+  const setBusinessName = useSettingsStore((s) => s.setBusinessName);
   const startGateway = useGatewayStore((s) => s.start);
   const gatewayStatus = useGatewayStore((s) => s.status);
   const isOnline = gatewayStatus.state === 'running';
@@ -59,12 +62,19 @@ export function Onboarding() {
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
   const [soulTemplates, setSoulTemplates] = useState<Record<string, string>>({});
 
+  // Loading screen state
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadDone, setLoadDone] = useState(false);
+
   const providerData = SETUP_PROVIDERS.find(p => p.id === selectedProvider);
   const needsKey = providerData?.requiresApiKey ?? true;
   const docsUrl = providerData ? getProviderDocsUrl(providerData, 'en') : null;
 
-  // Load agent catalog + soul templates
+  // Simple 5-second loading bar, then show continue button
   useEffect(() => {
+    if (step !== 0) return;
+
+    // Load data in background
     fetch('/agent-templates.json')
       .then(r => r.json())
       .then(data => setAgentCatalog(data.agents || []))
@@ -73,7 +83,26 @@ export function Onboarding() {
       .then(r => r.json())
       .then(data => setSoulTemplates(data || {}))
       .catch(() => {});
-  }, []);
+
+    // Animate progress over 5 seconds
+    const steps = [
+      { time: 0, progress: 5 },
+      { time: 500, progress: 15 },
+      { time: 1200, progress: 30 },
+      { time: 2000, progress: 50 },
+      { time: 3000, progress: 70 },
+      { time: 3800, progress: 85 },
+      { time: 4500, progress: 95 },
+      { time: 5000, progress: 100 },
+    ];
+
+    const timers = steps.map(s =>
+      setTimeout(() => setLoadProgress(s.progress), s.time)
+    );
+    const doneTimer = setTimeout(() => setLoadDone(true), 5400);
+
+    return () => { timers.forEach(clearTimeout); clearTimeout(doneTimer); };
+  }, [step]);
 
   // Auto-start gateway on final step
   useEffect(() => {
@@ -171,61 +200,82 @@ export function Onboarding() {
   return (
     <div style={{
       width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0d0d3b 0%, #1a1a6e 40%, #2d1b69 100%)',
+      background: step === 0 ? '#0a0a1a' : 'linear-gradient(135deg, #0d0d3b 0%, #1a1a6e 40%, #2d1b69 100%)',
       fontFamily: 'Inter, sans-serif',
+      position: 'relative',
     }}>
-      <div style={{ width: '100%', maxWidth: 560, padding: 32 }}>
+      {/* Splash background for loading & welcome screen */}
+      {step === 0 && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: 'url(/splash-loading2.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          zIndex: 0,
+        }}>
+          {/* Gradient overlay for readability */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.55) 100%)',
+          }} />
+        </div>
+      )}
 
-        {/* ═══ STEP 0: WELCOME ═══ */}
+      <div style={{ width: '100%', maxWidth: 560, padding: 32, position: 'relative', zIndex: 1 }}>
+
+        {/* ═══ STEP 0: LOADING SCREEN ═══ */}
         {step === 0 && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: 24, margin: '0 auto 24px',
-              background: 'linear-gradient(135deg, #f97316, #fbbf24)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 32px rgba(249,115,22,0.3)',
-              fontSize: 36,
-            }}>
-              ⚡
-            </div>
-
-            <h1 style={{ fontSize: 40, fontWeight: 900, color: 'white', fontFamily: 'Space Grotesk, sans-serif', marginBottom: 8, letterSpacing: '-0.02em' }}>
-              Welcome to SimOffice
-            </h1>
-            <p style={{ fontSize: 16, color: 'rgba(191,219,254,0.6)', marginBottom: 40, lineHeight: 1.6 }}>
-              Your personal AI assistant, right on your computer.<br />
-              Private. Powerful. Yours.
-            </p>
-
-            <button onClick={() => setStep(1)} style={{
-              padding: '16px 48px', borderRadius: 16, border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #f97316, #f59e0b)',
-              color: 'white', fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
-              boxShadow: '0 4px 20px rgba(249,115,22,0.4)',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-            }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            >
-              Let's Go →
-            </button>
-
-            <div style={{ marginTop: 32 }}>
-              <button onClick={handleSkip} style={{ background: 'none', border: 'none', color: 'rgba(191,219,254,0.3)', fontSize: 12, cursor: 'pointer' }}>
-                Skip setup
-              </button>
-            </div>
-
-            {/* Step dots */}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 40 }}>
-              {[0, 1, 2, 3, 4].map(i => (
-                <div key={i} style={{
-                  width: i === step ? 24 : 8, height: 8, borderRadius: 4,
-                  background: i === step ? '#f97316' : 'rgba(255,255,255,0.2)',
-                  transition: 'all 0.3s',
+          <div style={{
+            position: 'absolute',
+            left: '50%',
+            top: '30%',
+            transform: 'translateX(-50%)',
+            width: '40%',
+            zIndex: 2,
+            textAlign: 'center',
+          }}>
+            {/* Progress bar — visible while loading */}
+            {!loadDone && (
+              <div style={{
+                width: '100%', height: 20, borderRadius: 10,
+                background: 'rgba(0,0,0,0.35)',
+                border: '2px solid rgba(255,255,255,0.2)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2)',
+                overflow: 'hidden',
+                marginTop: 48,
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: `${loadProgress}%`,
+                  borderRadius: 8,
+                  background: 'linear-gradient(90deg, #22c55e, #34d399, #3b82f6)',
+                  backgroundSize: '200% 100%',
+                  animation: 'shimmer 2s ease-in-out infinite',
+                  transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 0 16px rgba(34,197,94,0.6)',
                 }} />
-              ))}
-            </div>
+              </div>
+            )}
+
+            {/* Button covers the "Loading..." text area after done */}
+            {loadDone && (
+              <button
+                onClick={() => setupComplete ? navigate('/') : setStep(1)}
+                style={{
+                  padding: '18px 48px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                  color: 'white', fontSize: 20, fontWeight: 700,
+                  fontFamily: 'Space Grotesk, sans-serif',
+                  textShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  boxShadow: '0 4px 24px rgba(34,197,94,0.4)',
+                  transition: 'transform 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                Click to continue →
+              </button>
+            )}
           </div>
         )}
 
@@ -237,11 +287,28 @@ export function Onboarding() {
             </button>
 
             <h2 style={{ fontSize: 32, fontWeight: 900, color: 'white', fontFamily: 'Space Grotesk, sans-serif', marginBottom: 4 }}>
-              Pick your AI
+              Set up your office
             </h2>
             <p style={{ fontSize: 14, color: 'rgba(191,219,254,0.5)', marginBottom: 24 }}>
-              Choose an AI service and enter your secret code
+              Name your office and choose an AI service
             </p>
+
+            {/* Business name */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 6 }}>
+                Office name
+              </label>
+              <input
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="e.g. Acme Headquarters"
+                style={{
+                  width: '100%', padding: '12px 14px', borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 14, outline: 'none',
+                }}
+              />
+            </div>
 
             {/* Provider grid */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
@@ -661,8 +728,18 @@ export function Onboarding() {
 
       </div>
 
-      {/* Spin animation */}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* Animations */}
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { useChatStore, type RawMessage } from '@/stores/chat';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
 import { StatusDot } from '@/components/common/StatusDot';
-import { extractText } from '@/pages/Chat/message-utils';
+import { extractText } from '@/lib/message-utils';
 
 function MessageBubble({ message }: { message: RawMessage }) {
   const isUser = message.role === 'user';

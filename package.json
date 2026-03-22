@@ -1,6 +1,6 @@
 {
-    "name": "clawx",
-    "version": "0.2.8",
+    "name": "simoffice",
+    "version": "1.0.0",
     "pnpm": {
         "onlyBuiltDependencies": [
             "@discordjs/opus",
@@ -17,10 +17,10 @@
             "https-proxy-agent": "7.0.6"
         }
     },
-    "description": "ClawX - Graphical AI Assistant based on OpenClaw",
+    "description": "SimOffice - AI Office Desktop App",
     "main": "dist-electron/main/index.js",
-    "author": "ClawX Team",
-    "license": "MIT",
+    "author": "CrashOverride LLC",
+    "license": "SEE LICENSE IN LICENSE",
     "private": true,
     "scripts": {
         "init": "pnpm install && pnpm run uv:download",

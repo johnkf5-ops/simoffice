@@ -22,6 +22,7 @@ import {
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { useSettingsStore } from "@/stores/settings";
 import { SettingsPanel } from "@/features/office/components/panels/SettingsPanel";
 import { AtmImmersiveScreen } from "@/features/office/screens/AtmImmersiveScreen";
 import { GithubImmersiveScreen } from "@/features/office/screens/GithubImmersiveScreen";
@@ -1991,6 +1992,7 @@ export function RetroOffice3D({
       ),
     ),
   );
+  const businessName = useSettingsStore((s) => s.businessName);
   const [editMode, setEditMode] = useState(false);
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const [hoverUid, setHoverUid] = useState<string | null>(null);
@@ -4978,7 +4980,7 @@ export function RetroOffice3D({
         <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-3 pointer-events-none select-none z-10">
           <div className="h-px w-12 bg-gradient-to-r from-transparent to-amber-500/40" />
           <span className="text-sm tracking-[0.3em] text-amber-300/80 font-bold uppercase">
-            Luke Headquarters
+            {businessName}
           </span>
           <div className="h-px w-12 bg-gradient-to-l from-transparent to-amber-500/40" />
         </div>

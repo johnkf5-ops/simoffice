@@ -67,7 +67,7 @@ const WINDOWS_APP_USER_MODEL_ID = 'app.clawx.desktop';
 // on X11 it supplements the StartupWMClass matching.
 // Must be called before app.whenReady() / before any window is created.
 if (process.platform === 'linux') {
-  app.setDesktopName('clawx.desktop');
+  app.setDesktopName('simoffice.desktop');
 }
 
 // Prevent multiple instances of the app from running simultaneously.

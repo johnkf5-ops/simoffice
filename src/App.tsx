@@ -17,12 +17,11 @@ import { LobbyConnections } from './pages/LobbyConnections';
 import { LobbyPowers } from './pages/LobbyPowers';
 import { LobbyAutomations } from './pages/LobbyAutomations';
 import { LobbyAISetup } from './pages/LobbyAISetup';
-import { Settings } from './pages/Settings';
 import { LobbySettings } from './pages/LobbySettings';
-import { Setup } from './pages/Setup';
 import { Onboarding } from './pages/Onboarding';
 import { WebGLTest } from './pages/WebGLTest';
 import { Office3D } from './pages/Office3D';
+import { LandingPage } from './pages/LandingPage';
 
 import { useSettingsStore } from './stores/settings';
 import { useGatewayStore } from './stores/gateway';
@@ -109,7 +108,7 @@ function App() {
 
   useEffect(() => { initGateway(); }, [initGateway]);
 
-  // Redirect to onboarding if not complete
+  // Redirect to onboarding if setup not complete
   useEffect(() => {
     if (!setupComplete && !location.pathname.startsWith('/setup') && !location.pathname.startsWith('/onboarding')) {
       navigate('/onboarding');
@@ -142,6 +141,8 @@ function App() {
     <ErrorBoundary>
       <TooltipProvider delayDuration={300}>
         <Routes>
+          <Route path="/landing" element={<LandingPage />} />
+
           {/* Onboarding */}
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/setup/*" element={<Onboarding />} />
