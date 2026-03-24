@@ -624,7 +624,7 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
         key: 'accessToken',
         label: 'Private App Access Token',
         type: 'password',
-        placeholder: 'pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+        placeholder: 'pat-na1-... or pat-eu1-...',
         required: true,
         envVar: 'HUBSPOT_ACCESS_TOKEN',
       },
@@ -642,7 +642,7 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     icon: '📧',
     description: 'Connect Gmail, Calendar, and Drive',
     connectionType: 'token',
-    docsUrl: 'https://console.cloud.google.com/apis/credentials',
+    docsUrl: 'https://console.cloud.google.com/iam-admin/serviceaccounts',
     configFields: [
       {
         key: 'serviceAccountKey',
@@ -690,13 +690,13 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     icon: '🐙',
     description: 'Connect GitHub for repos, PRs, issues, and deploys',
     connectionType: 'token',
-    docsUrl: 'https://github.com/settings/tokens',
+    docsUrl: 'https://github.com/settings/personal-access-tokens',
     configFields: [
       {
         key: 'token',
         label: 'Personal Access Token',
         type: 'password',
-        placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        placeholder: 'github_pat_xxxxxxxxxxxx...',
         required: true,
         envVar: 'GITHUB_TOKEN',
       },
@@ -786,8 +786,9 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     connectionType: 'token',
     docsUrl: 'https://help.salesforce.com/s/articleView?id=sf.connected_app_create_api_integration.htm',
     configFields: [
-      { key: 'instanceUrl', label: 'Instance URL', type: 'text', placeholder: 'https://yourcompany.salesforce.com', required: true },
-      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Paste your Salesforce access token...', required: true, envVar: 'SALESFORCE_ACCESS_TOKEN' },
+      { key: 'instanceUrl', label: 'Instance URL', type: 'text', placeholder: 'https://yourcompany.my.salesforce.com', required: true },
+      { key: 'consumerKey', label: 'Consumer Key', type: 'text' as const, placeholder: 'Paste your Salesforce Consumer Key...', required: true, envVar: 'SALESFORCE_CONSUMER_KEY' },
+      { key: 'consumerSecret', label: 'Consumer Secret', type: 'password' as const, placeholder: 'Paste your Salesforce Consumer Secret...', required: true, envVar: 'SALESFORCE_CONSUMER_SECRET' },
     ],
     instructions: ['Go to Salesforce Setup → Apps → App Manager → New Connected App', 'Enable OAuth and select scopes: api, refresh_token', 'Generate an access token or use the OAuth flow', 'Copy your instance URL and access token'],
   },
@@ -797,7 +798,7 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     icon: '🐵',
     description: 'Connect Mailchimp for email campaigns and audience management',
     connectionType: 'token',
-    docsUrl: 'https://mailchimp.com/developer/marketing/guides/quick-start/',
+    docsUrl: 'https://mailchimp.com',
     configFields: [
       { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-usXX', required: true, envVar: 'MAILCHIMP_API_KEY' },
     ],
@@ -974,7 +975,8 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     connectionType: 'token',
     docsUrl: 'https://developer.intuit.com/app/developer/qbo/docs/develop/authentication-and-authorization',
     configFields: [
-      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Paste your QuickBooks access token...', required: true, envVar: 'QUICKBOOKS_ACCESS_TOKEN' },
+      { key: 'clientId', label: 'Client ID', type: 'text' as const, placeholder: 'Paste your QuickBooks Client ID...', required: true, envVar: 'QUICKBOOKS_CLIENT_ID' },
+      { key: 'clientSecret', label: 'Client Secret', type: 'password' as const, placeholder: 'Paste your QuickBooks Client Secret...', required: true, envVar: 'QUICKBOOKS_CLIENT_SECRET' },
       { key: 'realmId', label: 'Company ID (Realm ID)', type: 'text', placeholder: 'Your QuickBooks company ID...', required: true },
     ],
     instructions: ['Go to developer.intuit.com and create an app', 'Set up OAuth 2.0 and generate tokens', 'Copy your access token and company/realm ID'],
@@ -987,7 +989,8 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     connectionType: 'token',
     docsUrl: 'https://developers.docusign.com/platform/auth/',
     configFields: [
-      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Paste your DocuSign access token...', required: true, envVar: 'DOCUSIGN_ACCESS_TOKEN' },
+      { key: 'integrationKey', label: 'Integration Key', type: 'text' as const, placeholder: 'Paste your DocuSign Integration Key...', required: true, envVar: 'DOCUSIGN_INTEGRATION_KEY' },
+      { key: 'rsaPrivateKey', label: 'RSA Private Key', type: 'password' as const, placeholder: 'Paste your RSA private key...', required: true, envVar: 'DOCUSIGN_RSA_PRIVATE_KEY' },
       { key: 'accountId', label: 'Account ID', type: 'text', placeholder: 'Your DocuSign account ID...', required: true },
     ],
     instructions: ['Go to DocuSign Developer → Apps and Keys', 'Create an app and generate an access token', 'Copy the token and your Account ID'],
@@ -1000,7 +1003,8 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     connectionType: 'token',
     docsUrl: 'https://developer.xero.com/documentation/getting-started-guide/',
     configFields: [
-      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Paste your Xero access token...', required: true, envVar: 'XERO_ACCESS_TOKEN' },
+      { key: 'clientId', label: 'Client ID', type: 'text' as const, placeholder: 'Paste your Xero Client ID...', required: true, envVar: 'XERO_CLIENT_ID' },
+      { key: 'clientSecret', label: 'Client Secret', type: 'password' as const, placeholder: 'Paste your Xero Client Secret...', required: true, envVar: 'XERO_CLIENT_SECRET' },
       { key: 'tenantId', label: 'Tenant ID', type: 'text', placeholder: 'Your Xero tenant/org ID...', required: true },
     ],
     instructions: ['Go to developer.xero.com and create an app', 'Set up OAuth 2.0 and generate tokens', 'Copy your access token and tenant ID'],
