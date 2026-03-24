@@ -433,11 +433,9 @@ exports.default = async function afterPack(context) {
   //     - electron-builder silently skips extraResources entries whose source
   //       directory doesn't exist (build/openclaw-plugins/ may not be pre-generated)
   //     - node_modules/ is excluded by .gitignore so the deps copy must be manual
+  // Chinese messaging plugins removed — not needed for SimOffice users.
+  // Saves ~95MB from the app bundle.
   const BUNDLED_PLUGINS = [
-    { npmName: '@soimy/dingtalk', pluginId: 'dingtalk' },
-    { npmName: '@wecom/wecom-openclaw-plugin', pluginId: 'wecom' },
-    { npmName: '@sliverp/qqbot', pluginId: 'qqbot' },
-    { npmName: '@larksuite/openclaw-lark', pluginId: 'feishu-openclaw-plugin' },
   ];
 
   mkdirSync(pluginsDestRoot, { recursive: true });
