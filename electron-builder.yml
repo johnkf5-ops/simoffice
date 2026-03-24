@@ -47,16 +47,11 @@ asarUnpack:
 # own process — @electron/rebuild must NOT touch them.
 npmRebuild: false
 
-# Auto-update configuration
-# Primary: Alibaba Cloud OSS (fast for Chinese users, used for auto-update)
-# Fallback: GitHub Releases (backup, used when OSS is unavailable)
+# Auto-update configuration — GitHub Releases
 publish:
-  - provider: generic
-    url: https://oss.intelli-spectrum.com/latest
-    useMultipleRangeRequest: false
   - provider: github
-    owner: ValueCell-ai
-    repo: ClawX
+    owner: johnkf5-ops
+    repo: simoffice
 
 # macOS Configuration
 mac:
