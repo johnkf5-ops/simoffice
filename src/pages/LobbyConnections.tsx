@@ -10,7 +10,12 @@ import { useAgentsStore } from '@/stores/agents';
 import { useChatStore } from '@/stores/chat';
 import { StatusDot } from '@/components/common/StatusDot';
 import { ChannelConfigModal } from '@/components/channels/ChannelConfigModal';
+import { ChannelSetupWizard, hasSetupWizard } from '@/components/channels/ChannelSetupWizard';
 import { CHANNEL_NAMES, CHANNEL_ICONS, type ChannelType } from '@/types/channel';
+
+const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
+  { type: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'CRM — contacts, deals, companies' },
+];
 
 const ALL_CHANNEL_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
   { type: 'whatsapp', name: 'WhatsApp', icon: '\uD83D\uDCF1', description: 'Connect via QR code scan' },
@@ -61,6 +66,7 @@ export function LobbyConnections() {
 
   /* Modal state */
   const [configModalType, setConfigModalType] = useState<ChannelType | null>(null);
+  const [wizardType, setWizardType] = useState<ChannelType | null>(null);
 
   useEffect(() => { void fetchChannels(); void fetchAgents(); }, [fetchChannels, fetchAgents]);
 
@@ -69,7 +75,11 @@ export function LobbyConnections() {
   const configuredTypesList = channels.map((c) => c.type);
 
   const handleChannelClick = (channelType: ChannelType) => {
-    setConfigModalType(channelType);
+    if (hasSetupWizard(channelType)) {
+      setWizardType(channelType);
+    } else {
+      setConfigModalType(channelType);
+    }
   };
 
   const handleModalClose = () => {
@@ -254,13 +264,49 @@ export function LobbyConnections() {
             </div>
           )}
 
-          {/* Available Apps to Connect */}
+          {/* Business Integrations */}
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
-              Available Apps
+              Business Integrations
             </h2>
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
-              Choose a messaging app to connect to your AI
+              Connect business tools so your agents can manage CRM, docs, and more
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 32 }}>
+              {INTEGRATION_TYPES.map((ch) => {
+                const isConnected = connectedTypes.has(ch.type);
+                return (
+                  <div key={ch.type}
+                    onClick={() => handleChannelClick(ch.type)}
+                    style={{
+                      background: isConnected ? 'rgba(13,148,136,0.06)' : 'hsl(var(--card))',
+                      border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'}`,
+                      borderRadius: 12,
+                      padding: '16px', cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--primary))'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'; }}
+                  >
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>{ch.icon}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{ch.name}</div>
+                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>{ch.description}</div>
+                    {isConnected && (
+                      <div style={{ marginTop: 8, fontSize: 11, color: '#0d9488', fontWeight: 600 }}>● Connected</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Messaging Apps */}
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
+              Messaging Apps
+            </h2>
+            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
+              Connect messaging apps so your agents can chat with people
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
               {ALL_CHANNEL_TYPES.map((ch) => {
@@ -321,6 +367,39 @@ export function LobbyConnections() {
           onClose={handleModalClose}
           onChannelSaved={handleChannelSaved}
         />
+      )}
+
+      {/* === Setup Wizard Modal === */}
+      {wizardType && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+          onClick={() => setWizardType(null)}
+        >
+          <div style={{
+            background: 'hsl(var(--card))', borderRadius: 20, padding: '8px 32px 32px',
+            width: '100%', maxWidth: 520, maxHeight: '80vh', overflowY: 'auto',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+          }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ChannelSetupWizard
+              channelType={wizardType}
+              onTokenSubmit={(token) => {
+                // After token is submitted, open the config modal with the token pre-filled
+                setWizardType(null);
+                setConfigModalType(wizardType);
+              }}
+              onComplete={() => {
+                setWizardType(null);
+                void fetchChannels();
+              }}
+              onBack={() => setWizardType(null)}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

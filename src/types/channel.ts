@@ -20,7 +20,8 @@ export type ChannelType =
   | 'msteams'
   | 'googlechat'
   | 'mattermost'
-  | 'qqbot';
+  | 'qqbot'
+  | 'hubspot';
 
 /**
  * Channel connection status
@@ -94,6 +95,7 @@ export const CHANNEL_ICONS: Record<ChannelType, string> = {
   googlechat: '💭',
   mattermost: '💠',
   qqbot: '🐧',
+  hubspot: '🟠',
 };
 
 /**
@@ -114,6 +116,7 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   googlechat: 'Google Chat',
   mattermost: 'Mattermost',
   qqbot: 'QQ Bot',
+  hubspot: 'HubSpot',
 };
 
 /**
@@ -523,6 +526,30 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
       'channels:meta.googlechat.instructions.1',
       'channels:meta.googlechat.instructions.2',
       'channels:meta.googlechat.instructions.3',
+    ],
+  },
+  hubspot: {
+    id: 'hubspot',
+    name: 'HubSpot',
+    icon: '🟠',
+    description: 'Connect your HubSpot CRM',
+    connectionType: 'token',
+    docsUrl: 'https://developers.hubspot.com/docs/api/private-apps',
+    configFields: [
+      {
+        key: 'accessToken',
+        label: 'Private App Access Token',
+        type: 'password',
+        placeholder: 'pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+        required: true,
+        envVar: 'HUBSPOT_ACCESS_TOKEN',
+      },
+    ],
+    instructions: [
+      'Go to HubSpot → Settings → Integrations → Private Apps',
+      'Click "Create a private app" and name it SimOffice',
+      'Under Scopes, enable: crm.objects.contacts, crm.objects.deals, crm.objects.companies',
+      'Click "Create app" and copy your access token',
     ],
   },
   mattermost: {
