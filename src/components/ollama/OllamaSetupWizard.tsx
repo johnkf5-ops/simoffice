@@ -431,14 +431,14 @@ export function OllamaSetupWizard({ onComplete, onCancel }: OllamaSetupWizardPro
               </div>
             )}
 
-            {hardware && hardware.totalRamGB < 32 && (
+            {hardware && hardware.totalRamGB <= 16 && (
               <div style={{ ...infoBox, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: 12, lineHeight: 1.5 }}>
                 <div style={{ fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
                   Good for chat, limited for complex tasks
                 </div>
                 <div style={{ color: 'hsl(var(--muted-foreground))' }}>
-                  With {hardware.totalRamGB}GB of memory, local AI works well for conversations, quick questions, and simple tasks.
-                  For advanced reasoning, long documents, and multi-step work, we recommend connecting a cloud AI (like Claude or GPT) from the Brain page — it's a much better experience.
+                  With 16GB of memory, local AI works well for conversations, quick questions, and simple tasks.
+                  For advanced reasoning, long documents, and multi-step work, we recommend also connecting a cloud AI (like Claude or GPT) from the Brain page.
                 </div>
               </div>
             )}

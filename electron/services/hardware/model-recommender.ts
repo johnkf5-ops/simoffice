@@ -7,7 +7,6 @@ import type { HardwareInfo } from './detect';
 export type QualityTier = 'Basic' | 'Good' | 'Strong' | 'Very Strong' | 'Excellent';
 
 export type CapabilityTier =
-  | 'Light Duty'
   | 'Solid Performer'
   | 'Strong Performer'
   | 'Heavy Hitter'
@@ -67,49 +66,7 @@ export interface RecommendationResult {
 // ---------------------------------------------------------------------------
 
 export const MODEL_DATABASE: ModelEntry[] = [
-  // --- 8GB RAM ---
-  {
-    ollamaTag: 'phi4-mini:latest',
-    name: 'Phi-4 Mini',
-    params: '3.8B',
-    downloadGB: 2.5,
-    minRamGB: 8,
-    qualityTier: 'Basic',
-    bestFor: ['math', 'reasoning'],
-    description: 'Tiny but beats GPT-4o on math. Best for 8GB machines.',
-    isMoE: false,
-    hasVision: false,
-    hasThinking: false,
-  },
-  {
-    ollamaTag: 'gemma3:4b',
-    name: 'Gemma 3',
-    params: '4B',
-    downloadGB: 3.3,
-    minRamGB: 8,
-    qualityTier: 'Basic',
-    bestFor: ['all-rounder', 'vision'],
-    description: 'See images, answer questions, handle basics. Google-made.',
-    isMoE: false,
-    hasVision: true,
-    hasThinking: false,
-  },
-  {
-    ollamaTag: 'qwen3.5:4b',
-    name: 'Qwen 3.5',
-    params: '4B',
-    downloadGB: 3.4,
-    minRamGB: 8,
-    qualityTier: 'Basic',
-    bestFor: ['all-rounder', 'vision'],
-    description: 'Small but capable. Understands images. 256K context.',
-    isMoE: false,
-    hasVision: true,
-    hasThinking: true,
-    thinkingNote: 'API parameter only, /nothink does not work.',
-  },
-
-  // --- 16GB RAM ---
+  // --- 16GB RAM (minimum for local AI) ---
   {
     ollamaTag: 'llama3.1:8b',
     name: 'Llama 3.1',
@@ -455,24 +412,6 @@ interface TierInfo {
 function getTierInfo(model: ModelEntry): TierInfo {
   const dl = model.downloadGB;
 
-  if (dl <= 3.5) {
-    return {
-      tier: 'Light Duty',
-      description: 'Your computer can run a small AI assistant. It\'s quick for simple tasks but won\'t handle complex work.',
-      speedDescription: 'Typing speed — like watching someone type a reply. First response takes a few seconds to start.',
-      capabilities: [
-        { label: 'Answer straightforward questions', supported: true },
-        { label: 'Draft short emails and messages', supported: true },
-        { label: 'Summarize a paragraph or two', supported: true },
-        { label: 'Basic spelling and grammar help', supported: true },
-        { label: 'Writing blog posts or long documents', supported: false },
-        { label: 'Analyzing spreadsheets or data', supported: false },
-        { label: 'Writing or understanding code', supported: false },
-        { label: 'Complex reasoning or multi-step planning', supported: false },
-      ],
-    };
-  }
-
   if (dl <= 7) {
     return {
       tier: 'Solid Performer',
@@ -586,22 +525,25 @@ export function getRecommendation(hardware: HardwareInfo): RecommendationResult 
   const threshold75 = ram * 0.75;
   const threshold90 = ram * 0.90;
 
-  // Intel Mac edge case
+  // Intel Mac — no local AI support
   if (!hardware.isAppleSilicon) {
-    const intelModels = MODEL_DATABASE.filter(m => m.minRamGB <= 8 && m.downloadGB <= threshold75);
-    const best = intelModels[intelModels.length - 1] ?? null;
     return {
-      recommended: best ? buildRecommendation(best, hardware) : null,
+      recommended: null,
       advancedModels: [],
-      hardwareWarning: 'Your Mac uses an Intel processor. Local AI will run on CPU only, which is significantly slower than Apple Silicon. We recommend small models for the best experience.',
+      hardwareWarning: 'Your Mac uses an Intel processor which doesn\'t support local AI well. We recommend connecting a cloud AI provider (like Claude or GPT) from the Brain page for the best experience.',
     };
   }
 
-  // 8GB base chip warning
-  let hardwareWarning: string | null = null;
-  if (hardware.totalRamGB <= 8) {
-    hardwareWarning = 'Your computer has 8GB of memory, so we can only run small AI brains. They\'re great for quick tasks but won\'t handle complex work. For a more powerful AI, a Mac with 16GB or more is recommended.';
+  // Under 16GB — not enough for local AI
+  if (hardware.totalRamGB < 16) {
+    return {
+      recommended: null,
+      advancedModels: [],
+      hardwareWarning: 'Your computer needs at least 16GB of memory to run local AI. Connect a cloud AI provider (like Claude or GPT) from the Brain page instead — it works great and doesn\'t use your computer\'s resources.',
+    };
   }
+
+  let hardwareWarning: string | null = null;
 
   // Filter models into tiers
   const recommended: ModelEntry[] = [];

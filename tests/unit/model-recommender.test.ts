@@ -24,7 +24,7 @@ function makeHardware(overrides: Partial<HardwareInfo> = {}): HardwareInfo {
 }
 
 describe('getRecommendation', () => {
-  it('recommends small models for 8GB M1', () => {
+  it('returns null recommendation for 8GB M1 (below 16GB minimum)', () => {
     const hw = makeHardware({
       totalRamGB: 8,
       availableRamGB: 5,
@@ -32,10 +32,8 @@ describe('getRecommendation', () => {
       memoryBandwidthGBs: 68,
     });
     const result = getRecommendation(hw);
-    expect(result.recommended).not.toBeNull();
-    // 75% of 5GB = 3.75GB — should fit phi4-mini (2.5GB) or gemma3:4b (3.3GB) or qwen3.5:4b (3.4GB)
-    expect(result.recommended!.model.downloadGB).toBeLessThanOrEqual(3.75);
-    expect(result.hardwareWarning).toContain('8GB');
+    expect(result.recommended).toBeNull();
+    expect(result.hardwareWarning).toContain('16GB');
   });
 
   it('recommends qwen3.5:9b for 16GB M3', () => {
@@ -98,7 +96,7 @@ describe('getRecommendation', () => {
     }
   });
 
-  it('returns Intel Mac warning with small models only', () => {
+  it('returns null recommendation for Intel Mac', () => {
     const hw = makeHardware({
       totalRamGB: 32,
       availableRamGB: 29,
@@ -110,10 +108,7 @@ describe('getRecommendation', () => {
     });
     const result = getRecommendation(hw);
     expect(result.hardwareWarning).toContain('Intel');
-    // Should only recommend 8GB-tier models for Intel
-    if (result.recommended) {
-      expect(result.recommended.model.minRamGB).toBeLessThanOrEqual(8);
-    }
+    expect(result.recommended).toBeNull();
   });
 
   it('returns null recommendation when no models fit', () => {

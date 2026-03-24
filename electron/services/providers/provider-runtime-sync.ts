@@ -14,7 +14,7 @@ import {
   updateAgentModelProvider,
 } from '../../utils/openclaw-auth';
 import { logger } from '../../utils/logger';
-import { swapAllSouls, getSoulTierForProvider, backfillSoulFiles } from '../ollama/soul-manager';
+import { backfillSoulFiles } from '../ollama/soul-manager';
 
 const GOOGLE_OAUTH_RUNTIME_PROVIDER = 'google-gemini-cli';
 const GOOGLE_OAUTH_DEFAULT_MODEL_REF = `${GOOGLE_OAUTH_RUNTIME_PROVIDER}/gemini-3-pro-preview`;
@@ -578,16 +578,11 @@ export async function syncDefaultProviderToRuntime(
     });
   }
 
-  // Swap SOUL.md files to match the new model's capability tier
+  // Ensure old agents have SOUL.full.md backups
   try {
-    await backfillSoulFiles(); // Ensure old agents have SOUL.full.md/SOUL.compact.md
-    const tier = getSoulTierForProvider(provider.type, provider.model);
-    const swapped = await swapAllSouls(tier);
-    if (swapped > 0) {
-      logger.info(`Swapped ${swapped} agent SOUL.md files to "${tier}" tier for provider "${ock}"`);
-    }
+    await backfillSoulFiles();
   } catch (err) {
-    logger.warn('Failed to swap SOUL.md files on provider switch:', err);
+    logger.warn('Failed to backfill SOUL.md files:', err);
   }
 
   scheduleGatewayRefresh(
