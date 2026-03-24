@@ -29,7 +29,27 @@ export type ChannelType =
   | 'github'
   | 'jira'
   | 'stripe_integration'
-  | 'zapier';
+  | 'zapier'
+  | 'salesforce'
+  | 'mailchimp'
+  | 'sendgrid'
+  | 'calendly'
+  | 'intercom'
+  | 'gitlab'
+  | 'linear'
+  | 'sentry'
+  | 'datadog'
+  | 'vercel'
+  | 'airtable'
+  | 'monday'
+  | 'asana'
+  | 'trello'
+  | 'confluence'
+  | 'quickbooks'
+  | 'docusign'
+  | 'xero'
+  | 'twilio'
+  | 'zendesk';
 
 /**
  * Channel connection status
@@ -112,6 +132,26 @@ export const CHANNEL_ICONS: Record<ChannelType, string> = {
   jira: '📋',
   stripe_integration: '💳',
   zapier: '⚡',
+  salesforce: '☁️',
+  mailchimp: '🐵',
+  sendgrid: '📨',
+  calendly: '📅',
+  intercom: '💬',
+  gitlab: '🦊',
+  linear: '🔷',
+  sentry: '🛡️',
+  datadog: '🐕',
+  vercel: '▲',
+  airtable: '📊',
+  monday: '🟣',
+  asana: '🔺',
+  trello: '📌',
+  confluence: '📘',
+  quickbooks: '💰',
+  docusign: '✍️',
+  xero: '📗',
+  twilio: '📞',
+  zendesk: '🎧',
 };
 
 /**
@@ -141,6 +181,26 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   jira: 'Jira',
   stripe_integration: 'Stripe',
   zapier: 'Zapier',
+  salesforce: 'Salesforce',
+  mailchimp: 'Mailchimp',
+  sendgrid: 'SendGrid',
+  calendly: 'Calendly',
+  intercom: 'Intercom',
+  gitlab: 'GitLab',
+  linear: 'Linear',
+  sentry: 'Sentry',
+  datadog: 'Datadog',
+  vercel: 'Vercel',
+  airtable: 'Airtable',
+  monday: 'Monday.com',
+  asana: 'Asana',
+  trello: 'Trello',
+  confluence: 'Confluence',
+  quickbooks: 'QuickBooks',
+  docusign: 'DocuSign',
+  xero: 'Xero',
+  twilio: 'Twilio',
+  zendesk: 'Zendesk',
 };
 
 /**
@@ -717,6 +777,261 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
       'Enable: Charges (Read), Customers (Read), Subscriptions (Read), Invoices (Read)',
       'Copy the restricted key (starts with rk_live_)',
     ],
+  },
+  salesforce: {
+    id: 'salesforce',
+    name: 'Salesforce',
+    icon: '☁️',
+    description: 'Connect Salesforce CRM for leads, opportunities, and accounts',
+    connectionType: 'token',
+    docsUrl: 'https://help.salesforce.com/s/articleView?id=sf.connected_app_create_api_integration.htm',
+    configFields: [
+      { key: 'instanceUrl', label: 'Instance URL', type: 'text', placeholder: 'https://yourcompany.salesforce.com', required: true },
+      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Paste your Salesforce access token...', required: true, envVar: 'SALESFORCE_ACCESS_TOKEN' },
+    ],
+    instructions: ['Go to Salesforce Setup → Apps → App Manager → New Connected App', 'Enable OAuth and select scopes: api, refresh_token', 'Generate an access token or use the OAuth flow', 'Copy your instance URL and access token'],
+  },
+  mailchimp: {
+    id: 'mailchimp',
+    name: 'Mailchimp',
+    icon: '🐵',
+    description: 'Connect Mailchimp for email campaigns and audience management',
+    connectionType: 'token',
+    docsUrl: 'https://mailchimp.com/developer/marketing/guides/quick-start/',
+    configFields: [
+      { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-usXX', required: true, envVar: 'MAILCHIMP_API_KEY' },
+    ],
+    instructions: ['Go to Mailchimp → Account → Extras → API Keys', 'Click "Create A Key"', 'Copy the key — the suffix (e.g. -us21) indicates your data center'],
+  },
+  sendgrid: {
+    id: 'sendgrid',
+    name: 'SendGrid',
+    icon: '📨',
+    description: 'Connect SendGrid for transactional email and templates',
+    connectionType: 'token',
+    docsUrl: 'https://docs.sendgrid.com/ui/account-and-settings/api-keys',
+    configFields: [
+      { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'SG.xxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, envVar: 'SENDGRID_API_KEY' },
+    ],
+    instructions: ['Go to SendGrid → Settings → API Keys', 'Click "Create API Key" with Full Access or Restricted Access', 'Copy the key — you won\'t see it again'],
+  },
+  calendly: {
+    id: 'calendly',
+    name: 'Calendly',
+    icon: '📅',
+    description: 'Connect Calendly for scheduling, events, and availability',
+    connectionType: 'token',
+    docsUrl: 'https://developer.calendly.com/api-docs',
+    configFields: [
+      { key: 'apiToken', label: 'Personal Access Token', type: 'password', placeholder: 'eyJhbGciOiJIUzI1NiJ9...', required: true, envVar: 'CALENDLY_API_TOKEN' },
+    ],
+    instructions: ['Go to Calendly → Integrations → API & Webhooks', 'Click "Get a token now" under Personal Access Tokens', 'Copy the token'],
+  },
+  intercom: {
+    id: 'intercom',
+    name: 'Intercom',
+    icon: '💬',
+    description: 'Connect Intercom for customer conversations and support',
+    connectionType: 'token',
+    docsUrl: 'https://developers.intercom.com/docs/build-an-integration/learn-more/authentication',
+    configFields: [
+      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'dG9rOxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, envVar: 'INTERCOM_ACCESS_TOKEN' },
+    ],
+    instructions: ['Go to Intercom → Settings → Integrations → Developer Hub', 'Create a new app or use an existing one', 'Go to Authentication and copy the Access Token'],
+  },
+  gitlab: {
+    id: 'gitlab',
+    name: 'GitLab',
+    icon: '🦊',
+    description: 'Connect GitLab for repos, merge requests, and CI/CD pipelines',
+    connectionType: 'token',
+    docsUrl: 'https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html',
+    configFields: [
+      { key: 'token', label: 'Personal Access Token', type: 'password', placeholder: 'glpat-xxxxxxxxxxxxxxxxxxxx', required: true, envVar: 'GITLAB_TOKEN' },
+      { key: 'baseUrl', label: 'GitLab URL', type: 'text', placeholder: 'https://gitlab.com (or your self-hosted URL)', required: false, description: 'Leave blank for gitlab.com' },
+    ],
+    instructions: ['Go to GitLab → Preferences → Access Tokens', 'Click "Add new token"', 'Name it "SimOffice", select scopes: api, read_repository, write_repository', 'Copy the token (starts with glpat-)'],
+  },
+  linear: {
+    id: 'linear',
+    name: 'Linear',
+    icon: '🔷',
+    description: 'Connect Linear for issue tracking, projects, and cycles',
+    connectionType: 'token',
+    docsUrl: 'https://linear.app/docs/graphql/working-with-the-graphql-api',
+    configFields: [
+      { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'lin_api_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, envVar: 'LINEAR_API_KEY' },
+    ],
+    instructions: ['Go to Linear → Settings → API → Personal API Keys', 'Click "Create key"', 'Name it "SimOffice" and copy the key'],
+  },
+  sentry: {
+    id: 'sentry',
+    name: 'Sentry',
+    icon: '🛡️',
+    description: 'Connect Sentry for error tracking, alerts, and release management',
+    connectionType: 'token',
+    docsUrl: 'https://docs.sentry.io/api/auth/',
+    configFields: [
+      { key: 'authToken', label: 'Auth Token', type: 'password', placeholder: 'sntrys_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, envVar: 'SENTRY_AUTH_TOKEN' },
+      { key: 'org', label: 'Organization Slug', type: 'text', placeholder: 'your-org-slug', required: true },
+    ],
+    instructions: ['Go to Sentry → Settings → Auth Tokens', 'Click "Create New Token"', 'Select scopes: project:read, event:read, org:read', 'Copy the token and enter your org slug'],
+  },
+  datadog: {
+    id: 'datadog',
+    name: 'Datadog',
+    icon: '🐕',
+    description: 'Connect Datadog for metrics, monitors, and dashboards',
+    connectionType: 'token',
+    docsUrl: 'https://docs.datadoghq.com/account_management/api-app-keys/',
+    configFields: [
+      { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'Paste your Datadog API key...', required: true, envVar: 'DATADOG_API_KEY' },
+      { key: 'appKey', label: 'Application Key', type: 'password', placeholder: 'Paste your Datadog app key...', required: true, envVar: 'DATADOG_APP_KEY' },
+      { key: 'site', label: 'Datadog Site', type: 'text', placeholder: 'datadoghq.com', required: false, description: 'e.g. datadoghq.eu for EU' },
+    ],
+    instructions: ['Go to Datadog → Organization Settings → API Keys → New Key', 'Then go to Application Keys → New Key', 'Copy both keys'],
+  },
+  vercel: {
+    id: 'vercel',
+    name: 'Vercel',
+    icon: '▲',
+    description: 'Connect Vercel for deployment status, domains, and projects',
+    connectionType: 'token',
+    docsUrl: 'https://vercel.com/account/tokens',
+    configFields: [
+      { key: 'token', label: 'API Token', type: 'password', placeholder: 'Paste your Vercel token...', required: true, envVar: 'VERCEL_TOKEN' },
+    ],
+    instructions: ['Go to Vercel → Settings → Tokens', 'Click "Create" and name it "SimOffice"', 'Set scope to your account or team', 'Copy the token'],
+  },
+  airtable: {
+    id: 'airtable',
+    name: 'Airtable',
+    icon: '📊',
+    description: 'Connect Airtable for bases, tables, and records',
+    connectionType: 'token',
+    docsUrl: 'https://airtable.com/create/tokens',
+    configFields: [
+      { key: 'token', label: 'Personal Access Token', type: 'password', placeholder: 'pat.xxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, envVar: 'AIRTABLE_TOKEN' },
+    ],
+    instructions: ['Go to airtable.com/create/tokens', 'Click "Create new token"', 'Name it "SimOffice", add scopes: data.records:read, data.records:write, schema.bases:read', 'Select which bases to grant access to, then create'],
+  },
+  monday: {
+    id: 'monday',
+    name: 'Monday.com',
+    icon: '🟣',
+    description: 'Connect Monday.com for boards, items, and project management',
+    connectionType: 'token',
+    docsUrl: 'https://developer.monday.com/api-reference/docs/authentication',
+    configFields: [
+      { key: 'apiToken', label: 'API Token', type: 'password', placeholder: 'eyJhbGciOiJIUzI1NiJ9...', required: true, envVar: 'MONDAY_API_TOKEN' },
+    ],
+    instructions: ['Go to Monday.com → Avatar → Developers', 'Click "My Access Tokens"', 'Copy your personal API token'],
+  },
+  asana: {
+    id: 'asana',
+    name: 'Asana',
+    icon: '🔺',
+    description: 'Connect Asana for tasks, projects, and workspaces',
+    connectionType: 'token',
+    docsUrl: 'https://developers.asana.com/docs/personal-access-token',
+    configFields: [
+      { key: 'token', label: 'Personal Access Token', type: 'password', placeholder: 'Paste your Asana PAT...', required: true, envVar: 'ASANA_TOKEN' },
+    ],
+    instructions: ['Go to Asana → My Settings → Apps → Developer Apps', 'Click "Create new token"', 'Name it "SimOffice" and create', 'Copy the token'],
+  },
+  trello: {
+    id: 'trello',
+    name: 'Trello',
+    icon: '📌',
+    description: 'Connect Trello for boards, cards, and lists',
+    connectionType: 'token',
+    docsUrl: 'https://developer.atlassian.com/cloud/trello/guides/rest-api/api-introduction/',
+    configFields: [
+      { key: 'apiKey', label: 'API Key', type: 'text', placeholder: 'Your Trello API key...', required: true },
+      { key: 'token', label: 'Token', type: 'password', placeholder: 'Your Trello token...', required: true, envVar: 'TRELLO_TOKEN' },
+    ],
+    instructions: ['Go to trello.com/power-ups/admin and create a new Power-Up', 'Copy the API Key', 'Click the token link to authorize and copy the token'],
+  },
+  confluence: {
+    id: 'confluence',
+    name: 'Confluence',
+    icon: '📘',
+    description: 'Connect Confluence for pages, spaces, and team documentation',
+    connectionType: 'token',
+    docsUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens',
+    configFields: [
+      { key: 'email', label: 'Atlassian Email', type: 'text', placeholder: 'you@company.com', required: true },
+      { key: 'apiToken', label: 'API Token', type: 'password', placeholder: 'Paste your Atlassian API token...', required: true, envVar: 'CONFLUENCE_API_TOKEN' },
+      { key: 'domain', label: 'Confluence Domain', type: 'text', placeholder: 'your-company.atlassian.net', required: true },
+    ],
+    instructions: ['Go to id.atlassian.com → Security → Create and manage API tokens', 'Click "Create API token" and name it "SimOffice"', 'Enter your email and Confluence domain below'],
+  },
+  quickbooks: {
+    id: 'quickbooks',
+    name: 'QuickBooks',
+    icon: '💰',
+    description: 'Connect QuickBooks for invoices, expenses, and financial reports',
+    connectionType: 'token',
+    docsUrl: 'https://developer.intuit.com/app/developer/qbo/docs/develop/authentication-and-authorization',
+    configFields: [
+      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Paste your QuickBooks access token...', required: true, envVar: 'QUICKBOOKS_ACCESS_TOKEN' },
+      { key: 'realmId', label: 'Company ID (Realm ID)', type: 'text', placeholder: 'Your QuickBooks company ID...', required: true },
+    ],
+    instructions: ['Go to developer.intuit.com and create an app', 'Set up OAuth 2.0 and generate tokens', 'Copy your access token and company/realm ID'],
+  },
+  docusign: {
+    id: 'docusign',
+    name: 'DocuSign',
+    icon: '✍️',
+    description: 'Connect DocuSign for envelopes, signatures, and document templates',
+    connectionType: 'token',
+    docsUrl: 'https://developers.docusign.com/platform/auth/',
+    configFields: [
+      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Paste your DocuSign access token...', required: true, envVar: 'DOCUSIGN_ACCESS_TOKEN' },
+      { key: 'accountId', label: 'Account ID', type: 'text', placeholder: 'Your DocuSign account ID...', required: true },
+    ],
+    instructions: ['Go to DocuSign Developer → Apps and Keys', 'Create an app and generate an access token', 'Copy the token and your Account ID'],
+  },
+  xero: {
+    id: 'xero',
+    name: 'Xero',
+    icon: '📗',
+    description: 'Connect Xero for invoices, contacts, and bank transactions',
+    connectionType: 'token',
+    docsUrl: 'https://developer.xero.com/documentation/getting-started-guide/',
+    configFields: [
+      { key: 'accessToken', label: 'Access Token', type: 'password', placeholder: 'Paste your Xero access token...', required: true, envVar: 'XERO_ACCESS_TOKEN' },
+      { key: 'tenantId', label: 'Tenant ID', type: 'text', placeholder: 'Your Xero tenant/org ID...', required: true },
+    ],
+    instructions: ['Go to developer.xero.com and create an app', 'Set up OAuth 2.0 and generate tokens', 'Copy your access token and tenant ID'],
+  },
+  twilio: {
+    id: 'twilio',
+    name: 'Twilio',
+    icon: '📞',
+    description: 'Connect Twilio for SMS, voice calls, and phone numbers',
+    connectionType: 'token',
+    docsUrl: 'https://www.twilio.com/docs/iam/api-keys',
+    configFields: [
+      { key: 'accountSid', label: 'Account SID', type: 'text', placeholder: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true },
+      { key: 'authToken', label: 'Auth Token', type: 'password', placeholder: 'Paste your Twilio auth token...', required: true, envVar: 'TWILIO_AUTH_TOKEN' },
+      { key: 'phoneNumber', label: 'Twilio Phone Number', type: 'text', placeholder: '+1234567890', required: false, description: 'Default number for outbound SMS/calls' },
+    ],
+    instructions: ['Go to Twilio Console → Dashboard', 'Copy your Account SID and Auth Token from the main page', 'Optionally enter a Twilio phone number for outbound messages'],
+  },
+  zendesk: {
+    id: 'zendesk',
+    name: 'Zendesk',
+    icon: '🎧',
+    description: 'Connect Zendesk for support tickets, users, and organizations',
+    connectionType: 'token',
+    docsUrl: 'https://developer.zendesk.com/api-reference/introduction/security-and-auth/',
+    configFields: [
+      { key: 'email', label: 'Agent Email', type: 'text', placeholder: 'you@company.com', required: true },
+      { key: 'apiToken', label: 'API Token', type: 'password', placeholder: 'Paste your Zendesk API token...', required: true, envVar: 'ZENDESK_API_TOKEN' },
+      { key: 'subdomain', label: 'Zendesk Subdomain', type: 'text', placeholder: 'your-company', required: true, description: 'The part before .zendesk.com' },
+    ],
+    instructions: ['Go to Zendesk Admin → Apps and integrations → APIs → Zendesk API', 'Click "Add API token"', 'Copy the token and enter your email and subdomain'],
   },
   zapier: {
     id: 'zapier',

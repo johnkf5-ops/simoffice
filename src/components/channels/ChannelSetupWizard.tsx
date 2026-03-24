@@ -479,6 +479,126 @@ const STRIPE_STEPS: WizardStep[] = [
   },
 ];
 
+const SALESFORCE_STEPS: WizardStep[] = [
+  { title: 'Open Salesforce Setup', instructions: (<><p>Click below to open Salesforce's Connected App setup.</p><p>You need <b>System Administrator</b> access.</p></>), buttonLabel: 'Open Salesforce Setup', buttonUrl: 'https://login.salesforce.com/' },
+  { title: 'Create a Connected App', instructions: (<><p>Go to <b>Setup</b> → <b>App Manager</b> → <b>"New Connected App"</b>.</p><p>Enable <b>OAuth Settings</b> and select scopes: <b>api</b>, <b>refresh_token</b>.</p><p>Save and generate your access token.</p></>) },
+  { title: 'Paste your Access Token', instructions: (<><p>Copy your access token and your Salesforce instance URL (e.g. <code>https://yourcompany.salesforce.com</code>).</p></>), hasInput: true, inputLabel: 'Access Token', inputPlaceholder: 'Paste your Salesforce access token...' },
+];
+
+const MAILCHIMP_STEPS: WizardStep[] = [
+  { title: 'Open Mailchimp API Settings', instructions: (<><p>Click below to open your Mailchimp API key settings.</p></>), buttonLabel: 'Open Mailchimp', buttonUrl: 'https://us1.admin.mailchimp.com/account/api/' },
+  { title: 'Create an API Key', instructions: (<><p>Click <b>"Create A Key"</b>.</p><p>The key suffix (e.g. <code>-us21</code>) indicates your data center — this is important for API calls.</p></>) },
+  { title: 'Paste your API Key', instructions: (<><p>Copy the full API key including the data center suffix.</p></>), hasInput: true, inputLabel: 'API Key', inputPlaceholder: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-usXX' },
+];
+
+const SENDGRID_STEPS: WizardStep[] = [
+  { title: 'Open SendGrid API Keys', instructions: (<><p>Click below to open SendGrid's API key settings.</p></>), buttonLabel: 'Open SendGrid', buttonUrl: 'https://app.sendgrid.com/settings/api_keys' },
+  { title: 'Create an API Key', instructions: (<><p>Click <b>"Create API Key"</b>.</p><p>Name it <b>"SimOffice"</b> and choose <b>Full Access</b> or <b>Restricted Access</b> with Mail Send permissions.</p></>) },
+  { title: 'Paste your API Key', instructions: (<><p>Copy the key (starts with <code>SG.</code>) — you won't see it again.</p></>), hasInput: true, inputLabel: 'API Key', inputPlaceholder: 'SG.xxxxxxxxxxxxxxxxxxxx...' },
+];
+
+const CALENDLY_STEPS: WizardStep[] = [
+  { title: 'Open Calendly Integrations', instructions: (<><p>Click below to open Calendly's API settings.</p></>), buttonLabel: 'Open Calendly', buttonUrl: 'https://calendly.com/integrations/api_webhooks' },
+  { title: 'Generate a Personal Access Token', instructions: (<><p>Click <b>"Get a token now"</b> under Personal Access Tokens.</p><p>Name it <b>"SimOffice"</b> and create.</p></>) },
+  { title: 'Paste your Token', instructions: (<><p>Copy the token and paste below.</p></>), hasInput: true, inputLabel: 'Personal Access Token', inputPlaceholder: 'eyJhbGciOiJIUzI1NiJ9...' },
+];
+
+const INTERCOM_STEPS: WizardStep[] = [
+  { title: 'Open Intercom Developer Hub', instructions: (<><p>Click below to open Intercom's developer settings.</p></>), buttonLabel: 'Open Intercom', buttonUrl: 'https://app.intercom.com/a/developer-signup' },
+  { title: 'Create or Select an App', instructions: (<><p>Create a new app or select an existing one.</p><p>Go to <b>Authentication</b> and find your <b>Access Token</b>.</p></>) },
+  { title: 'Paste your Access Token', instructions: (<><p>Copy the access token and paste below.</p></>), hasInput: true, inputLabel: 'Access Token', inputPlaceholder: 'dG9rOxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
+];
+
+const GITLAB_STEPS: WizardStep[] = [
+  { title: 'Open GitLab Access Tokens', instructions: (<><p>Click below to create a personal access token on GitLab.</p></>), buttonLabel: 'Open GitLab Settings', buttonUrl: 'https://gitlab.com/-/user_settings/personal_access_tokens' },
+  { title: 'Create a Token', instructions: (<><p>Click <b>"Add new token"</b>.</p><p>Name it <b>"SimOffice"</b>, set expiration, and select scopes:</p><ul style={{ marginTop: 8, paddingLeft: 20, lineHeight: 2 }}><li><b>api</b> — Full API access</li><li><b>read_repository</b></li><li><b>write_repository</b></li></ul></>) },
+  { title: 'Paste your Token', instructions: (<><p>Copy the token (starts with <code>glpat-</code>) and paste below.</p></>), hasInput: true, inputLabel: 'Personal Access Token', inputPlaceholder: 'glpat-xxxxxxxxxxxxxxxxxxxx' },
+];
+
+const LINEAR_STEPS: WizardStep[] = [
+  { title: 'Open Linear API Settings', instructions: (<><p>Click below to open Linear's API settings.</p></>), buttonLabel: 'Open Linear Settings', buttonUrl: 'https://linear.app/settings/api' },
+  { title: 'Create a Personal API Key', instructions: (<><p>Click <b>"Create key"</b> under Personal API Keys.</p><p>Name it <b>"SimOffice"</b>.</p></>) },
+  { title: 'Paste your API Key', instructions: (<><p>Copy the key (starts with <code>lin_api_</code>) and paste below.</p></>), hasInput: true, inputLabel: 'API Key', inputPlaceholder: 'lin_api_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
+];
+
+const SENTRY_STEPS: WizardStep[] = [
+  { title: 'Open Sentry Auth Tokens', instructions: (<><p>Click below to open Sentry's auth token settings.</p></>), buttonLabel: 'Open Sentry Settings', buttonUrl: 'https://sentry.io/settings/auth-tokens/' },
+  { title: 'Create an Auth Token', instructions: (<><p>Click <b>"Create New Token"</b>.</p><p>Select scopes: <b>project:read</b>, <b>event:read</b>, <b>org:read</b>.</p></>) },
+  { title: 'Paste your Token', instructions: (<><p>Copy the auth token and paste below. You'll also need your org slug in the config screen.</p></>), hasInput: true, inputLabel: 'Auth Token', inputPlaceholder: 'sntrys_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' },
+];
+
+const DATADOG_STEPS: WizardStep[] = [
+  { title: 'Open Datadog API Keys', instructions: (<><p>Click below to open Datadog's key management.</p></>), buttonLabel: 'Open Datadog', buttonUrl: 'https://app.datadoghq.com/organization-settings/api-keys' },
+  { title: 'Create API + Application Keys', instructions: (<><p>Create a new <b>API Key</b> under Organization Settings → API Keys.</p><p>Then create an <b>Application Key</b> under Application Keys.</p><p>You need both for full API access.</p></>) },
+  { title: 'Paste your API Key', instructions: (<><p>Paste your API key below. You'll enter the Application Key in the config screen.</p></>), hasInput: true, inputLabel: 'API Key', inputPlaceholder: 'Paste your Datadog API key...' },
+];
+
+const VERCEL_STEPS: WizardStep[] = [
+  { title: 'Open Vercel Tokens', instructions: (<><p>Click below to open your Vercel account tokens.</p></>), buttonLabel: 'Open Vercel Settings', buttonUrl: 'https://vercel.com/account/tokens' },
+  { title: 'Create a Token', instructions: (<><p>Click <b>"Create"</b>.</p><p>Name it <b>"SimOffice"</b>, set scope to your account or team, and choose an expiration.</p></>) },
+  { title: 'Paste your Token', instructions: (<><p>Copy the token and paste below.</p></>), hasInput: true, inputLabel: 'API Token', inputPlaceholder: 'Paste your Vercel token...' },
+];
+
+const AIRTABLE_STEPS: WizardStep[] = [
+  { title: 'Open Airtable Token Creator', instructions: (<><p>Click below to create a personal access token.</p></>), buttonLabel: 'Open Airtable', buttonUrl: 'https://airtable.com/create/tokens' },
+  { title: 'Create a Token', instructions: (<><p>Click <b>"Create new token"</b>.</p><p>Name it <b>"SimOffice"</b> and add scopes:</p><ul style={{ marginTop: 8, paddingLeft: 20, lineHeight: 2 }}><li><b>data.records:read</b></li><li><b>data.records:write</b></li><li><b>schema.bases:read</b></li></ul><p style={{ marginTop: 8 }}>Select which bases to grant access to.</p></>) },
+  { title: 'Paste your Token', instructions: (<><p>Copy the token (starts with <code>pat.</code>) and paste below.</p></>), hasInput: true, inputLabel: 'Personal Access Token', inputPlaceholder: 'pat.xxxxxxxxxxxxxxx...' },
+];
+
+const MONDAY_STEPS: WizardStep[] = [
+  { title: 'Open Monday.com Developer Settings', instructions: (<><p>Click below to access your Monday.com API token.</p></>), buttonLabel: 'Open Monday.com', buttonUrl: 'https://monday.com' },
+  { title: 'Find your API Token', instructions: (<><p>Click your <b>avatar</b> (bottom left) → <b>"Developers"</b>.</p><p>Click <b>"My Access Tokens"</b> tab.</p><p>Copy your personal API token.</p></>) },
+  { title: 'Paste your Token', instructions: (<><p>Paste your Monday.com API token below.</p></>), hasInput: true, inputLabel: 'API Token', inputPlaceholder: 'eyJhbGciOiJIUzI1NiJ9...' },
+];
+
+const ASANA_STEPS: WizardStep[] = [
+  { title: 'Open Asana Developer Settings', instructions: (<><p>Click below to create an Asana personal access token.</p></>), buttonLabel: 'Open Asana Settings', buttonUrl: 'https://app.asana.com/0/developer-console' },
+  { title: 'Create a Token', instructions: (<><p>Go to <b>"My Settings"</b> → <b>"Apps"</b> → <b>"Developer Apps"</b>.</p><p>Click <b>"Create new token"</b>, name it <b>"SimOffice"</b>.</p></>) },
+  { title: 'Paste your Token', instructions: (<><p>Copy the personal access token and paste below.</p></>), hasInput: true, inputLabel: 'Personal Access Token', inputPlaceholder: 'Paste your Asana PAT...' },
+];
+
+const TRELLO_STEPS: WizardStep[] = [
+  { title: 'Open Trello Power-Up Admin', instructions: (<><p>Click below to create a Trello Power-Up for API access.</p></>), buttonLabel: 'Open Trello Admin', buttonUrl: 'https://trello.com/power-ups/admin' },
+  { title: 'Create a Power-Up and Get Keys', instructions: (<><p>Create a new Power-Up.</p><p>Copy the <b>API Key</b>.</p><p>Click the <b>token link</b> next to it to authorize and get a token.</p></>) },
+  { title: 'Paste your API Key', instructions: (<><p>Paste your API key below. You'll enter the token in the config screen.</p></>), hasInput: true, inputLabel: 'API Key', inputPlaceholder: 'Your Trello API key...' },
+];
+
+const CONFLUENCE_STEPS: WizardStep[] = [
+  { title: 'Create an Atlassian API Token', instructions: (<><p>Click below to create an API token (same as Jira).</p></>), buttonLabel: 'Open Atlassian Settings', buttonUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens' },
+  { title: 'Generate the Token', instructions: (<><p>Click <b>"Create API token"</b>.</p><p>Name it <b>"SimOffice Confluence"</b>.</p><p>Copy the token — you won't see it again.</p></>) },
+  { title: 'Paste your Token', instructions: (<><p>Paste the API token below. You'll also need your email and Confluence domain in the config screen.</p></>), hasInput: true, inputLabel: 'API Token', inputPlaceholder: 'Paste your Atlassian API token...' },
+];
+
+const QUICKBOOKS_STEPS: WizardStep[] = [
+  { title: 'Open Intuit Developer Portal', instructions: (<><p>Click below to open the QuickBooks developer portal.</p></>), buttonLabel: 'Open Intuit Developer', buttonUrl: 'https://developer.intuit.com/app/developer/dashboard' },
+  { title: 'Create an App', instructions: (<><p>Create a new app and set up <b>OAuth 2.0</b>.</p><p>Generate your access token through the OAuth playground or your app.</p><p>Note your <b>Company ID (Realm ID)</b> from the QuickBooks dashboard URL.</p></>) },
+  { title: 'Paste your Access Token', instructions: (<><p>Paste your access token below.</p></>), hasInput: true, inputLabel: 'Access Token', inputPlaceholder: 'Paste your QuickBooks access token...' },
+];
+
+const DOCUSIGN_STEPS: WizardStep[] = [
+  { title: 'Open DocuSign Developer', instructions: (<><p>Click below to open DocuSign's developer portal.</p></>), buttonLabel: 'Open DocuSign', buttonUrl: 'https://admindemo.docusign.com/apps-and-keys' },
+  { title: 'Create an App', instructions: (<><p>Go to <b>"Apps and Keys"</b>.</p><p>Create a new app and generate an access token.</p><p>Copy your <b>Account ID</b> from the same page.</p></>) },
+  { title: 'Paste your Access Token', instructions: (<><p>Paste the access token below.</p></>), hasInput: true, inputLabel: 'Access Token', inputPlaceholder: 'Paste your DocuSign access token...' },
+];
+
+const XERO_STEPS: WizardStep[] = [
+  { title: 'Open Xero Developer Portal', instructions: (<><p>Click below to open Xero's developer portal.</p></>), buttonLabel: 'Open Xero Developer', buttonUrl: 'https://developer.xero.com/app/manage' },
+  { title: 'Create an App', instructions: (<><p>Create a new app and set up <b>OAuth 2.0</b>.</p><p>Generate tokens and note your <b>Tenant ID</b> (organization ID).</p></>) },
+  { title: 'Paste your Access Token', instructions: (<><p>Paste the access token below.</p></>), hasInput: true, inputLabel: 'Access Token', inputPlaceholder: 'Paste your Xero access token...' },
+];
+
+const TWILIO_STEPS: WizardStep[] = [
+  { title: 'Open Twilio Console', instructions: (<><p>Click below to open your Twilio dashboard.</p></>), buttonLabel: 'Open Twilio Console', buttonUrl: 'https://console.twilio.com/' },
+  { title: 'Copy your Credentials', instructions: (<><p>On the main dashboard, you'll see your <b>Account SID</b> and <b>Auth Token</b>.</p><p>Click the eye icon to reveal the Auth Token, then copy both.</p></>) },
+  { title: 'Paste your Auth Token', instructions: (<><p>Paste your Auth Token below. You'll enter the Account SID in the config screen.</p></>), hasInput: true, inputLabel: 'Auth Token', inputPlaceholder: 'Paste your Twilio auth token...' },
+];
+
+const ZENDESK_STEPS: WizardStep[] = [
+  { title: 'Open Zendesk API Settings', instructions: (<><p>Click below to open your Zendesk API token settings.</p><p>Go to <b>Admin Center</b> → <b>Apps and integrations</b> → <b>APIs</b> → <b>Zendesk API</b>.</p></>), buttonLabel: 'Open Zendesk Admin', buttonUrl: 'https://www.zendesk.com/login/' },
+  { title: 'Create an API Token', instructions: (<><p>Enable <b>Token access</b> if not already on.</p><p>Click <b>"Add API token"</b>.</p><p>Copy the token — you won't see it again.</p></>) },
+  { title: 'Paste your Token', instructions: (<><p>Paste the API token below. You'll need your email and subdomain in the config screen.</p></>), hasInput: true, inputLabel: 'API Token', inputPlaceholder: 'Paste your Zendesk API token...' },
+];
+
 const ZAPIER_STEPS: WizardStep[] = [
   {
     title: 'Create a Zap with Webhooks',
@@ -621,6 +741,26 @@ const WIZARD_STEPS: Partial<Record<ChannelType, WizardStep[]>> = {
   jira: JIRA_STEPS,
   stripe_integration: STRIPE_STEPS,
   zapier: ZAPIER_STEPS,
+  salesforce: SALESFORCE_STEPS,
+  mailchimp: MAILCHIMP_STEPS,
+  sendgrid: SENDGRID_STEPS,
+  calendly: CALENDLY_STEPS,
+  intercom: INTERCOM_STEPS,
+  gitlab: GITLAB_STEPS,
+  linear: LINEAR_STEPS,
+  sentry: SENTRY_STEPS,
+  datadog: DATADOG_STEPS,
+  vercel: VERCEL_STEPS,
+  airtable: AIRTABLE_STEPS,
+  monday: MONDAY_STEPS,
+  asana: ASANA_STEPS,
+  trello: TRELLO_STEPS,
+  confluence: CONFLUENCE_STEPS,
+  quickbooks: QUICKBOOKS_STEPS,
+  docusign: DOCUSIGN_STEPS,
+  xero: XERO_STEPS,
+  twilio: TWILIO_STEPS,
+  zendesk: ZENDESK_STEPS,
 };
 
 interface ChannelSetupWizardProps {
