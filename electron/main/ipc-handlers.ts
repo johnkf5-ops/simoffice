@@ -8,6 +8,19 @@ import { homedir } from 'node:os';
 import { join, extname, basename } from 'node:path';
 import crypto from 'node:crypto';
 import { GatewayManager } from '../gateway/manager';
+import { detectHardware } from '../services/hardware/detect';
+import { getRecommendation, getCompatibleModels, MODEL_DATABASE } from '../services/hardware/model-recommender';
+import { checkOllamaHealth } from '../services/ollama/health';
+import {
+  downloadAndInstallOllama,
+  openOllamaDownloadPage,
+  waitForOllamaInstall,
+  startOllamaService,
+  launchOllamaApp,
+  waitForOllamaReady,
+} from '../services/ollama/install';
+import { listModels, pullModel, deleteModel, showModel, preloadModel } from '../services/ollama/models';
+import { buildOptimalConfig, checkDiskSpace, checkOllamaVersion } from '../services/ollama/config';
 import { ClawHubService, ClawHubSearchParams, ClawHubInstallParams, ClawHubUninstallParams } from '../gateway/clawhub';
 import {
   type ProviderConfig,
@@ -148,6 +161,9 @@ export function registerIpcHandlers(
 
   // File staging handlers (upload/send separation)
   registerFileHandlers();
+
+  // Ollama local AI handlers
+  registerOllamaHandlers(mainWindow);
 }
 
 type HostApiFetchRequest = {
@@ -2557,6 +2573,223 @@ function registerSessionHandlers(): void {
     } catch (err) {
       logger.error(`[session:delete] Unexpected error for ${sessionKey}:`, err);
       return { success: false, error: String(err) };
+    }
+  });
+}
+
+/**
+ * Ollama local AI handlers
+ */
+function registerOllamaHandlers(mainWindow: BrowserWindow): void {
+  // Cache hardware info — it doesn't change during app lifetime.
+  // Lazy-initialized on first call, reused everywhere after.
+  let cachedHardware: ReturnType<typeof detectHardware> | null = null;
+  function getHardware() {
+    if (!cachedHardware) cachedHardware = detectHardware();
+    return cachedHardware;
+  }
+
+  function findModel(modelTag: string) {
+    return MODEL_DATABASE.find(m => m.ollamaTag === modelTag);
+  }
+
+  // Detect hardware (RAM, chip, bandwidth, disk)
+  ipcMain.handle('ollama:detect-hardware', async () => {
+    try {
+      return { success: true, data: getHardware() };
+    } catch (error) {
+      console.error('[ollama] Hardware detection error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Check Ollama status (not-installed | installed-not-running | running)
+  ipcMain.handle('ollama:check-status', async () => {
+    try {
+      return { success: true, data: await checkOllamaHealth() };
+    } catch (error) {
+      console.error('[ollama] Health check error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Get model recommendation — also returns hardware so wizard needs only one call
+  ipcMain.handle('ollama:get-recommendation', async () => {
+    try {
+      const hardware = getHardware();
+      const recommendation = getRecommendation(hardware);
+      return { success: true, data: { hardware, recommendation } };
+    } catch (error) {
+      console.error('[ollama] Recommendation error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Get all compatible models for advanced picker
+  ipcMain.handle('ollama:get-compatible-models', async () => {
+    try {
+      return { success: true, data: getCompatibleModels(getHardware()) };
+    } catch (error) {
+      console.error('[ollama] Compatible models error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Auto-download and install Ollama (falls back to opening browser)
+  ipcMain.handle('ollama:install', async () => {
+    try {
+      const binaryPath = await downloadAndInstallOllama();
+      if (binaryPath) {
+        return { success: true, data: { binaryPath, auto: true } };
+      }
+      // Auto-install failed — fall back to browser
+      await openOllamaDownloadPage();
+      return { success: true, data: { binaryPath: null, auto: false } };
+    } catch (error) {
+      console.error('[ollama] Install error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Wait for Ollama binary to appear after user installs
+  ipcMain.handle('ollama:wait-for-install', async () => {
+    try {
+      const binaryPath = await waitForOllamaInstall();
+      return { success: !!binaryPath, data: { binaryPath } };
+    } catch (error) {
+      console.error('[ollama] Wait for install error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Start Ollama service
+  ipcMain.handle('ollama:start', async () => {
+    try {
+      const health = await checkOllamaHealth();
+
+      if (health.status === 'not-installed') {
+        return { success: false, error: 'Ollama is not installed' };
+      }
+
+      if (health.status === 'running') {
+        return { success: true, data: { pid: 0, owned: false } };
+      }
+
+      // Try spawning ollama serve directly
+      if (health.binaryPath) {
+        const proc = startOllamaService(health.binaryPath);
+        const ready = await waitForOllamaReady();
+        if (ready) return { success: true, data: proc };
+      }
+
+      // Fallback: launch Ollama.app
+      const proc = launchOllamaApp();
+      const ready = await waitForOllamaReady();
+      return ready
+        ? { success: true, data: proc }
+        : { success: false, error: 'Ollama started but did not become ready in time' };
+    } catch (error) {
+      console.error('[ollama] Start error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // List installed models
+  ipcMain.handle('ollama:list-models', async () => {
+    try {
+      return { success: true, data: await listModels() };
+    } catch (error) {
+      console.error('[ollama] List models error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Pull model with streaming progress (disk space pre-check)
+  ipcMain.handle('ollama:pull-model', async (_, modelTag: string) => {
+    try {
+      const modelEntry = findModel(modelTag);
+      if (modelEntry) {
+        const diskCheck = checkDiskSpace(getHardware().freeDiskGB, modelEntry.downloadGB);
+        if (!diskCheck.sufficient) {
+          return {
+            success: false,
+            error: `Not enough disk space. Need ${diskCheck.requiredGB} GB, have ${diskCheck.availableGB} GB free.`,
+          };
+        }
+      }
+
+      await pullModel(modelTag, mainWindow);
+      return { success: true };
+    } catch (error) {
+      console.error('[ollama] Pull model error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Delete model
+  ipcMain.handle('ollama:delete-model', async (_, modelTag: string) => {
+    try {
+      await deleteModel(modelTag);
+      return { success: true };
+    } catch (error) {
+      console.error('[ollama] Delete model error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Get model info
+  ipcMain.handle('ollama:show-model', async (_, modelTag: string) => {
+    try {
+      return { success: true, data: await showModel(modelTag) };
+    } catch (error) {
+      console.error('[ollama] Show model error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Configure optimal settings for a model
+  ipcMain.handle('ollama:configure', async (_, modelTag: string) => {
+    try {
+      const modelEntry = findModel(modelTag);
+      if (!modelEntry) return { success: false, error: `Unknown model: ${modelTag}` };
+      return { success: true, data: buildOptimalConfig(getHardware(), modelEntry) };
+    } catch (error) {
+      console.error('[ollama] Configure error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Preload model into memory (warmup)
+  ipcMain.handle('ollama:preload-model', async (_, modelTag: string) => {
+    try {
+      await preloadModel(modelTag);
+      return { success: true };
+    } catch (error) {
+      console.error('[ollama] Preload error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Check Ollama version compatibility
+  ipcMain.handle('ollama:check-version', async () => {
+    try {
+      const health = await checkOllamaHealth();
+      return { success: true, data: checkOllamaVersion(health.version) };
+    } catch (error) {
+      console.error('[ollama] Version check error:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
+  // Check disk space for a specific model
+  ipcMain.handle('ollama:check-disk-space', async (_, modelTag: string) => {
+    try {
+      const modelEntry = findModel(modelTag);
+      if (!modelEntry) return { success: false, error: `Unknown model: ${modelTag}` };
+      return { success: true, data: checkDiskSpace(getHardware().freeDiskGB, modelEntry.downloadGB) };
+    } catch (error) {
+      console.error('[ollama] Disk space check error:', error);
+      return { success: false, error: String(error) };
     }
   });
 }

@@ -23,6 +23,7 @@ import { useSettingsStore } from '@/stores/settings';
 import { useChatStore } from '@/stores/chat';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
+import { useProviderStore } from '@/stores/providers';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useTranslation } from 'react-i18next';
 
@@ -62,7 +63,7 @@ const NAV_ITEMS = [
     { to: '/automations', icon: Clock, label: 'Automations', color: 'text-sky-500' },
   ]},
   { section: 'SETUP', items: [
-    { to: '/ai-setup', icon: Brain, label: 'AI Setup', color: 'text-amber-500' },
+    { to: '/ai-setup', icon: Brain, label: 'Brain', color: 'text-amber-500' },
   ]},
 ];
 
@@ -82,6 +83,17 @@ export function Sidebar() {
 
   const gatewayStatus = useGatewayStore((s) => s.status);
   const isGatewayRunning = gatewayStatus.state === 'running';
+
+  const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
+  const accounts = useProviderStore((s) => s.accounts);
+  const activeAccount = accounts.find((a) => a.id === defaultAccountId) || accounts.find((a) => a.isDefault);
+  const isLocalAI = activeAccount?.vendorId === 'ollama';
+  const modelName = activeAccount?.model?.split(':')[0] ?? '';
+  const activeModelLabel = activeAccount
+    ? isLocalAI
+      ? `Local · ${modelName || 'Ollama'}`
+      : `API · ${activeAccount.label ?? activeAccount.vendorId}${modelName ? ` · ${modelName}` : ''}`
+    : null;
 
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
@@ -284,8 +296,10 @@ export function Sidebar() {
         <div className={cn('flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs', sidebarCollapsed && 'justify-center px-0')}>
           <StatusDot status={isGatewayRunning ? 'online' : 'error'} size="sm" />
           {!sidebarCollapsed && (
-            <span className="text-muted-foreground font-medium">
-              {isGatewayRunning ? 'Engine running' : 'Engine off'}
+            <span className="text-muted-foreground font-medium truncate">
+              {activeModelLabel
+                ? (isGatewayRunning ? activeModelLabel : `${activeModelLabel} (offline)`)
+                : (isGatewayRunning ? 'No AI configured' : 'Offline')}
             </span>
           )}
         </div>

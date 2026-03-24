@@ -7,6 +7,7 @@ type ValidationProfile =
   | 'google-query-key'
   | 'anthropic-header'
   | 'openrouter'
+  | 'ollama'
   | 'none';
 
 type ValidationResult = { valid: boolean; error?: string; status?: number };
@@ -108,7 +109,7 @@ function getValidationProfile(
     case 'openrouter':
       return 'openrouter';
     case 'ollama':
-      return 'none';
+      return 'ollama';
     default:
       return 'openai-completions';
   }
@@ -351,6 +352,11 @@ export async function validateApiKeyWithProvider(
     return { valid: true };
   }
 
+  // Ollama: ping localhost instead of checking API key
+  if (profile === 'ollama') {
+    return await validateOllamaConnection(resolvedBaseUrl);
+  }
+
   const trimmedKey = apiKey.trim();
   if (!trimmedKey) {
     return { valid: false, error: 'API key is required' };
@@ -384,5 +390,49 @@ export async function validateApiKeyWithProvider(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     return { valid: false, error: errorMessage };
+  }
+}
+
+async function validateOllamaConnection(
+  baseUrl?: string,
+): Promise<ValidationResult> {
+  // baseUrl is typically http://localhost:11434/v1 — strip /v1 to hit root
+  const raw = baseUrl ?? 'http://localhost:11434/v1';
+  const rootUrl = normalizeBaseUrl(raw).replace(/\/v1$/, '');
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(rootUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+    const text = await response.text();
+
+    if (text.includes('Ollama is running')) {
+      return { valid: true, status: response.status };
+    }
+
+    return {
+      valid: false,
+      error: "Ollama isn't running. Start Ollama and try again.",
+      status: response.status,
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return { valid: false, error: "Can't reach Ollama — connection timed out." };
+    }
+
+    // ECONNREFUSED = installed but not running, or wrong port
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
+      return {
+        valid: false,
+        error: "Ollama isn't running. Start Ollama or use the setup wizard to install it.",
+      };
+    }
+
+    return {
+      valid: false,
+      error: `Can't reach Ollama at ${rootUrl}: ${msg}`,
+    };
   }
 }

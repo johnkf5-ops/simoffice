@@ -2,7 +2,7 @@
  * SimOffice — Root Application
  */
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { Component, useEffect } from 'react';
+import { Component, useEffect, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import i18n from './i18n';
@@ -107,12 +107,16 @@ function App() {
 
   useEffect(() => { initGateway(); }, [initGateway]);
 
-  // Redirect to onboarding if setup not complete
+  // Always show splash on app launch, then onboarding if needed
+  const [splashShown, setSplashShown] = useState(false);
   useEffect(() => {
-    if (!setupComplete && !location.pathname.startsWith('/setup') && !location.pathname.startsWith('/onboarding')) {
+    if (!splashShown && !location.pathname.startsWith('/onboarding')) {
+      navigate('/onboarding');
+      setSplashShown(true);
+    } else if (!setupComplete && !location.pathname.startsWith('/setup') && !location.pathname.startsWith('/onboarding')) {
       navigate('/onboarding');
     }
-  }, [setupComplete, location.pathname, navigate]);
+  }, [setupComplete, splashShown, location.pathname, navigate]);
 
   useEffect(() => {
     const handleNavigate = (...args: unknown[]) => {

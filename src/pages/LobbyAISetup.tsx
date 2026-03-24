@@ -2,9 +2,11 @@
  * SimOffice AI Setup — Built from scratch. No ClawX UI.
  * Dark buddy panel + AI provider management matching SimOffice design.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { OllamaSetupWizard } from '@/components/ollama/OllamaSetupWizard';
+import { OllamaStatus } from '@/components/ollama/OllamaStatus';
 import { useProviderStore } from '@/stores/providers';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
@@ -66,8 +68,58 @@ export function LobbyAISetup() {
   const [keyValid, setKeyValid] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [modelId, setModelId] = useState('');
+  const [showOllamaWizard, setShowOllamaWizard] = useState(false);
 
   useEffect(() => { void refreshProviderSnapshot(); void fetchAgents(); }, [refreshProviderSnapshot, fetchAgents]);
+
+  // Ollama wizard completion — save provider using the same flow as manual setup
+  const handleOllamaWizardComplete = useCallback(async (ollamaModel: string, baseUrl: string) => {
+    setShowOllamaWizard(false);
+    setSaving(true);
+    try {
+      const snapshot = await fetchProviderSnapshot();
+
+      // Reuse existing Ollama account if one exists, otherwise create new one
+      // using the same buildProviderAccountId the manual path uses.
+      const existingOllama = snapshot.accounts?.find(
+        (a: ProviderAccount) => a.vendorId === 'ollama'
+      );
+      const accountId = existingOllama?.id
+        ?? buildProviderAccountId('ollama' as ProviderType, null, snapshot.vendors);
+
+      const accountPayload: ProviderAccount = {
+        id: accountId,
+        vendorId: 'ollama' as ProviderType,
+        label: 'Ollama',
+        authMode: 'local',
+        baseUrl,
+        model: ollamaModel,
+        enabled: true,
+        isDefault: false,
+        createdAt: existingOllama?.createdAt ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const effectiveApiKey = resolveProviderApiKeyForSave('ollama', '');
+
+      await hostApiFetch('/api/provider-accounts', {
+        method: 'POST',
+        body: JSON.stringify({ account: accountPayload, apiKey: effectiveApiKey }),
+      });
+
+      await hostApiFetch('/api/provider-accounts/default', {
+        method: 'PUT',
+        body: JSON.stringify({ accountId }),
+      });
+
+      toast.success('Local AI is ready!');
+      setSetupProvider(null);
+      await refreshProviderSnapshot();
+    } catch {
+      toast.error('Failed to save Ollama provider');
+    }
+    setSaving(false);
+  }, [refreshProviderSnapshot]);
 
   const setupProviderData = PROVIDER_TYPE_INFO.find(p => p.id === setupProvider);
   const setupFriendly = setupProvider ? FRIENDLY_NAMES[setupProvider as ProviderType] : undefined;
@@ -239,10 +291,10 @@ export function LobbyAISetup() {
             ← Back to Lobby
           </button>
           <h1 style={{ fontSize: 32, fontWeight: 800, color: 'white', fontFamily: 'Space Grotesk, sans-serif', margin: 0 }}>
-            AI Setup
+            Brain
           </h1>
           <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 6, fontFamily: 'Inter, sans-serif' }}>
-            Pick your AI brain
+            Choose the AI that powers your office
           </p>
         </div>
 
@@ -413,16 +465,58 @@ export function LobbyAISetup() {
             </div>
           )}
 
-          {/* Available AI Providers */}
+          {/* Local AI — Hero Card */}
+          <div style={{ marginBottom: 24 }}>
+            <button
+              onClick={() => { setSetupProvider('ollama'); setShowOllamaWizard(true); }}
+              style={{
+                width: '100%', padding: '20px 24px', borderRadius: 16, cursor: 'pointer',
+                border: '2px solid rgba(34,197,94,0.4)',
+                background: 'linear-gradient(135deg, rgba(34,197,94,0.08) 0%, rgba(16,185,129,0.04) 100%)',
+                textAlign: 'left', transition: 'all 0.2s', position: 'relative', overflow: 'hidden',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#22c55e'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; }}
+            >
+              <div style={{
+                position: 'absolute', top: 12, right: 16,
+                padding: '4px 12px', borderRadius: 20,
+                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                color: 'white', fontSize: 11, fontWeight: 800, letterSpacing: '0.05em',
+              }}>
+                FREE
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(34,197,94,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  fontSize: 28,
+                }}>
+                  🦙
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'hsl(var(--foreground))', fontFamily: 'Space Grotesk, sans-serif' }}>
+                    Run AI on your computer
+                  </div>
+                  <div style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>
+                    No account needed. No monthly fees. Your data stays private.
+                  </div>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Cloud AI Providers */}
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
-              Available AI Brains
+              Cloud AI Brains
             </h2>
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
-              Each AI has different strengths. Add the ones you want to try.
+              Connect a cloud AI service with your API key.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-              {providerGrid.map(({ info, friendly, configured, isActive }) => {
+              {providerGrid.filter(({ info }) => info.id !== 'ollama').map(({ info, friendly, configured, isActive }) => {
                 const hasAccount = configured.length > 0;
                 const iconUrl = getProviderIconUrl(info.id);
                 return (
@@ -599,69 +693,96 @@ export function LobbyAISetup() {
               </>
             ) : null}
 
-            {/* Model selector — always show */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))', display: 'block', marginBottom: 6 }}>
-                Model
-              </label>
-              {setupProvider && PROVIDER_MODELS[setupProvider] ? (
-                <select
-                  value={modelId}
-                  onChange={(e) => setModelId(e.target.value)}
+            {/* Ollama: wizard only, no manual config */}
+            {setupProvider === 'ollama' ? (
+              <div>
+                <button
+                  onClick={() => setShowOllamaWizard(true)}
                   style={{
-                    width: '100%', padding: '10px 14px', borderRadius: 10,
-                    border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
-                    color: 'hsl(var(--foreground))', fontSize: 14, outline: 'none', cursor: 'pointer',
+                    width: '100%', padding: '16px', borderRadius: 12, border: 'none',
+                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                    color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                    marginBottom: 10,
                   }}
                 >
-                  {PROVIDER_MODELS[setupProvider].map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  value={modelId}
-                  onChange={(e) => setModelId(e.target.value)}
-                  placeholder={setupProviderData?.modelIdPlaceholder || 'Model ID'}
+                  Set up Local AI
+                </button>
+                <button onClick={() => setSetupProvider(null)}
                   style={{
-                    width: '100%', padding: '10px 14px', borderRadius: 10,
-                    border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
-                    color: 'hsl(var(--foreground))', fontSize: 14, outline: 'none',
-                  }}
-                />
-              )}
-            </div>
-
-            {setupProvider === 'ollama' ? (
-              <div style={{ padding: '12px 16px', borderRadius: 10, background: 'hsl(var(--muted))', marginBottom: 12 }}>
-                <div style={{ fontSize: 13, color: 'hsl(var(--foreground))' }}>
-                  Make sure Ollama is running on your computer. No secret code needed.
-                </div>
+                    width: '100%', padding: '12px', borderRadius: 10,
+                    border: '1px solid hsl(var(--border))', background: 'transparent',
+                    color: 'hsl(var(--muted-foreground))', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                  Cancel
+                </button>
               </div>
-            ) : null}
+            ) : (
+              <>
+                {/* Model selector — cloud providers only */}
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))', display: 'block', marginBottom: 6 }}>
+                    Model
+                  </label>
+                  {setupProvider && PROVIDER_MODELS[setupProvider] ? (
+                    <select
+                      value={modelId}
+                      onChange={(e) => setModelId(e.target.value)}
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: 10,
+                        border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
+                        color: 'hsl(var(--foreground))', fontSize: 14, outline: 'none', cursor: 'pointer',
+                      }}
+                    >
+                      {PROVIDER_MODELS[setupProvider].map(m => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      value={modelId}
+                      onChange={(e) => setModelId(e.target.value)}
+                      placeholder={setupProviderData?.modelIdPlaceholder || 'Model ID'}
+                      style={{
+                        width: '100%', padding: '10px 14px', borderRadius: 10,
+                        border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
+                        color: 'hsl(var(--foreground))', fontSize: 14, outline: 'none',
+                      }}
+                    />
+                  )}
+                </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-              <button onClick={handleSaveProvider}
-                disabled={needsKey && !keyValid && setupProvider !== 'ollama' || saving}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: 10, border: 'none',
-                  background: (keyValid || !needsKey) && !saving ? 'linear-gradient(135deg, #d97706, #fbbf24)' : 'hsl(var(--muted))',
-                  color: (keyValid || !needsKey) && !saving ? 'white' : 'hsl(var(--muted-foreground))',
-                  fontSize: 14, fontWeight: 700, cursor: (keyValid || !needsKey) && !saving ? 'pointer' : 'default',
-                }}>
-                {saving ? 'Saving...' : 'Save & Activate'}
-              </button>
-              <button onClick={() => setSetupProvider(null)}
-                style={{
-                  padding: '12px 20px', borderRadius: 10,
-                  border: '1px solid hsl(var(--border))', background: 'transparent',
-                  color: 'hsl(var(--muted-foreground))', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                }}>
-                Cancel
-              </button>
-            </div>
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                  <button onClick={handleSaveProvider}
+                    disabled={needsKey && !keyValid || saving}
+                    style={{
+                      flex: 1, padding: '12px', borderRadius: 10, border: 'none',
+                      background: (keyValid || !needsKey) && !saving ? 'linear-gradient(135deg, #d97706, #fbbf24)' : 'hsl(var(--muted))',
+                      color: (keyValid || !needsKey) && !saving ? 'white' : 'hsl(var(--muted-foreground))',
+                      fontSize: 14, fontWeight: 700, cursor: (keyValid || !needsKey) && !saving ? 'pointer' : 'default',
+                    }}>
+                    {saving ? 'Saving...' : 'Save & Activate'}
+                  </button>
+                  <button onClick={() => setSetupProvider(null)}
+                    style={{
+                      padding: '12px 20px', borderRadius: 10,
+                      border: '1px solid hsl(var(--border))', background: 'transparent',
+                      color: 'hsl(var(--muted-foreground))', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                    }}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
+      )}
+
+      {/* Ollama Setup Wizard Modal */}
+      {showOllamaWizard && (
+        <OllamaSetupWizard
+          onComplete={handleOllamaWizardComplete}
+          onCancel={() => setShowOllamaWizard(false)}
+        />
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

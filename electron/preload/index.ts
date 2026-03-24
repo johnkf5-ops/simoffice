@@ -137,6 +137,22 @@ const electronAPI = {
         'openclaw:getConfigDir',
         'openclaw:getSkillsDir',
         'openclaw:getCliCommand',
+        // Ollama local AI
+        'ollama:detect-hardware',
+        'ollama:check-status',
+        'ollama:get-recommendation',
+        'ollama:get-compatible-models',
+        'ollama:install',
+        'ollama:wait-for-install',
+        'ollama:start',
+        'ollama:list-models',
+        'ollama:pull-model',
+        'ollama:delete-model',
+        'ollama:show-model',
+        'ollama:configure',
+        'ollama:preload-model',
+        'ollama:check-version',
+        'ollama:check-disk-space',
       ];
 
       if (validChannels.includes(channel)) {
@@ -175,6 +191,7 @@ const electronAPI = {
         'oauth:success',
         'oauth:error',
         'openclaw:cli-installed',
+        'ollama:pull-progress',
       ];
 
       if (validChannels.includes(channel)) {

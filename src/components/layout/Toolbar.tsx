@@ -4,6 +4,7 @@
  */
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGatewayStore } from '@/stores/gateway';
+import { useProviderStore } from '@/stores/providers';
 import { StatusDot } from '@/components/common/StatusDot';
 
 const TOOLBAR_ITEMS = [
@@ -13,7 +14,7 @@ const TOOLBAR_ITEMS = [
   { icon: '🔌', label: 'Connections', path: '/connections' },
   { icon: '⚡', label: 'Skills', path: '/powers' },
   { icon: '⏰', label: 'Automations', path: '/automations' },
-  { icon: '🧠', label: 'AI Setup', path: '/ai-setup' },
+  { icon: '🧠', label: 'Brain', path: '/ai-setup' },
   { icon: '⚙️', label: 'Settings', path: '/settings' },
 ];
 
@@ -22,6 +23,14 @@ export function Toolbar() {
   const location = useLocation();
   const gatewayStatus = useGatewayStore((s) => s.status);
   const isOnline = gatewayStatus.state === 'running';
+  const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
+  const accounts = useProviderStore((s) => s.accounts);
+  const activeAccount = accounts.find((a) => a.id === defaultAccountId) || accounts.find((a) => a.isDefault);
+  const isLocal = activeAccount?.vendorId === 'ollama';
+  const modelName = activeAccount?.model?.split(':')[0] ?? '';
+  const providerLabel = activeAccount
+    ? isLocal ? `Local · ${modelName || 'Ollama'}` : `API · ${activeAccount.label ?? activeAccount.vendorId}`
+    : null;
 
   return (
     <div style={{
@@ -53,12 +62,14 @@ export function Toolbar() {
         );
       })}
 
-      {/* Status on far right */}
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '0 8px' }}>
+      {/* Active LLM + status on far right */}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
+        {providerLabel && (
+          <span style={{ fontSize: 10, fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>
+            {providerLabel}
+          </span>
+        )}
         <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
-        <span style={{ fontSize: 10, fontWeight: 600, color: isOnline ? '#16a34a' : '#dc2626' }}>
-          {isOnline ? 'Online' : 'Offline'}
-        </span>
       </div>
     </div>
   );

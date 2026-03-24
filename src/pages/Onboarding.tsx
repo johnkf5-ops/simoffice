@@ -5,9 +5,10 @@
  * Step 2: Pick your AI + paste secret code
  * Step 3: Done — enter the lobby
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, XCircle, Loader2, ExternalLink, Cpu, Shield } from 'lucide-react';
+import { OllamaSetupWizard } from '@/components/ollama/OllamaSetupWizard';
 import { useSettingsStore } from '@/stores/settings';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
@@ -29,11 +30,11 @@ import { toast } from 'sonner';
 import { CAREERS, CATEGORY_LABELS, type CareerTemplate } from '@/lib/career-templates';
 import { PROVIDER_MODELS } from '@/lib/provider-models';
 
-const TOP_PROVIDERS = SETUP_PROVIDERS.filter(p =>
-  ['anthropic', 'openai', 'google', 'xai', 'ollama'].includes(p.id)
+const CLOUD_PROVIDERS = SETUP_PROVIDERS.filter(p =>
+  ['anthropic', 'openai', 'google', 'xai'].includes(p.id)
 );
 const OTHER_PROVIDERS = SETUP_PROVIDERS.filter(p =>
-  !['anthropic', 'openai', 'google', 'ollama'].includes(p.id)
+  !['anthropic', 'openai', 'google', 'xai', 'ollama'].includes(p.id)
 );
 
 export function Onboarding() {
@@ -61,6 +62,8 @@ export function Onboarding() {
   const [agentCatalog, setAgentCatalog] = useState<Array<{ id: string; category: string; name: string; role: string; path: string }>>([]);
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
   const [soulTemplates, setSoulTemplates] = useState<Record<string, string>>({});
+  const [showOllamaWizard, setShowOllamaWizard] = useState(false);
+  const [showCloudProviders, setShowCloudProviders] = useState(false);
 
   // Loading screen state
   const [loadProgress, setLoadProgress] = useState(0);
@@ -197,6 +200,49 @@ export function Onboarding() {
     navigate('/');
   };
 
+  const handleOllamaWizardComplete = useCallback(async (ollamaModel: string, baseUrl: string) => {
+    setShowOllamaWizard(false);
+    setSaving(true);
+    try {
+      const snapshot = await fetchProviderSnapshot();
+      const existingOllama = snapshot.accounts?.find(
+        (a: ProviderAccount) => a.vendorId === 'ollama'
+      );
+      const accountId = existingOllama?.id
+        ?? buildProviderAccountId('ollama' as ProviderType, null, snapshot.vendors);
+
+      const accountPayload: ProviderAccount = {
+        id: accountId,
+        vendorId: 'ollama' as ProviderType,
+        label: 'Ollama',
+        authMode: 'local',
+        baseUrl,
+        model: ollamaModel,
+        enabled: true,
+        isDefault: false,
+        createdAt: existingOllama?.createdAt ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const effectiveApiKey = resolveProviderApiKeyForSave('ollama', '');
+
+      await hostApiFetch('/api/provider-accounts', {
+        method: 'POST',
+        body: JSON.stringify({ account: accountPayload, apiKey: effectiveApiKey }),
+      });
+
+      await hostApiFetch('/api/provider-accounts/default', {
+        method: 'PUT',
+        body: JSON.stringify({ accountId }),
+      });
+
+      setStep(2); // Go to career picker
+    } catch {
+      toast.error('Failed to save — try again');
+    }
+    setSaving(false);
+  }, []);
+
   return (
     <div style={{
       width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -310,48 +356,116 @@ export function Onboarding() {
               />
             </div>
 
-            {/* Provider grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-              {TOP_PROVIDERS.map(p => (
-                <button key={p.id} onClick={() => { setSelectedProvider(p.id); setApiKey(''); setKeyValid(null); setModelId(p.defaultModelId || ''); }}
-                  style={{
-                    padding: '16px', borderRadius: 12, border: selectedProvider === p.id ? '2px solid #f97316' : '2px solid rgba(255,255,255,0.1)',
-                    background: selectedProvider === p.id ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.05)',
-                    cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
-                  }}>
-                  <div style={{ fontSize: 24, marginBottom: 4 }}>{p.icon}</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(191,219,254,0.4)', marginTop: 2 }}>
-                    {p.id === 'ollama' ? 'Free · runs locally' : p.model || 'AI'}
-                  </div>
-                </button>
-              ))}
-            </div>
+            {/* ═══ HERO: Local AI (Free) ═══ */}
+            <button
+              onClick={() => setShowOllamaWizard(true)}
+              style={{
+                width: '100%', padding: '20px 24px', borderRadius: 16, cursor: 'pointer',
+                border: '2px solid rgba(34,197,94,0.4)',
+                background: 'linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(16,185,129,0.08) 100%)',
+                textAlign: 'left', marginBottom: 24, transition: 'all 0.2s',
+                position: 'relative', overflow: 'hidden',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#22c55e'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(34,197,94,0.4)'; }}
+            >
+              {/* FREE badge */}
+              <div style={{
+                position: 'absolute', top: 12, right: 16,
+                padding: '4px 12px', borderRadius: 20,
+                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                color: 'white', fontSize: 11, fontWeight: 800, letterSpacing: '0.05em',
+              }}>
+                FREE
+              </div>
 
-            {/* Show more toggle */}
-            <button onClick={() => setShowOthers(!showOthers)} style={{
-              background: 'none', border: 'none', color: 'rgba(191,219,254,0.4)', fontSize: 12, cursor: 'pointer', marginBottom: 12, width: '100%', textAlign: 'center',
-            }}>
-              {showOthers ? '▲ Less options' : '▼ More options'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 12,
+                  background: 'rgba(34,197,94,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <Cpu size={24} style={{ color: '#22c55e' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'white', fontFamily: 'Space Grotesk, sans-serif' }}>
+                    Run AI on your computer
+                  </div>
+                  <div style={{ fontSize: 13, color: 'rgba(191,219,254,0.6)', marginTop: 2 }}>
+                    No account needed. No monthly fees. Your data stays private.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex', gap: 12, marginTop: 14, fontSize: 11, color: 'rgba(191,219,254,0.45)',
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Shield size={11} /> 100% private
+                </span>
+                <span>No API key</span>
+                <span>Works offline</span>
+                <span>We set it all up for you</span>
+              </div>
             </button>
 
-            {showOthers && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-                {OTHER_PROVIDERS.map(p => (
-                  <button key={p.id} onClick={() => { setSelectedProvider(p.id); setApiKey(''); setKeyValid(null); setModelId(p.defaultModelId || ''); }}
-                    style={{
-                      padding: '10px 12px', borderRadius: 8, border: selectedProvider === p.id ? '2px solid #f97316' : '1px solid rgba(255,255,255,0.08)',
-                      background: selectedProvider === p.id ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.03)',
-                      cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)',
-                    }}>
-                    {p.icon} {p.name}
-                  </button>
-                ))}
-              </div>
+            {/* ═══ Cloud providers ═══ */}
+            <button
+              onClick={() => setShowCloudProviders(!showCloudProviders)}
+              style={{
+                width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                color: 'rgba(191,219,254,0.4)', fontSize: 13, fontWeight: 600,
+                marginBottom: 12, textAlign: 'center', padding: '8px 0',
+              }}
+            >
+              {showCloudProviders ? '▲ Hide cloud options' : 'Or connect a cloud AI service ▼'}
+            </button>
+
+            {showCloudProviders && (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                  {CLOUD_PROVIDERS.map(p => (
+                    <button key={p.id} onClick={() => { setSelectedProvider(p.id); setApiKey(''); setKeyValid(null); setModelId(p.defaultModelId || ''); }}
+                      style={{
+                        padding: '16px', borderRadius: 12, border: selectedProvider === p.id ? '2px solid #f97316' : '2px solid rgba(255,255,255,0.1)',
+                        background: selectedProvider === p.id ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.05)',
+                        cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
+                      }}>
+                      <div style={{ fontSize: 24, marginBottom: 4 }}>{p.icon}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>{p.name}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(191,219,254,0.4)', marginTop: 2 }}>
+                        {p.model || 'AI'}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Show more toggle */}
+                <button onClick={() => setShowOthers(!showOthers)} style={{
+                  background: 'none', border: 'none', color: 'rgba(191,219,254,0.3)', fontSize: 11, cursor: 'pointer', marginBottom: 12, width: '100%', textAlign: 'center',
+                }}>
+                  {showOthers ? '▲ Less' : '▼ More providers'}
+                </button>
+
+                {showOthers && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+                    {OTHER_PROVIDERS.map(p => (
+                      <button key={p.id} onClick={() => { setSelectedProvider(p.id); setApiKey(''); setKeyValid(null); setModelId(p.defaultModelId || ''); }}
+                        style={{
+                          padding: '10px 12px', borderRadius: 8, border: selectedProvider === p.id ? '2px solid #f97316' : '1px solid rgba(255,255,255,0.08)',
+                          background: selectedProvider === p.id ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.03)',
+                          cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)',
+                        }}>
+                        {p.icon} {p.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Secret code input */}
-            {selectedProvider && needsKey && (
+            {/* Secret code input — only for cloud providers */}
+            {selectedProvider && selectedProvider !== 'ollama' && needsKey && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
@@ -408,17 +522,8 @@ export function Onboarding() {
               </div>
             )}
 
-            {/* Ollama message */}
-            {selectedProvider === 'ollama' && (
-              <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', marginBottom: 16 }}>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-                  Make sure Ollama is running on your computer. No secret code needed — it's free and local.
-                </div>
-              </div>
-            )}
-
-            {/* Model selector */}
-            {selectedProvider && (
+            {/* Model selector — cloud providers only */}
+            {selectedProvider && selectedProvider !== 'ollama' && (
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 6 }}>
                   Model
@@ -458,21 +563,23 @@ export function Onboarding() {
               </div>
             )}
 
-            {/* Continue button */}
-            <button
-              onClick={handleSaveAndContinue}
-              disabled={!selectedProvider || (needsKey && !keyValid) || saving}
-              style={{
-                width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-                background: selectedProvider && (keyValid || !needsKey) && !saving ? 'linear-gradient(135deg, #f97316, #f59e0b)' : 'rgba(255,255,255,0.05)',
-                color: 'white', fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
-                cursor: selectedProvider && (keyValid || !needsKey) && !saving ? 'pointer' : 'default',
-                opacity: selectedProvider && (keyValid || !needsKey) && !saving ? 1 : 0.4,
-                boxShadow: selectedProvider && (keyValid || !needsKey) ? '0 4px 20px rgba(249,115,22,0.3)' : 'none',
-              }}
-            >
-              {saving ? 'Setting up...' : 'Almost Done →'}
-            </button>
+            {/* Continue button — cloud providers only */}
+            {selectedProvider && selectedProvider !== 'ollama' && (
+              <button
+                onClick={handleSaveAndContinue}
+                disabled={!selectedProvider || (needsKey && !keyValid) || saving}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                  background: selectedProvider && (keyValid || !needsKey) && !saving ? 'linear-gradient(135deg, #f97316, #f59e0b)' : 'rgba(255,255,255,0.05)',
+                  color: 'white', fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
+                  cursor: selectedProvider && (keyValid || !needsKey) && !saving ? 'pointer' : 'default',
+                  opacity: selectedProvider && (keyValid || !needsKey) && !saving ? 1 : 0.4,
+                  boxShadow: selectedProvider && (keyValid || !needsKey) ? '0 4px 20px rgba(249,115,22,0.3)' : 'none',
+                }}
+              >
+                {saving ? 'Setting up...' : 'Almost Done →'}
+              </button>
+            )}
 
             {/* Step dots */}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 32 }}>
@@ -740,6 +847,14 @@ export function Onboarding() {
           50% { opacity: 0.5; }
         }
       `}</style>
+
+      {/* Ollama Setup Wizard Modal */}
+      {showOllamaWizard && (
+        <OllamaSetupWizard
+          onComplete={handleOllamaWizardComplete}
+          onCancel={() => setShowOllamaWizard(false)}
+        />
+      )}
     </div>
   );
 }
