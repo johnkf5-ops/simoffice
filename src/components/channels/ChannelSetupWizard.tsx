@@ -285,6 +285,49 @@ const HUBSPOT_STEPS: WizardStep[] = [
   },
 ];
 
+const PANDADOC_STEPS: WizardStep[] = [
+  {
+    title: 'Open PandaDoc Developer Dashboard',
+    instructions: (
+      <>
+        <p>Click the button below to open PandaDoc's API settings.</p>
+        <p>You'll need a PandaDoc account with admin access.</p>
+      </>
+    ),
+    buttonLabel: 'Open PandaDoc Settings',
+    buttonUrl: 'https://app.pandadoc.com/a/#/settings/integrations/api',
+  },
+  {
+    title: 'Create an API Key',
+    instructions: (
+      <>
+        <p>In the API section, click <b>"Create API Key"</b>.</p>
+        <p>Give it a name like <b>"SimOffice"</b>.</p>
+        <p>Your agents will be able to:</p>
+        <ul style={{ marginTop: 8, paddingLeft: 20, lineHeight: 2 }}>
+          <li>Create and send documents from templates</li>
+          <li>Track document status and views</li>
+          <li>Manage contacts and recipients</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    title: 'Paste your API Key',
+    instructions: (
+      <>
+        <p>Copy the API key and paste it below.</p>
+        <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(191,219,254,0.5)' }}>
+          You can revoke this key anytime from PandaDoc settings.
+        </p>
+      </>
+    ),
+    hasInput: true,
+    inputLabel: 'API Key',
+    inputPlaceholder: 'Paste your PandaDoc API key...',
+  },
+];
+
 const WIZARD_STEPS: Partial<Record<ChannelType, WizardStep[]>> = {
   discord: DISCORD_STEPS,
   telegram: TELEGRAM_STEPS,
@@ -292,6 +335,7 @@ const WIZARD_STEPS: Partial<Record<ChannelType, WizardStep[]>> = {
   signal: SIGNAL_STEPS,
   imessage: IMESSAGE_STEPS,
   hubspot: HUBSPOT_STEPS,
+  pandadoc: PANDADOC_STEPS,
 };
 
 interface ChannelSetupWizardProps {

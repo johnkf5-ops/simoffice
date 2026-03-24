@@ -21,7 +21,8 @@ export type ChannelType =
   | 'googlechat'
   | 'mattermost'
   | 'qqbot'
-  | 'hubspot';
+  | 'hubspot'
+  | 'pandadoc';
 
 /**
  * Channel connection status
@@ -96,6 +97,7 @@ export const CHANNEL_ICONS: Record<ChannelType, string> = {
   mattermost: '💠',
   qqbot: '🐧',
   hubspot: '🟠',
+  pandadoc: '🐼',
 };
 
 /**
@@ -117,6 +119,7 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   mattermost: 'Mattermost',
   qqbot: 'QQ Bot',
   hubspot: 'HubSpot',
+  pandadoc: 'PandaDoc',
 };
 
 /**
@@ -550,6 +553,29 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
       'Click "Create a private app" and name it SimOffice',
       'Under Scopes, enable: crm.objects.contacts, crm.objects.deals, crm.objects.companies',
       'Click "Create app" and copy your access token',
+    ],
+  },
+  pandadoc: {
+    id: 'pandadoc',
+    name: 'PandaDoc',
+    icon: '🐼',
+    description: 'Connect PandaDoc for proposals and contracts',
+    connectionType: 'token',
+    docsUrl: 'https://developers.pandadoc.com/reference/api-key-authentication',
+    configFields: [
+      {
+        key: 'apiKey',
+        label: 'API Key',
+        type: 'password',
+        placeholder: 'Paste your PandaDoc API key...',
+        required: true,
+        envVar: 'PANDADOC_API_KEY',
+      },
+    ],
+    instructions: [
+      'Go to PandaDoc → Settings → API → Developer Dashboard',
+      'Click "Create API Key"',
+      'Copy the key and paste it below',
     ],
   },
   mattermost: {

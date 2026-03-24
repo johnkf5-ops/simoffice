@@ -15,6 +15,7 @@ import { CHANNEL_NAMES, CHANNEL_ICONS, type ChannelType } from '@/types/channel'
 
 const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
   { type: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'CRM — contacts, deals, companies' },
+  { type: 'pandadoc', name: 'PandaDoc', icon: '🐼', description: 'Proposals, contracts, e-signatures' },
 ];
 
 const ALL_CHANNEL_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
