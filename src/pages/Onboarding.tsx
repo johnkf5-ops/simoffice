@@ -5,30 +5,17 @@
  * Step 2: Pick your AI + paste secret code
  * Step 3: Done — enter the lobby
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle2, XCircle, Loader2, ExternalLink, Cpu, Shield } from 'lucide-react';
-import { OllamaSetupWizard } from '@/components/ollama/OllamaSetupWizard';
+import { CheckCircle2, Loader2, Cpu, Shield } from 'lucide-react';
+import { ProviderSetupModal } from '@/components/providers/ProviderSetupModal';
 import { useSettingsStore } from '@/stores/settings';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
 import { invokeIpc } from '@/lib/api-client';
 import { hostApiFetch } from '@/lib/host-api';
-import {
-  SETUP_PROVIDERS,
-  type ProviderAccount,
-  type ProviderType,
-  resolveProviderApiKeyForSave,
-  resolveProviderModelForSave,
-  getProviderDocsUrl,
-} from '@/lib/providers';
-import {
-  buildProviderAccountId,
-  fetchProviderSnapshot,
-} from '@/lib/provider-accounts';
-import { toast } from 'sonner';
-import { CAREERS, CATEGORY_LABELS, type CareerTemplate } from '@/lib/career-templates';
-import { PROVIDER_MODELS } from '@/lib/provider-models';
+import { SETUP_PROVIDERS } from '@/lib/providers';
+import { CAREERS, CATEGORY_LABELS } from '@/lib/career-templates';
 
 const CLOUD_PROVIDERS = SETUP_PROVIDERS.filter(p =>
   ['anthropic', 'openai', 'google', 'xai'].includes(p.id)
@@ -48,31 +35,20 @@ export function Onboarding() {
   const isOnline = gatewayStatus.state === 'running';
 
   const [step, setStep] = useState(0);
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [keyValid, setKeyValid] = useState<boolean | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [setupProvider, setSetupProvider] = useState<string | null>(null);
   const [showOthers, setShowOthers] = useState(false);
-  const [modelId, setModelId] = useState('');
   const createAgent = useAgentsStore((s) => s.createAgent);
   const [selectedCareer, setSelectedCareer] = useState<string | null>(null);
   const [buildingTeam, setBuildingTeam] = useState(false);
   const [agentCatalog, setAgentCatalog] = useState<Array<{ id: string; category: string; name: string; role: string; path: string }>>([]);
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
   const [soulTemplates, setSoulTemplates] = useState<Record<string, string>>({});
-  const [showOllamaWizard, setShowOllamaWizard] = useState(false);
   const [showCloudProviders, setShowCloudProviders] = useState(false);
   const [canRunLocal, setCanRunLocal] = useState<boolean | null>(null); // null = checking
 
   // Loading screen state
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadDone, setLoadDone] = useState(false);
-
-  const providerData = SETUP_PROVIDERS.find(p => p.id === selectedProvider);
-  const needsKey = providerData?.requiresApiKey ?? true;
-  const docsUrl = providerData ? getProviderDocsUrl(providerData, 'en') : null;
 
   // Simple 5-second loading bar, then show continue button
   useEffect(() => {
@@ -141,63 +117,6 @@ export function Onboarding() {
     });
   };
 
-  const handleValidate = async () => {
-    if (!selectedProvider || (!apiKey && needsKey)) return;
-    setValidating(true);
-    setKeyValid(null);
-    try {
-      const result = await invokeIpc('provider:validateKey', selectedProvider, apiKey, {
-        baseUrl: providerData?.defaultBaseUrl || undefined,
-      }) as { valid: boolean; error?: string };
-      setKeyValid(result.valid);
-      if (!result.valid) {
-        toast.error(result.error || 'Invalid key — check and try again');
-      }
-    } catch (err) {
-      setKeyValid(false);
-      toast.error('Connection failed — check your key');
-    }
-    setValidating(false);
-  };
-
-  const handleSaveAndContinue = async () => {
-    if (!selectedProvider) return;
-    setSaving(true);
-    try {
-      const snapshot = await fetchProviderSnapshot();
-      const accountId = buildProviderAccountId(selectedProvider as ProviderType, undefined, snapshot.vendors);
-      const effectiveApiKey = resolveProviderApiKeyForSave(selectedProvider, apiKey);
-      const effectiveModel = modelId.trim() || resolveProviderModelForSave(providerData, '', false);
-
-      const accountPayload: ProviderAccount = {
-        id: accountId,
-        vendorId: selectedProvider as ProviderType,
-        label: providerData?.name || selectedProvider,
-        authMode: selectedProvider === 'ollama' ? 'local' : 'api_key',
-        baseUrl: providerData?.defaultBaseUrl,
-        model: effectiveModel,
-        enabled: true,
-        isDefault: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      await hostApiFetch('/api/provider-accounts', {
-        method: 'POST',
-        body: JSON.stringify({ account: accountPayload, apiKey: effectiveApiKey }),
-      });
-
-      await hostApiFetch('/api/provider-accounts/default', {
-        method: 'PUT',
-        body: JSON.stringify({ accountId }),
-      });
-
-      setStep(2); // Go to career picker
-    } catch (err) {
-      toast.error('Failed to save — try again');
-    }
-    setSaving(false);
-  };
 
   const handleFinish = () => {
     markSetupComplete();
@@ -209,48 +128,6 @@ export function Onboarding() {
     navigate('/');
   };
 
-  const handleOllamaWizardComplete = useCallback(async (ollamaModel: string, baseUrl: string) => {
-    setShowOllamaWizard(false);
-    setSaving(true);
-    try {
-      const snapshot = await fetchProviderSnapshot();
-      const existingOllama = snapshot.accounts?.find(
-        (a: ProviderAccount) => a.vendorId === 'ollama'
-      );
-      const accountId = existingOllama?.id
-        ?? buildProviderAccountId('ollama' as ProviderType, null, snapshot.vendors);
-
-      const accountPayload: ProviderAccount = {
-        id: accountId,
-        vendorId: 'ollama' as ProviderType,
-        label: 'Ollama',
-        authMode: 'local',
-        baseUrl,
-        model: ollamaModel,
-        enabled: true,
-        isDefault: false,
-        createdAt: existingOllama?.createdAt ?? new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      const effectiveApiKey = resolveProviderApiKeyForSave('ollama', '');
-
-      await hostApiFetch('/api/provider-accounts', {
-        method: 'POST',
-        body: JSON.stringify({ account: accountPayload, apiKey: effectiveApiKey }),
-      });
-
-      await hostApiFetch('/api/provider-accounts/default', {
-        method: 'PUT',
-        body: JSON.stringify({ accountId }),
-      });
-
-      setStep(2); // Go to career picker
-    } catch {
-      toast.error('Failed to save — try again');
-    }
-    setSaving(false);
-  }, []);
 
   return (
     <div style={{
@@ -367,7 +244,7 @@ export function Onboarding() {
 
             {/* ═══ HERO: Local AI (Free) — only if hardware supports it ═══ */}
             {canRunLocal && <button
-              onClick={() => setShowOllamaWizard(true)}
+              onClick={() => setSetupProvider('ollama')}
               style={{
                 width: '100%', padding: '20px 24px', borderRadius: 16, cursor: 'pointer',
                 border: '2px solid rgba(34,197,94,0.4)',
@@ -436,10 +313,10 @@ export function Onboarding() {
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                   {CLOUD_PROVIDERS.map(p => (
-                    <button key={p.id} onClick={() => { setSelectedProvider(p.id); setApiKey(''); setKeyValid(null); setModelId(p.defaultModelId || ''); }}
+                    <button key={p.id} onClick={() => setSetupProvider(p.id)}
                       style={{
-                        padding: '16px', borderRadius: 12, border: selectedProvider === p.id ? '2px solid #f97316' : '2px solid rgba(255,255,255,0.1)',
-                        background: selectedProvider === p.id ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.05)',
+                        padding: '16px', borderRadius: 12, border: '2px solid rgba(255,255,255,0.1)',
+                        background: 'rgba(255,255,255,0.05)',
                         cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s',
                       }}>
                       <div style={{ fontSize: 24, marginBottom: 4 }}>{p.icon}</div>
@@ -461,10 +338,10 @@ export function Onboarding() {
                 {showOthers && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
                     {OTHER_PROVIDERS.map(p => (
-                      <button key={p.id} onClick={() => { setSelectedProvider(p.id); setApiKey(''); setKeyValid(null); setModelId(p.defaultModelId || ''); }}
+                      <button key={p.id} onClick={() => setSetupProvider(p.id)}
                         style={{
-                          padding: '10px 12px', borderRadius: 8, border: selectedProvider === p.id ? '2px solid #f97316' : '1px solid rgba(255,255,255,0.08)',
-                          background: selectedProvider === p.id ? 'rgba(249,115,22,0.1)' : 'rgba(255,255,255,0.03)',
+                          padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
+                          background: 'rgba(255,255,255,0.03)',
                           cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)',
                         }}>
                         {p.icon} {p.name}
@@ -476,149 +353,6 @@ export function Onboarding() {
             )}
 
 
-            {/* Cloud provider setup wizard */}
-            {selectedProvider && selectedProvider !== 'ollama' && (
-              <div style={{
-                background: 'rgba(255,255,255,0.05)', borderRadius: 16,
-                border: '1px solid rgba(255,255,255,0.1)', padding: '24px',
-                marginTop: 16,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                  <div style={{ fontSize: 28 }}>{providerData?.icon}</div>
-                  <div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'white', fontFamily: 'Space Grotesk, sans-serif' }}>
-                      Set up {providerData?.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'rgba(191,219,254,0.5)' }}>
-                      Step 1: Paste your API key
-                    </div>
-                  </div>
-                </div>
-
-                {/* API key input */}
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
-                      API Key
-                    </label>
-                    {docsUrl && (
-                      <a href="#" onClick={(e) => { e.preventDefault(); window.electron.openExternal(docsUrl); }}
-                        style={{ fontSize: 11, color: '#f97316', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        Get your key <ExternalLink style={{ width: 10, height: 10 }} />
-                      </a>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <div style={{ flex: 1, position: 'relative' }}>
-                      <input
-                        type={showKey ? 'text' : 'password'}
-                        value={apiKey}
-                        onChange={(e) => { setApiKey(e.target.value); setKeyValid(null); }}
-                        placeholder={providerData?.placeholder || 'Paste your API key...'}
-                        style={{
-                          width: '100%', padding: '12px 40px 12px 14px', borderRadius: 10,
-                          border: keyValid === true ? '2px solid #22c55e' : keyValid === false ? '2px solid #ef4444' : '1px solid rgba(255,255,255,0.15)',
-                          background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 14, outline: 'none',
-                          fontFamily: 'monospace',
-                        }}
-                      />
-                      <button onClick={() => setShowKey(!showKey)} style={{
-                        position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)',
-                      }}>
-                        {showKey ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
-                      </button>
-                    </div>
-                    <button onClick={handleValidate} disabled={!apiKey || validating}
-                      style={{
-                        padding: '12px 20px', borderRadius: 10, border: 'none',
-                        cursor: apiKey && !validating ? 'pointer' : 'default',
-                        background: apiKey && !validating ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)',
-                        color: 'white', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
-                        opacity: apiKey && !validating ? 1 : 0.4,
-                      }}>
-                      {validating ? <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> : 'Test'}
-                    </button>
-                  </div>
-                  {keyValid === true && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#22c55e', fontSize: 13, fontWeight: 600 }}>
-                      <CheckCircle2 style={{ width: 16, height: 16 }} /> Connected!
-                    </div>
-                  )}
-                  {keyValid === false && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
-                      <XCircle style={{ width: 16, height: 16 }} /> Invalid — check your key
-                    </div>
-                  )}
-                </div>
-
-                {/* Model selector */}
-                {keyValid && (
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, color: 'rgba(191,219,254,0.5)', marginBottom: 4, display: 'block' }}>
-                      Step 2: Choose a model
-                    </label>
-                    {PROVIDER_MODELS[selectedProvider] ? (
-                      <select
-                        value={modelId}
-                        onChange={(e) => setModelId(e.target.value)}
-                        style={{
-                          width: '100%', padding: '12px 14px', borderRadius: 10,
-                          border: '1px solid rgba(255,255,255,0.15)',
-                          background: 'rgba(255,255,255,0.08)', color: 'white', fontSize: 14, outline: 'none',
-                          cursor: 'pointer', appearance: 'none',
-                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                          backgroundRepeat: 'no-repeat',
-                          backgroundPosition: 'right 14px center',
-                        }}
-                      >
-                        {PROVIDER_MODELS[selectedProvider].map(m => (
-                          <option key={m.id} value={m.id} style={{ background: '#1a1a3e', color: 'white' }}>
-                            {m.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        value={modelId}
-                        onChange={(e) => setModelId(e.target.value)}
-                        placeholder={providerData?.modelIdPlaceholder || 'Model ID'}
-                        style={{
-                          width: '100%', padding: '12px 14px', borderRadius: 10,
-                          border: '1px solid rgba(255,255,255,0.15)',
-                          background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 14, outline: 'none',
-                        }}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Save button */}
-                <button
-                  onClick={handleSaveAndContinue}
-                  disabled={!keyValid || saving}
-                  style={{
-                    width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-                    background: keyValid && !saving ? 'linear-gradient(135deg, #f97316, #f59e0b)' : 'rgba(255,255,255,0.05)',
-                    color: 'white', fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
-                    cursor: keyValid && !saving ? 'pointer' : 'default',
-                    opacity: keyValid && !saving ? 1 : 0.4,
-                    marginBottom: 10,
-                  }}
-                >
-                  {saving ? 'Setting up...' : 'Activate →'}
-                </button>
-
-                <button onClick={() => setSelectedProvider(null)}
-                  style={{
-                    width: '100%', background: 'none', border: 'none',
-                    color: 'rgba(191,219,254,0.4)', fontSize: 12, cursor: 'pointer',
-                  }}
-                >
-                  ← Pick a different provider
-                </button>
-              </div>
-            )}
 
             {/* Skip button */}
             <button
@@ -898,11 +632,12 @@ export function Onboarding() {
         }
       `}</style>
 
-      {/* Ollama Setup Wizard Modal */}
-      {showOllamaWizard && (
-        <OllamaSetupWizard
-          onComplete={handleOllamaWizardComplete}
-          onCancel={() => setShowOllamaWizard(false)}
+      {/* Provider Setup Modal (cloud or Ollama) */}
+      {setupProvider && (
+        <ProviderSetupModal
+          providerId={setupProvider}
+          onSave={() => { setSetupProvider(null); setStep(2); }}
+          onClose={() => setSetupProvider(null)}
         />
       )}
     </div>

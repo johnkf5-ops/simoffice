@@ -2,49 +2,19 @@
  * SimOffice AI Setup — Built from scratch. No ClawX UI.
  * Dark buddy panel + AI provider management matching SimOffice design.
  */
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle2, XCircle, Loader2, ExternalLink } from 'lucide-react';
-import { OllamaSetupWizard } from '@/components/ollama/OllamaSetupWizard';
-import { OllamaStatus } from '@/components/ollama/OllamaStatus';
+import { ProviderSetupModal, FRIENDLY_NAMES } from '@/components/providers/ProviderSetupModal';
 import { useProviderStore } from '@/stores/providers';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
 import { useChatStore } from '@/stores/chat';
 import { StatusDot } from '@/components/common/StatusDot';
-import {
-  PROVIDER_TYPE_INFO, getProviderIconUrl, getProviderDocsUrl,
-  type ProviderType, type ProviderAccount,
-  resolveProviderApiKeyForSave, resolveProviderModelForSave,
-} from '@/lib/providers';
-import { buildProviderAccountId, fetchProviderSnapshot } from '@/lib/provider-accounts';
-import { PROVIDER_MODELS } from '@/lib/provider-models';
-import { invokeIpc } from '@/lib/api-client';
-import { hostApiFetch } from '@/lib/host-api';
-import { toast } from 'sonner';
-
-/** Human-friendly names for provider types — no jargon */
-const FRIENDLY_NAMES: Partial<Record<ProviderType, { name: string; brain: string; description: string; emoji: string }>> = {
-  anthropic: { name: 'Anthropic', brain: 'Claude', description: 'Thoughtful, nuanced AI from Anthropic', emoji: '🧠' },
-  openai: { name: 'OpenAI', brain: 'ChatGPT', description: 'The popular ChatGPT models from OpenAI', emoji: '💚' },
-  google: { name: 'Google', brain: 'Gemini', description: 'Multimodal AI from Google DeepMind', emoji: '🔷' },
-  ollama: { name: 'Ollama', brain: 'Local AI', description: 'Run AI on your own machine, no cloud needed', emoji: '🦙' },
-  openrouter: { name: 'OpenRouter', brain: 'Multi-Model', description: 'Access many AI models through one service', emoji: '🌐' },
-  moonshot: { name: 'Moonshot', brain: 'Kimi', description: 'Advanced AI from Moonshot (China)', emoji: '🌙' },
-  siliconflow: { name: 'SiliconFlow', brain: 'Multi-Model', description: 'Chinese AI model marketplace', emoji: '🌊' },
-  ark: { name: 'ByteDance Ark', brain: 'Doubao', description: 'AI from ByteDance (China)', emoji: '🏔️' },
-  'minimax-portal': { name: 'MiniMax', brain: 'MiniMax', description: 'MiniMax AI (Global)', emoji: '☁️' },
-  'minimax-portal-cn': { name: 'MiniMax CN', brain: 'MiniMax', description: 'MiniMax AI (China)', emoji: '☁️' },
-  'qwen-portal': { name: 'Qwen', brain: 'Qwen', description: 'Alibaba Cloud AI models', emoji: '☁️' },
-  xai: { name: 'xAI', brain: 'Grok', description: "Elon's AI — fast, uncensored, powerful", emoji: '✖️' },
-  custom: { name: 'Custom', brain: 'Custom AI', description: 'Connect any OpenAI-compatible service', emoji: '⚙️' },
-};
+import { PROVIDER_TYPE_INFO, getProviderIconUrl } from '@/lib/providers';
 
 export function LobbyAISetup() {
   const navigate = useNavigate();
-  const statuses = useProviderStore((s) => s.statuses);
   const accounts = useProviderStore((s) => s.accounts);
-  const vendors = useProviderStore((s) => s.vendors);
   const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
   const loading = useProviderStore((s) => s.loading);
   const refreshProviderSnapshot = useProviderStore((s) => s.refreshProviderSnapshot);
@@ -65,131 +35,9 @@ export function LobbyAISetup() {
   const switchSession = useChatStore((s) => s.switchSession);
   const newSession = useChatStore((s) => s.newSession);
 
-  // Setup modal state
   const [setupProvider, setSetupProvider] = useState<string | null>(null);
-  const [apiKey, setApiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
-  const [validating, setValidating] = useState(false);
-  const [keyValid, setKeyValid] = useState<boolean | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [modelId, setModelId] = useState('');
-  const [showOllamaWizard, setShowOllamaWizard] = useState(false);
 
   useEffect(() => { void refreshProviderSnapshot(); void fetchAgents(); }, [refreshProviderSnapshot, fetchAgents]);
-
-  // Ollama wizard completion — save provider using the same flow as manual setup
-  const handleOllamaWizardComplete = useCallback(async (ollamaModel: string, baseUrl: string) => {
-    setShowOllamaWizard(false);
-    setSaving(true);
-    try {
-      const snapshot = await fetchProviderSnapshot();
-
-      // Reuse existing Ollama account if one exists, otherwise create new one
-      // using the same buildProviderAccountId the manual path uses.
-      const existingOllama = snapshot.accounts?.find(
-        (a: ProviderAccount) => a.vendorId === 'ollama'
-      );
-      const accountId = existingOllama?.id
-        ?? buildProviderAccountId('ollama' as ProviderType, null, snapshot.vendors);
-
-      const accountPayload: ProviderAccount = {
-        id: accountId,
-        vendorId: 'ollama' as ProviderType,
-        label: 'Ollama',
-        authMode: 'local',
-        baseUrl,
-        model: ollamaModel,
-        enabled: true,
-        isDefault: false,
-        createdAt: existingOllama?.createdAt ?? new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      const effectiveApiKey = resolveProviderApiKeyForSave('ollama', '');
-
-      await hostApiFetch('/api/provider-accounts', {
-        method: 'POST',
-        body: JSON.stringify({ account: accountPayload, apiKey: effectiveApiKey }),
-      });
-
-      await hostApiFetch('/api/provider-accounts/default', {
-        method: 'PUT',
-        body: JSON.stringify({ accountId }),
-      });
-
-      toast.success('Local AI is ready!');
-      setSetupProvider(null);
-      await refreshProviderSnapshot();
-    } catch {
-      toast.error('Failed to save Ollama provider');
-    }
-    setSaving(false);
-  }, [refreshProviderSnapshot]);
-
-  const setupProviderData = PROVIDER_TYPE_INFO.find(p => p.id === setupProvider);
-  const setupFriendly = setupProvider ? FRIENDLY_NAMES[setupProvider as ProviderType] : undefined;
-  const needsKey = setupProviderData?.requiresApiKey ?? true;
-  const docsUrl = setupProviderData ? getProviderDocsUrl(setupProviderData, 'en') : null;
-
-  const handleValidate = async () => {
-    if (!setupProvider || (!apiKey && needsKey)) return;
-    setValidating(true);
-    setKeyValid(null);
-    try {
-      const result = await invokeIpc('provider:validateKey', setupProvider, apiKey, {
-        baseUrl: setupProviderData?.defaultBaseUrl || undefined,
-      }) as { valid: boolean; error?: string };
-      setKeyValid(result.valid);
-      if (!result.valid) toast.error(result.error || 'Invalid — check and try again');
-    } catch {
-      setKeyValid(false);
-      toast.error('Connection failed');
-    }
-    setValidating(false);
-  };
-
-  const handleSaveProvider = async () => {
-    if (!setupProvider) return;
-    setSaving(true);
-    try {
-      const snapshot = await fetchProviderSnapshot();
-      const accountId = buildProviderAccountId(setupProvider as ProviderType, undefined, snapshot.vendors);
-      const effectiveApiKey = resolveProviderApiKeyForSave(setupProvider, apiKey);
-      const effectiveModel = modelId.trim() || resolveProviderModelForSave(setupProviderData, '', false);
-
-      const accountPayload: ProviderAccount = {
-        id: accountId,
-        vendorId: setupProvider as ProviderType,
-        label: setupProviderData?.name || setupProvider,
-        authMode: setupProvider === 'ollama' ? 'local' : 'api_key',
-        baseUrl: setupProviderData?.defaultBaseUrl,
-        model: effectiveModel,
-        enabled: true,
-        isDefault: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      await hostApiFetch('/api/provider-accounts', {
-        method: 'POST',
-        body: JSON.stringify({ account: accountPayload, apiKey: effectiveApiKey }),
-      });
-
-      await hostApiFetch('/api/provider-accounts/default', {
-        method: 'PUT',
-        body: JSON.stringify({ accountId }),
-      });
-
-      toast.success(`${setupFriendly?.brain || setupProvider} connected!`);
-      setSetupProvider(null);
-      setApiKey('');
-      setKeyValid(null);
-      await refreshProviderSnapshot();
-    } catch {
-      toast.error('Failed to save');
-    }
-    setSaving(false);
-  };
 
   // Find the active/default account
   const defaultAccount = accounts.find((a) => a.id === defaultAccountId) || accounts.find((a) => a.isDefault) || accounts[0];
@@ -473,7 +321,7 @@ export function LobbyAISetup() {
           {/* Local AI — Hero Card */}
           <div style={{ marginBottom: 24 }}>
             <button
-              onClick={() => { setSetupProvider('ollama'); setShowOllamaWizard(true); }}
+              onClick={() => setSetupProvider('ollama')}
               style={{
                 width: '100%', padding: '20px 24px', borderRadius: 16, cursor: 'pointer',
                 border: '2px solid rgba(34,197,94,0.4)',
@@ -590,7 +438,7 @@ export function LobbyAISetup() {
                         )}
                       </div>
                       <button
-                        onClick={() => { setSetupProvider(info.id); setApiKey(''); setKeyValid(null); setShowKey(false); setModelId(info.defaultModelId || ''); }}
+                        onClick={() => setSetupProvider(info.id)}
                         style={{
                           padding: '4px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
                           background: hasAccount ? 'hsl(var(--muted))' : 'linear-gradient(135deg, #d97706, #fbbf24)',
@@ -610,187 +458,12 @@ export function LobbyAISetup() {
 
       {/* ═══ SETUP MODAL ═══ */}
       {setupProvider && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 100,
-          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-          onClick={() => setSetupProvider(null)}
-        >
-          <div style={{
-            background: 'hsl(var(--card))', borderRadius: 20, padding: 32,
-            width: '100%', maxWidth: 440,
-            boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
-          }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 12,
-                background: 'linear-gradient(135deg, #d97706, #fbbf24)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 24,
-              }}>
-                {setupFriendly?.emoji || '🧠'}
-              </div>
-              <div>
-                <div style={{ fontSize: 20, fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
-                  Set up {setupFriendly?.brain || setupProvider}
-                </div>
-                <div style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
-                  {setupFriendly?.name || setupProvider}
-                </div>
-              </div>
-            </div>
-
-            {needsKey ? (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))' }}>Secret code</label>
-                  {docsUrl && (
-                    <a href="#" onClick={(e) => { e.preventDefault(); window.electron.openExternal(docsUrl); }}
-                      style={{ fontSize: 11, color: '#d97706', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      Where do I get one? <ExternalLink style={{ width: 10, height: 10 }} />
-                    </a>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                  <div style={{ flex: 1, position: 'relative' }}>
-                    <input
-                      type={showKey ? 'text' : 'password'}
-                      value={apiKey}
-                      onChange={(e) => { setApiKey(e.target.value); setKeyValid(null); }}
-                      placeholder={setupProviderData?.placeholder || 'Paste your secret code...'}
-                      style={{
-                        width: '100%', padding: '12px 40px 12px 14px', borderRadius: 10,
-                        border: keyValid === true ? '2px solid #22c55e' : keyValid === false ? '2px solid #ef4444' : '1px solid hsl(var(--border))',
-                        background: 'hsl(var(--background))', color: 'hsl(var(--foreground))', fontSize: 14, outline: 'none',
-                        fontFamily: 'monospace',
-                      }}
-                    />
-                    <button onClick={() => setShowKey(!showKey)} style={{
-                      position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                      background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--muted-foreground))',
-                    }}>
-                      {showKey ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
-                    </button>
-                  </div>
-                  <button onClick={handleValidate} disabled={!apiKey || validating}
-                    style={{
-                      padding: '12px 20px', borderRadius: 10, border: '1px solid hsl(var(--border))',
-                      background: 'hsl(var(--background))', color: 'hsl(var(--foreground))',
-                      fontSize: 13, fontWeight: 600, cursor: apiKey && !validating ? 'pointer' : 'default',
-                      opacity: apiKey && !validating ? 1 : 0.4,
-                    }}>
-                    {validating ? <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> : 'Test'}
-                  </button>
-                </div>
-                {keyValid === true && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, color: '#22c55e', fontSize: 13, fontWeight: 600 }}>
-                    <CheckCircle2 style={{ width: 16, height: 16 }} /> Connected!
-                  </div>
-                )}
-                {keyValid === false && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
-                    <XCircle style={{ width: 16, height: 16 }} /> Invalid — check your code
-                  </div>
-                )}
-              </>
-            ) : null}
-
-            {/* Ollama: wizard only, no manual config */}
-            {setupProvider === 'ollama' ? (
-              <div>
-                <button
-                  onClick={() => setShowOllamaWizard(true)}
-                  style={{
-                    width: '100%', padding: '16px', borderRadius: 12, border: 'none',
-                    background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                    color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                    marginBottom: 10,
-                  }}
-                >
-                  Set up Local AI
-                </button>
-                <button onClick={() => setSetupProvider(null)}
-                  style={{
-                    width: '100%', padding: '12px', borderRadius: 10,
-                    border: '1px solid hsl(var(--border))', background: 'transparent',
-                    color: 'hsl(var(--muted-foreground))', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                  }}>
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* Model selector — cloud providers only */}
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))', display: 'block', marginBottom: 6 }}>
-                    Model
-                  </label>
-                  {setupProvider && PROVIDER_MODELS[setupProvider] ? (
-                    <select
-                      value={modelId}
-                      onChange={(e) => setModelId(e.target.value)}
-                      style={{
-                        width: '100%', padding: '10px 14px', borderRadius: 10,
-                        border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
-                        color: 'hsl(var(--foreground))', fontSize: 14, outline: 'none', cursor: 'pointer',
-                      }}
-                    >
-                      {PROVIDER_MODELS[setupProvider].map(m => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      value={modelId}
-                      onChange={(e) => setModelId(e.target.value)}
-                      placeholder={setupProviderData?.modelIdPlaceholder || 'Model ID'}
-                      style={{
-                        width: '100%', padding: '10px 14px', borderRadius: 10,
-                        border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
-                        color: 'hsl(var(--foreground))', fontSize: 14, outline: 'none',
-                      }}
-                    />
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                  <button onClick={handleSaveProvider}
-                    disabled={needsKey && !keyValid || saving}
-                    style={{
-                      flex: 1, padding: '12px', borderRadius: 10, border: 'none',
-                      background: (keyValid || !needsKey) && !saving ? 'linear-gradient(135deg, #d97706, #fbbf24)' : 'hsl(var(--muted))',
-                      color: (keyValid || !needsKey) && !saving ? 'white' : 'hsl(var(--muted-foreground))',
-                      fontSize: 14, fontWeight: 700, cursor: (keyValid || !needsKey) && !saving ? 'pointer' : 'default',
-                    }}>
-                    {saving ? 'Saving...' : 'Save & Activate'}
-                  </button>
-                  <button onClick={() => setSetupProvider(null)}
-                    style={{
-                      padding: '12px 20px', borderRadius: 10,
-                      border: '1px solid hsl(var(--border))', background: 'transparent',
-                      color: 'hsl(var(--muted-foreground))', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                    }}>
-                    Cancel
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Ollama Setup Wizard Modal */}
-      {showOllamaWizard && (
-        <OllamaSetupWizard
-          onComplete={handleOllamaWizardComplete}
-          onCancel={() => setShowOllamaWizard(false)}
+        <ProviderSetupModal
+          providerId={setupProvider}
+          onSave={() => { setSetupProvider(null); void refreshProviderSnapshot(); }}
+          onClose={() => setSetupProvider(null)}
         />
       )}
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
