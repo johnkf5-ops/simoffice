@@ -34,7 +34,7 @@ export function LobbySettings() {
   const isOnline = gatewayStatus.state === 'running';
 
   const rawVersion = useUpdateStore((s) => s.currentVersion);
-  const currentVersion = rawVersion && rawVersion !== '0.0.0' ? rawVersion : '1.0.0';
+  const currentVersion = rawVersion && rawVersion !== '0.0.0' ? rawVersion : __APP_VERSION__;
   const updateStatus = useUpdateStore((s) => s.status);
   const checkForUpdates = useUpdateStore((s) => s.checkForUpdates);
 

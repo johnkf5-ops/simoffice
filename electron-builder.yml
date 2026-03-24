@@ -76,7 +76,9 @@ mac:
   gatekeeperAssess: false
   entitlements: entitlements.mac.plist
   entitlementsInherit: entitlements.mac.plist
-  notarize: true
+  identity: "Jonathan Knopf (KUU64YPH5K)"
+  # notarize: true  # Enable when Apple notarization is stable
+  notarize: false
   extendInfo:
     NSMicrophoneUsageDescription: SimOffice requires microphone access for voice features
     NSCameraUsageDescription: SimOffice requires camera access for video features

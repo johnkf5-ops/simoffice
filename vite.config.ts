@@ -3,9 +3,14 @@ import react from '@vitejs/plugin-react';
 import electron from 'vite-plugin-electron';
 import renderer from 'vite-plugin-electron-renderer';
 import { resolve } from 'path';
+import pkg from './package.json';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // Inject package version at build time so the UI always shows the correct version.
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   // Required for Electron: all asset URLs must be relative because the renderer
   // loads via file:// in production. vite-plugin-electron-renderer sets this
   // automatically, but we declare it explicitly so the intent is clear and the
