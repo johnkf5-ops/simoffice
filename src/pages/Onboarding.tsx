@@ -64,6 +64,7 @@ export function Onboarding() {
   const [soulTemplates, setSoulTemplates] = useState<Record<string, string>>({});
   const [showOllamaWizard, setShowOllamaWizard] = useState(false);
   const [showCloudProviders, setShowCloudProviders] = useState(false);
+  const [canRunLocal, setCanRunLocal] = useState<boolean | null>(null); // null = checking
 
   // Loading screen state
   const [loadProgress, setLoadProgress] = useState(0);
@@ -76,6 +77,14 @@ export function Onboarding() {
   // Simple 5-second loading bar, then show continue button
   useEffect(() => {
     if (step !== 0) return;
+
+    // Check if hardware supports local AI
+    invokeIpc<{ success: boolean; data?: { hardware: { totalRamGB: number; isAppleSilicon: boolean } } }>('ollama:get-recommendation')
+      .then(res => {
+        const hw = res.data?.hardware;
+        setCanRunLocal(!!hw && hw.isAppleSilicon && hw.totalRamGB >= 16);
+      })
+      .catch(() => setCanRunLocal(false));
 
     // Load data in background
     fetch('/agent-templates.json')
@@ -356,8 +365,8 @@ export function Onboarding() {
               />
             </div>
 
-            {/* ═══ HERO: Local AI (Free) ═══ */}
-            <button
+            {/* ═══ HERO: Local AI (Free) — only if hardware supports it ═══ */}
+            {canRunLocal && <button
               onClick={() => setShowOllamaWizard(true)}
               style={{
                 width: '100%', padding: '20px 24px', borderRadius: 16, cursor: 'pointer',
@@ -407,7 +416,7 @@ export function Onboarding() {
                 <span>Works offline</span>
                 <span>We set it all up for you</span>
               </div>
-            </button>
+            </button>}
 
             {/* ═══ Cloud providers ═══ */}
             <button
@@ -418,10 +427,12 @@ export function Onboarding() {
                 marginBottom: 12, textAlign: 'center', padding: '8px 0',
               }}
             >
-              {showCloudProviders ? '▲ Hide cloud options' : 'Or connect a cloud AI service ▼'}
+              {canRunLocal === false
+                ? 'Connect a cloud AI service'
+                : (showCloudProviders ? '▲ Hide cloud options' : 'Or connect a cloud AI service ▼')}
             </button>
 
-            {showCloudProviders && (
+            {(showCloudProviders || canRunLocal === false) && (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
                   {CLOUD_PROVIDERS.map(p => (
@@ -464,122 +475,161 @@ export function Onboarding() {
               </>
             )}
 
-            {/* Secret code input — only for cloud providers */}
-            {selectedProvider && selectedProvider !== 'ollama' && needsKey && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
-                    Secret code
-                  </label>
-                  {docsUrl && (
-                    <a href="#" onClick={(e) => { e.preventDefault(); window.electron.openExternal(docsUrl); }}
-                      style={{ fontSize: 11, color: '#f97316', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      Where do I get one? <ExternalLink style={{ width: 10, height: 10 }} />
-                    </a>
-                  )}
+
+            {/* Cloud provider setup wizard */}
+            {selectedProvider && selectedProvider !== 'ollama' && (
+              <div style={{
+                background: 'rgba(255,255,255,0.05)', borderRadius: 16,
+                border: '1px solid rgba(255,255,255,0.1)', padding: '24px',
+                marginTop: 16,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                  <div style={{ fontSize: 28 }}>{providerData?.icon}</div>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: 'white', fontFamily: 'Space Grotesk, sans-serif' }}>
+                      Set up {providerData?.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'rgba(191,219,254,0.5)' }}>
+                      Step 1: Paste your API key
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1, position: 'relative' }}>
-                    <input
-                      type={showKey ? 'text' : 'password'}
-                      value={apiKey}
-                      onChange={(e) => { setApiKey(e.target.value); setKeyValid(null); }}
-                      placeholder={providerData?.placeholder || 'Paste your secret code...'}
+
+                {/* API key input */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>
+                      API Key
+                    </label>
+                    {docsUrl && (
+                      <a href="#" onClick={(e) => { e.preventDefault(); window.electron.openExternal(docsUrl); }}
+                        style={{ fontSize: 11, color: '#f97316', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        Get your key <ExternalLink style={{ width: 10, height: 10 }} />
+                      </a>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                      <input
+                        type={showKey ? 'text' : 'password'}
+                        value={apiKey}
+                        onChange={(e) => { setApiKey(e.target.value); setKeyValid(null); }}
+                        placeholder={providerData?.placeholder || 'Paste your API key...'}
+                        style={{
+                          width: '100%', padding: '12px 40px 12px 14px', borderRadius: 10,
+                          border: keyValid === true ? '2px solid #22c55e' : keyValid === false ? '2px solid #ef4444' : '1px solid rgba(255,255,255,0.15)',
+                          background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 14, outline: 'none',
+                          fontFamily: 'monospace',
+                        }}
+                      />
+                      <button onClick={() => setShowKey(!showKey)} style={{
+                        position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)',
+                      }}>
+                        {showKey ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+                      </button>
+                    </div>
+                    <button onClick={handleValidate} disabled={!apiKey || validating}
                       style={{
-                        width: '100%', padding: '12px 40px 12px 14px', borderRadius: 10,
-                        border: keyValid === true ? '2px solid #22c55e' : keyValid === false ? '2px solid #ef4444' : '1px solid rgba(255,255,255,0.15)',
-                        background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 14, outline: 'none',
-                        fontFamily: 'monospace',
-                      }}
-                    />
-                    <button onClick={() => setShowKey(!showKey)} style={{
-                      position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                      background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)',
-                    }}>
-                      {showKey ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+                        padding: '12px 20px', borderRadius: 10, border: 'none',
+                        cursor: apiKey && !validating ? 'pointer' : 'default',
+                        background: apiKey && !validating ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)',
+                        color: 'white', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+                        opacity: apiKey && !validating ? 1 : 0.4,
+                      }}>
+                      {validating ? <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> : 'Test'}
                     </button>
                   </div>
-                  <button onClick={handleValidate} disabled={!apiKey || validating}
-                    style={{
-                      padding: '12px 20px', borderRadius: 10, border: 'none', cursor: apiKey && !validating ? 'pointer' : 'default',
-                      background: apiKey && !validating ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.03)',
-                      color: 'white', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
-                      opacity: apiKey && !validating ? 1 : 0.4,
-                    }}>
-                    {validating ? <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} /> : 'Test'}
-                  </button>
+                  {keyValid === true && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#22c55e', fontSize: 13, fontWeight: 600 }}>
+                      <CheckCircle2 style={{ width: 16, height: 16 }} /> Connected!
+                    </div>
+                  )}
+                  {keyValid === false && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
+                      <XCircle style={{ width: 16, height: 16 }} /> Invalid — check your key
+                    </div>
+                  )}
                 </div>
-                {keyValid === true && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#22c55e', fontSize: 13, fontWeight: 600 }}>
-                    <CheckCircle2 style={{ width: 16, height: 16 }} /> Connected!
+
+                {/* Model selector */}
+                {keyValid && (
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 12, color: 'rgba(191,219,254,0.5)', marginBottom: 4, display: 'block' }}>
+                      Step 2: Choose a model
+                    </label>
+                    {PROVIDER_MODELS[selectedProvider] ? (
+                      <select
+                        value={modelId}
+                        onChange={(e) => setModelId(e.target.value)}
+                        style={{
+                          width: '100%', padding: '12px 14px', borderRadius: 10,
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          background: 'rgba(255,255,255,0.08)', color: 'white', fontSize: 14, outline: 'none',
+                          cursor: 'pointer', appearance: 'none',
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                          backgroundRepeat: 'no-repeat',
+                          backgroundPosition: 'right 14px center',
+                        }}
+                      >
+                        {PROVIDER_MODELS[selectedProvider].map(m => (
+                          <option key={m.id} value={m.id} style={{ background: '#1a1a3e', color: 'white' }}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={modelId}
+                        onChange={(e) => setModelId(e.target.value)}
+                        placeholder={providerData?.modelIdPlaceholder || 'Model ID'}
+                        style={{
+                          width: '100%', padding: '12px 14px', borderRadius: 10,
+                          border: '1px solid rgba(255,255,255,0.15)',
+                          background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 14, outline: 'none',
+                        }}
+                      />
+                    )}
                   </div>
                 )}
-                {keyValid === false && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
-                    <XCircle style={{ width: 16, height: 16 }} /> Invalid — check your code
-                  </div>
-                )}
+
+                {/* Save button */}
+                <button
+                  onClick={handleSaveAndContinue}
+                  disabled={!keyValid || saving}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: 12, border: 'none',
+                    background: keyValid && !saving ? 'linear-gradient(135deg, #f97316, #f59e0b)' : 'rgba(255,255,255,0.05)',
+                    color: 'white', fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
+                    cursor: keyValid && !saving ? 'pointer' : 'default',
+                    opacity: keyValid && !saving ? 1 : 0.4,
+                    marginBottom: 10,
+                  }}
+                >
+                  {saving ? 'Setting up...' : 'Activate →'}
+                </button>
+
+                <button onClick={() => setSelectedProvider(null)}
+                  style={{
+                    width: '100%', background: 'none', border: 'none',
+                    color: 'rgba(191,219,254,0.4)', fontSize: 12, cursor: 'pointer',
+                  }}
+                >
+                  ← Pick a different provider
+                </button>
               </div>
             )}
 
-            {/* Model selector — cloud providers only */}
-            {selectedProvider && selectedProvider !== 'ollama' && (
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 6 }}>
-                  Model
-                </label>
-                {PROVIDER_MODELS[selectedProvider] ? (
-                  <select
-                    value={modelId}
-                    onChange={(e) => setModelId(e.target.value)}
-                    style={{
-                      width: '100%', padding: '12px 14px', borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      background: 'rgba(255,255,255,0.08)', color: 'white', fontSize: 14, outline: 'none',
-                      cursor: 'pointer', appearance: 'none',
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 14px center',
-                    }}
-                  >
-                    {PROVIDER_MODELS[selectedProvider].map(m => (
-                      <option key={m.id} value={m.id} style={{ background: '#1a1a3e', color: 'white' }}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    value={modelId}
-                    onChange={(e) => setModelId(e.target.value)}
-                    placeholder={providerData?.modelIdPlaceholder || 'Model ID'}
-                    style={{
-                      width: '100%', padding: '12px 14px', borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 14, outline: 'none',
-                    }}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Continue button — cloud providers only */}
-            {selectedProvider && selectedProvider !== 'ollama' && (
-              <button
-                onClick={handleSaveAndContinue}
-                disabled={!selectedProvider || (needsKey && !keyValid) || saving}
-                style={{
-                  width: '100%', padding: '14px', borderRadius: 12, border: 'none',
-                  background: selectedProvider && (keyValid || !needsKey) && !saving ? 'linear-gradient(135deg, #f97316, #f59e0b)' : 'rgba(255,255,255,0.05)',
-                  color: 'white', fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
-                  cursor: selectedProvider && (keyValid || !needsKey) && !saving ? 'pointer' : 'default',
-                  opacity: selectedProvider && (keyValid || !needsKey) && !saving ? 1 : 0.4,
-                  boxShadow: selectedProvider && (keyValid || !needsKey) ? '0 4px 20px rgba(249,115,22,0.3)' : 'none',
-                }}
-              >
-                {saving ? 'Setting up...' : 'Almost Done →'}
-              </button>
-            )}
+            {/* Skip button */}
+            <button
+              onClick={handleSkip}
+              style={{
+                background: 'none', border: 'none', color: 'rgba(191,219,254,0.35)',
+                fontSize: 12, cursor: 'pointer', marginTop: 16, width: '100%', textAlign: 'center',
+              }}
+            >
+              Skip for now
+            </button>
 
             {/* Step dots */}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 32 }}>
