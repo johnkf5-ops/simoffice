@@ -246,6 +246,78 @@ export function OfficeAdapter() {
     );
   }, [agentStates]);
 
+  // Random idle activities — agents do fun stuff when not working
+  const activityTimersRef = useRef<Map<string, number>>(new Map());
+  useEffect(() => {
+    if (!isOnline || agentStates.length === 0) return;
+
+    const ACTIVITIES = ['gym', 'desk'] as const;
+    const ACTIVITY_DURATION_MS = 120_000; // 2 minutes doing the activity
+    const MIN_WANDER_MS = 45_000; // min 45 seconds wandering
+    const MAX_WANDER_MS = 90_000; // max 90 seconds wandering
+
+    const scheduleActivity = (agentId: string) => {
+      const wanderTime = MIN_WANDER_MS + Math.random() * (MAX_WANDER_MS - MIN_WANDER_MS);
+
+      const timerId = window.setTimeout(() => {
+        const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+
+        // Start the activity
+        setTriggerState(prev => {
+          const next = { ...prev };
+          if (activity === 'gym') {
+            next.manualGymUntilByAgentId = {
+              ...next.manualGymUntilByAgentId,
+              [agentId]: Date.now() + ACTIVITY_DURATION_MS,
+            };
+          } else if (activity === 'desk') {
+            next.deskHoldByAgentId = {
+              ...next.deskHoldByAgentId,
+              [agentId]: true,
+            };
+          }
+          return next;
+        });
+
+        // End the activity after duration
+        const endTimerId = window.setTimeout(() => {
+          setTriggerState(prev => {
+            const next = { ...prev };
+            if (activity === 'gym') {
+              const { [agentId]: _, ...rest } = next.manualGymUntilByAgentId;
+              next.manualGymUntilByAgentId = rest;
+            } else if (activity === 'desk') {
+              const { [agentId]: _, ...rest } = next.deskHoldByAgentId;
+              next.deskHoldByAgentId = rest;
+            }
+            return next;
+          });
+
+          // Schedule the next activity
+          scheduleActivity(agentId);
+        }, ACTIVITY_DURATION_MS);
+
+        activityTimersRef.current.set(`${agentId}-end`, endTimerId);
+      }, wanderTime);
+
+      activityTimersRef.current.set(agentId, timerId);
+    };
+
+    // Schedule for each agent with staggered start
+    agentStates.forEach((agent, i) => {
+      const initialDelay = i * 10_000 + Math.random() * 15_000; // stagger 10-25s apart
+      const timerId = window.setTimeout(() => {
+        scheduleActivity(agent.agentId);
+      }, initialDelay);
+      activityTimersRef.current.set(`${agent.agentId}-init`, timerId);
+    });
+
+    return () => {
+      activityTimersRef.current.forEach(id => window.clearTimeout(id));
+      activityTimersRef.current.clear();
+    };
+  }, [isOnline, agentStates.length]);
+
   // Build final animation state from triggers
   const animationState = useMemo(() => {
     void clockTick; // dependency for time-based expiry

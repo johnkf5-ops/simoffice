@@ -285,6 +285,241 @@ const HUBSPOT_STEPS: WizardStep[] = [
   },
 ];
 
+const GOOGLE_WORKSPACE_STEPS: WizardStep[] = [
+  {
+    title: 'Open Google Cloud Console',
+    instructions: (
+      <>
+        <p>Click below to open Google Cloud Console.</p>
+        <p>You'll need a Google account with access to your organization's workspace.</p>
+      </>
+    ),
+    buttonLabel: 'Open Google Cloud',
+    buttonUrl: 'https://console.cloud.google.com/apis/credentials',
+  },
+  {
+    title: 'Create a Service Account',
+    instructions: (
+      <>
+        <p>Go to <b>"IAM & Admin"</b> → <b>"Service Accounts"</b> → <b>"Create Service Account"</b>.</p>
+        <p>Name it <b>"SimOffice"</b>. Then create a <b>JSON key</b> for it.</p>
+        <p style={{ marginTop: 8 }}>Enable these APIs in <b>"APIs & Services"</b> → <b>"Enable APIs"</b>:</p>
+        <ul style={{ marginTop: 8, paddingLeft: 20, lineHeight: 2 }}>
+          <li><b>Gmail API</b></li>
+          <li><b>Google Calendar API</b></li>
+          <li><b>Google Drive API</b></li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    title: 'Paste your Service Account Key',
+    instructions: (
+      <>
+        <p>Open the downloaded JSON key file and paste its contents below.</p>
+        <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(191,219,254,0.5)' }}>
+          Share your calendar and drive folders with the service account email to give it access.
+        </p>
+      </>
+    ),
+    hasInput: true,
+    inputLabel: 'Service Account JSON',
+    inputPlaceholder: '{"type": "service_account", ...}',
+  },
+];
+
+const NOTION_STEPS: WizardStep[] = [
+  {
+    title: 'Create a Notion Integration',
+    instructions: (
+      <>
+        <p>Click below to open Notion's integrations page.</p>
+        <p>You'll need admin access to your Notion workspace.</p>
+      </>
+    ),
+    buttonLabel: 'Open Notion Integrations',
+    buttonUrl: 'https://www.notion.so/my-integrations',
+  },
+  {
+    title: 'Set Up the Integration',
+    instructions: (
+      <>
+        <p>Click <b>"New integration"</b>.</p>
+        <p>Name it <b>"SimOffice"</b> and select your workspace.</p>
+        <p>Leave the default capabilities (Read, Update, Insert content).</p>
+        <p style={{ marginTop: 8 }}><b>Important:</b> After creating, go to any Notion page or database you want agents to access, click <b>"..."</b> → <b>"Connect to"</b> → <b>"SimOffice"</b>.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Copy your Integration Token',
+    instructions: (
+      <>
+        <p>Copy the <b>"Internal Integration Secret"</b> from the integration page.</p>
+      </>
+    ),
+    hasInput: true,
+    inputLabel: 'Integration Token',
+    inputPlaceholder: 'ntn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  },
+];
+
+const GITHUB_STEPS: WizardStep[] = [
+  {
+    title: 'Open GitHub Token Settings',
+    instructions: (
+      <>
+        <p>Click below to create a fine-grained personal access token.</p>
+      </>
+    ),
+    buttonLabel: 'Open GitHub Settings',
+    buttonUrl: 'https://github.com/settings/tokens?type=beta',
+  },
+  {
+    title: 'Create a Token',
+    instructions: (
+      <>
+        <p>Click <b>"Generate new token"</b>.</p>
+        <p>Name it <b>"SimOffice"</b>, set expiration, and select your repos.</p>
+        <p>Under <b>"Permissions"</b>, enable:</p>
+        <ul style={{ marginTop: 8, paddingLeft: 20, lineHeight: 2 }}>
+          <li><b>Issues</b> — Read and Write</li>
+          <li><b>Pull requests</b> — Read and Write</li>
+          <li><b>Contents</b> — Read</li>
+        </ul>
+        <p style={{ marginTop: 8 }}>Click <b>"Generate token"</b>.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Paste your Token',
+    instructions: (
+      <>
+        <p>Copy the token (starts with <code>ghp_</code> or <code>github_pat_</code>) and paste below.</p>
+      </>
+    ),
+    hasInput: true,
+    inputLabel: 'Personal Access Token',
+    inputPlaceholder: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  },
+];
+
+const JIRA_STEPS: WizardStep[] = [
+  {
+    title: 'Create an Atlassian API Token',
+    instructions: (
+      <>
+        <p>Click below to open your Atlassian account security settings.</p>
+      </>
+    ),
+    buttonLabel: 'Open Atlassian Settings',
+    buttonUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens',
+  },
+  {
+    title: 'Generate the Token',
+    instructions: (
+      <>
+        <p>Click <b>"Create API token"</b>.</p>
+        <p>Name it <b>"SimOffice"</b> and click <b>"Create"</b>.</p>
+        <p>Copy the token — you won't be able to see it again.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Enter your Jira Details',
+    instructions: (
+      <>
+        <p>Paste your API token below. You'll also need your Atlassian email and Jira domain in the next screen.</p>
+      </>
+    ),
+    hasInput: true,
+    inputLabel: 'API Token',
+    inputPlaceholder: 'Paste your Atlassian API token...',
+  },
+];
+
+const STRIPE_STEPS: WizardStep[] = [
+  {
+    title: 'Open Stripe API Keys',
+    instructions: (
+      <>
+        <p>Click below to open your Stripe dashboard.</p>
+        <p>We recommend creating a <b>restricted key</b> with read-only access for safety.</p>
+      </>
+    ),
+    buttonLabel: 'Open Stripe Dashboard',
+    buttonUrl: 'https://dashboard.stripe.com/apikeys',
+  },
+  {
+    title: 'Create a Restricted Key',
+    instructions: (
+      <>
+        <p>Click <b>"Create restricted key"</b>.</p>
+        <p>Name it <b>"SimOffice"</b> and enable <b>Read</b> for:</p>
+        <ul style={{ marginTop: 8, paddingLeft: 20, lineHeight: 2 }}>
+          <li><b>Charges</b></li>
+          <li><b>Customers</b></li>
+          <li><b>Subscriptions</b></li>
+          <li><b>Invoices</b></li>
+        </ul>
+        <p style={{ marginTop: 8 }}>Click <b>"Create key"</b>.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Paste your Restricted Key',
+    instructions: (
+      <>
+        <p>Copy the restricted key (starts with <code>rk_live_</code>) and paste below.</p>
+      </>
+    ),
+    hasInput: true,
+    inputLabel: 'Restricted Key',
+    inputPlaceholder: 'rk_live_your_restricted_key_here',
+  },
+];
+
+const ZAPIER_STEPS: WizardStep[] = [
+  {
+    title: 'Create a Zap with Webhooks',
+    instructions: (
+      <>
+        <p>Click below to open Zapier.</p>
+        <p>Create a new Zap and choose <b>"Webhooks by Zapier"</b> as the trigger.</p>
+      </>
+    ),
+    buttonLabel: 'Open Zapier',
+    buttonUrl: 'https://zapier.com/app/zaps',
+  },
+  {
+    title: 'Set Up the Webhook',
+    instructions: (
+      <>
+        <p>Choose <b>"Catch Hook"</b> as the trigger event.</p>
+        <p>Zapier will give you a unique webhook URL.</p>
+        <p>Set up your action — this is what happens when your agent sends data. Examples:</p>
+        <ul style={{ marginTop: 8, paddingLeft: 20, lineHeight: 2 }}>
+          <li>Add a row to Google Sheets</li>
+          <li>Send an email via Gmail</li>
+          <li>Create a task in Asana</li>
+          <li>Post to any of 6,000+ apps</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    title: 'Paste the Webhook URL',
+    instructions: (
+      <>
+        <p>Copy the webhook URL from Zapier and paste it below.</p>
+      </>
+    ),
+    hasInput: true,
+    inputLabel: 'Webhook URL',
+    inputPlaceholder: 'https://hooks.zapier.com/hooks/catch/xxxxx/xxxxx/',
+  },
+];
+
 const SLACK_STEPS: WizardStep[] = [
   {
     title: 'Create a Slack App',
@@ -380,6 +615,12 @@ const WIZARD_STEPS: Partial<Record<ChannelType, WizardStep[]>> = {
   hubspot: HUBSPOT_STEPS,
   pandadoc: PANDADOC_STEPS,
   slack: SLACK_STEPS,
+  google_workspace: GOOGLE_WORKSPACE_STEPS,
+  notion: NOTION_STEPS,
+  github: GITHUB_STEPS,
+  jira: JIRA_STEPS,
+  stripe_integration: STRIPE_STEPS,
+  zapier: ZAPIER_STEPS,
 };
 
 interface ChannelSetupWizardProps {

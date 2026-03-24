@@ -33,7 +33,7 @@ export function LobbyAssistants() {
   const [creating, setCreating] = useState(false);
 
   // Template catalog
-  const [catalog, setCatalog] = useState<Array<{ id: string; category: string; name: string; role: string; path: string }>>([]);
+  const [catalog, setCatalog] = useState<Array<{ id: string; category: string; name: string; role: string; path: string; description?: string; emoji?: string; tags?: string[]; popular?: boolean; quote?: string }>>([]);
   const [soulTemplates, setSoulTemplates] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -58,8 +58,11 @@ export function LobbyAssistants() {
     const matchesSearch = !search ||
       (a.name || a.id).toLowerCase().includes(search.toLowerCase()) ||
       (a.role || '').toLowerCase().includes(search.toLowerCase()) ||
+      (a.description || '').toLowerCase().includes(search.toLowerCase()) ||
+      (a.tags || []).some(t => t.toLowerCase().includes(search.toLowerCase())) ||
       a.category.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || a.category === categoryFilter;
+    const matchesCategory = categoryFilter === 'all'
+      || (categoryFilter === '_popular' ? a.popular === true : a.category === categoryFilter);
     return matchesSearch && matchesCategory;
   });
 
@@ -428,6 +431,7 @@ export function LobbyAssistants() {
                     }}
                   >
                     <option value="all">All Categories</option>
+                    <option value="_popular">⭐ Popular</option>
                     {categories.map(cat => (
                       <option key={cat} value={cat}>{CATEGORY_LABELS[cat] || cat}</option>
                     ))}
@@ -447,43 +451,79 @@ export function LobbyAssistants() {
                       <div key={agent.id}
                         style={{
                           background: 'hsl(var(--card))',
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: 12, padding: 14,
-                          display: 'flex', alignItems: 'center', gap: 12,
+                          border: agent.popular ? '1px solid rgba(124,58,237,0.3)' : '1px solid hsl(var(--border))',
+                          borderRadius: 14, padding: 16,
+                          display: 'flex', flexDirection: 'column', gap: 10,
                           opacity: alreadyAdded ? 0.5 : 1,
+                          position: 'relative',
                         }}>
-                        <div style={{
-                          width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-                          background: 'linear-gradient(135deg, #7c3aed22, #a78bfa22)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 16,
-                        }}>
-                          🤖
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Popular badge */}
+                        {agent.popular && !alreadyAdded && (
                           <div style={{
-                            fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))',
-                            textTransform: 'capitalize',
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            position: 'absolute', top: -6, right: 12,
+                            background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+                            color: 'white', fontSize: 9, fontWeight: 700,
+                            padding: '2px 8px', borderRadius: 4,
+                            textTransform: 'uppercase', letterSpacing: '0.05em',
                           }}>
-                            {displayName}
+                            Popular
                           </div>
-                          <div style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>
-                            {CATEGORY_LABELS[agent.category] || agent.category}
-                            {agent.role ? ` · ${agent.role}` : ''}
+                        )}
+                        {/* Header: emoji + name + category */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{
+                            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                            background: 'linear-gradient(135deg, #7c3aed11, #a78bfa11)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 20,
+                          }}>
+                            {agent.emoji || '🤖'}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))',
+                              textTransform: 'capitalize',
+                              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                            }}>
+                              {displayName}
+                            </div>
+                            <div style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>
+                              {CATEGORY_LABELS[agent.category] || agent.category}
+                            </div>
                           </div>
                         </div>
+                        {/* Description */}
+                        {(agent.description || agent.role) && (
+                          <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.5 }}>
+                            {agent.description || agent.role}
+                          </div>
+                        )}
+                        {/* Tags */}
+                        {agent.tags && agent.tags.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {agent.tags.map(tag => (
+                              <span key={tag} style={{
+                                fontSize: 9, fontWeight: 600, color: 'hsl(var(--muted-foreground))',
+                                background: 'hsl(var(--muted))', padding: '2px 7px', borderRadius: 4,
+                                textTransform: 'lowercase',
+                              }}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {/* Add button */}
                         <button
                           onClick={() => !alreadyAdded && handleAddFromCatalog(agent)}
                           disabled={alreadyAdded}
                           style={{
-                            padding: '6px 12px', borderRadius: 8, border: 'none',
+                            padding: '8px 12px', borderRadius: 8, border: 'none', width: '100%',
                             background: alreadyAdded ? 'hsl(var(--muted))' : 'linear-gradient(135deg, #7c3aed, #a78bfa)',
                             color: alreadyAdded ? 'hsl(var(--muted-foreground))' : 'white',
-                            fontSize: 11, fontWeight: 700, cursor: alreadyAdded ? 'default' : 'pointer',
-                            flexShrink: 0,
+                            fontSize: 12, fontWeight: 700, cursor: alreadyAdded ? 'default' : 'pointer',
+                            marginTop: 'auto',
                           }}>
-                          {alreadyAdded ? 'Added' : '+ Add'}
+                          {alreadyAdded ? 'Added' : '+ Add to Team'}
                         </button>
                       </div>
                     );

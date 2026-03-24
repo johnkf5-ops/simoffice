@@ -17,6 +17,12 @@ const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; descri
   { type: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'CRM — contacts, deals, companies' },
   { type: 'pandadoc', name: 'PandaDoc', icon: '🐼', description: 'Proposals, contracts, e-signatures' },
   { type: 'slack', name: 'Slack', icon: '💬', description: 'Post updates, respond in channels' },
+  { type: 'google_workspace', name: 'Google Workspace', icon: '📧', description: 'Gmail, Calendar, Drive' },
+  { type: 'notion', name: 'Notion', icon: '📝', description: 'Pages, databases, project boards' },
+  { type: 'github', name: 'GitHub', icon: '🐙', description: 'Repos, PRs, issues, deploys' },
+  { type: 'jira', name: 'Jira', icon: '📋', description: 'Tickets, sprints, project tracking' },
+  { type: 'stripe_integration', name: 'Stripe', icon: '💳', description: 'Revenue, invoices, subscriptions' },
+  { type: 'zapier', name: 'Zapier', icon: '⚡', description: 'Connect 6,000+ apps via webhooks' },
 ];
 
 const ALL_CHANNEL_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [

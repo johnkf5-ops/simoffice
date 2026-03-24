@@ -23,7 +23,13 @@ export type ChannelType =
   | 'qqbot'
   | 'hubspot'
   | 'pandadoc'
-  | 'slack';
+  | 'slack'
+  | 'google_workspace'
+  | 'notion'
+  | 'github'
+  | 'jira'
+  | 'stripe_integration'
+  | 'zapier';
 
 /**
  * Channel connection status
@@ -100,6 +106,12 @@ export const CHANNEL_ICONS: Record<ChannelType, string> = {
   hubspot: '🟠',
   pandadoc: '🐼',
   slack: '💬',
+  google_workspace: '📧',
+  notion: '📝',
+  github: '🐙',
+  jira: '📋',
+  stripe_integration: '💳',
+  zapier: '⚡',
 };
 
 /**
@@ -123,6 +135,12 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   hubspot: 'HubSpot',
   pandadoc: 'PandaDoc',
   slack: 'Slack',
+  google_workspace: 'Google Workspace',
+  notion: 'Notion',
+  github: 'GitHub',
+  jira: 'Jira',
+  stripe_integration: 'Stripe',
+  zapier: 'Zapier',
 };
 
 /**
@@ -556,6 +574,172 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
       'Click "Create a private app" and name it SimOffice',
       'Under Scopes, enable: crm.objects.contacts, crm.objects.deals, crm.objects.companies',
       'Click "Create app" and copy your access token',
+    ],
+  },
+  google_workspace: {
+    id: 'google_workspace',
+    name: 'Google Workspace',
+    icon: '📧',
+    description: 'Connect Gmail, Calendar, and Drive',
+    connectionType: 'token',
+    docsUrl: 'https://console.cloud.google.com/apis/credentials',
+    configFields: [
+      {
+        key: 'serviceAccountKey',
+        label: 'Service Account JSON Key',
+        type: 'password',
+        placeholder: 'Paste the contents of your service account JSON...',
+        required: true,
+        envVar: 'GOOGLE_SERVICE_ACCOUNT_KEY',
+      },
+    ],
+    instructions: [
+      'Go to Google Cloud Console → APIs & Services → Credentials',
+      'Create a Service Account, then create a JSON key for it',
+      'Enable Gmail API, Calendar API, and Drive API',
+      'Share your calendar/drive with the service account email',
+    ],
+  },
+  notion: {
+    id: 'notion',
+    name: 'Notion',
+    icon: '📝',
+    description: 'Connect Notion for pages, databases, and project boards',
+    connectionType: 'token',
+    docsUrl: 'https://www.notion.so/my-integrations',
+    configFields: [
+      {
+        key: 'apiKey',
+        label: 'Internal Integration Token',
+        type: 'password',
+        placeholder: 'ntn_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        required: true,
+        envVar: 'NOTION_API_KEY',
+      },
+    ],
+    instructions: [
+      'Go to notion.so/my-integrations and click "New integration"',
+      'Name it "SimOffice" and select your workspace',
+      'Copy the Internal Integration Token',
+      'Share the Notion pages/databases you want agents to access with the integration',
+    ],
+  },
+  github: {
+    id: 'github',
+    name: 'GitHub',
+    icon: '🐙',
+    description: 'Connect GitHub for repos, PRs, issues, and deploys',
+    connectionType: 'token',
+    docsUrl: 'https://github.com/settings/tokens',
+    configFields: [
+      {
+        key: 'token',
+        label: 'Personal Access Token',
+        type: 'password',
+        placeholder: 'ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+        required: true,
+        envVar: 'GITHUB_TOKEN',
+      },
+      {
+        key: 'owner',
+        label: 'Owner / Organization',
+        type: 'text',
+        placeholder: 'e.g. your-username or your-org',
+        required: false,
+        description: 'Default repo owner for agent operations',
+      },
+    ],
+    instructions: [
+      'Go to GitHub → Settings → Developer Settings → Personal Access Tokens → Fine-grained tokens',
+      'Click "Generate new token"',
+      'Give it repo, issues, and pull request permissions',
+      'Copy the token (starts with ghp_)',
+    ],
+  },
+  jira: {
+    id: 'jira',
+    name: 'Jira',
+    icon: '📋',
+    description: 'Connect Jira for tickets, sprints, and project tracking',
+    connectionType: 'token',
+    docsUrl: 'https://id.atlassian.com/manage-profile/security/api-tokens',
+    configFields: [
+      {
+        key: 'email',
+        label: 'Atlassian Email',
+        type: 'text',
+        placeholder: 'you@company.com',
+        required: true,
+      },
+      {
+        key: 'apiToken',
+        label: 'API Token',
+        type: 'password',
+        placeholder: 'Paste your Atlassian API token...',
+        required: true,
+        envVar: 'JIRA_API_TOKEN',
+      },
+      {
+        key: 'domain',
+        label: 'Jira Domain',
+        type: 'text',
+        placeholder: 'your-company.atlassian.net',
+        required: true,
+      },
+    ],
+    instructions: [
+      'Go to id.atlassian.com → Security → Create and manage API tokens',
+      'Click "Create API token" and name it "SimOffice"',
+      'Copy the token and enter it with your email and Jira domain below',
+    ],
+  },
+  stripe_integration: {
+    id: 'stripe_integration',
+    name: 'Stripe',
+    icon: '💳',
+    description: 'Connect Stripe for revenue tracking, invoices, and subscriptions',
+    connectionType: 'token',
+    docsUrl: 'https://dashboard.stripe.com/apikeys',
+    configFields: [
+      {
+        key: 'secretKey',
+        label: 'Secret Key (Restricted)',
+        type: 'password',
+        placeholder: 'rk_live_your_restricted_key_here',
+        required: true,
+        envVar: 'STRIPE_SECRET_KEY',
+        description: 'Use a restricted key with read-only access for safety',
+      },
+    ],
+    instructions: [
+      'Go to Stripe Dashboard → Developers → API Keys',
+      'Create a Restricted Key with read-only permissions',
+      'Enable: Charges (Read), Customers (Read), Subscriptions (Read), Invoices (Read)',
+      'Copy the restricted key (starts with rk_live_)',
+    ],
+  },
+  zapier: {
+    id: 'zapier',
+    name: 'Zapier',
+    icon: '⚡',
+    description: 'Connect 6,000+ apps through Zapier webhooks',
+    connectionType: 'webhook',
+    docsUrl: 'https://zapier.com/app/zaps',
+    configFields: [
+      {
+        key: 'webhookUrl',
+        label: 'Zapier Webhook URL',
+        type: 'text',
+        placeholder: 'https://hooks.zapier.com/hooks/catch/xxxxx/xxxxx/',
+        required: true,
+        envVar: 'ZAPIER_WEBHOOK_URL',
+      },
+    ],
+    instructions: [
+      'Create a new Zap in Zapier',
+      'Choose "Webhooks by Zapier" as the trigger → "Catch Hook"',
+      'Copy the webhook URL Zapier gives you',
+      'Set up your action (Google Sheets, email, CRM, etc.)',
     ],
   },
   slack: {

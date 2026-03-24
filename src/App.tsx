@@ -21,7 +21,6 @@ import { LobbySettings } from './pages/LobbySettings';
 import { Onboarding } from './pages/Onboarding';
 import { WebGLTest } from './pages/WebGLTest';
 import { Office3D } from './pages/Office3D';
-import { LandingPage } from './pages/LandingPage';
 
 import { useSettingsStore } from './stores/settings';
 import { useGatewayStore } from './stores/gateway';
@@ -141,8 +140,6 @@ function App() {
     <ErrorBoundary>
       <TooltipProvider delayDuration={300}>
         <Routes>
-          <Route path="/landing" element={<LandingPage />} />
-
           {/* Onboarding */}
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/setup/*" element={<Onboarding />} />

@@ -7,14 +7,13 @@ import { useGatewayStore } from '@/stores/gateway';
 import { StatusDot } from '@/components/common/StatusDot';
 
 const TOOLBAR_ITEMS = [
-  { icon: '🏠', label: 'Lobby', path: '/' },
+  { icon: '🏢', label: 'Office', path: '/' },
   { icon: '💬', label: 'Chat', path: '/chat' },
   { icon: '🤖', label: 'Assistants', path: '/assistants' },
   { icon: '🔌', label: 'Connections', path: '/connections' },
   { icon: '⚡', label: 'Skills', path: '/powers' },
   { icon: '⏰', label: 'Automations', path: '/automations' },
   { icon: '🧠', label: 'AI Setup', path: '/ai-setup' },
-  { icon: '🏢', label: '3D Office', path: '/office' },
   { icon: '⚙️', label: 'Settings', path: '/settings' },
 ];
 
