@@ -2,9 +2,10 @@
  * Electron Main Process Entry
  * Manages window creation, system tray, and IPC handlers
  */
-import { app, BrowserWindow, nativeImage, session, shell } from 'electron';
+import { app, BrowserWindow, net, nativeImage, protocol, session, shell } from 'electron';
 import type { Server } from 'node:http';
 import { join } from 'path';
+import { pathToFileURL } from 'url';
 import { GatewayManager } from '../gateway/manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { createTray } from './tray';
@@ -491,6 +492,22 @@ if (gotTheLock) {
 
   // Application lifecycle
   app.whenReady().then(() => {
+    // Intercept file:// requests so that absolute paths like /office-assets/
+    // resolve relative to the dist/ directory inside the app bundle.
+    // Without this, Three.js fetch() calls for .glb models fail in production.
+    protocol.interceptFileProtocol('file', (request, callback) => {
+      let url = request.url.substring('file://'.length);
+      // On macOS the URL may start with a leading slash before the actual path
+      // Absolute paths like /office-assets/ need to be resolved relative to dist/
+      if (url.startsWith('/office-assets/') || url.startsWith('/splash-loading2.png') || url.startsWith('/agent-templates.json') || url.startsWith('/agent-souls.json')) {
+        const distPath = join(__dirname, '../../dist', url);
+        callback({ path: distPath });
+      } else {
+        // Let all other file:// requests pass through normally
+        callback({ path: decodeURIComponent(url) });
+      }
+    });
+
     void initialize().catch((error) => {
       logger.error('Application initialization failed:', error);
     });
