@@ -22,7 +22,8 @@ export type ChannelType =
   | 'mattermost'
   | 'qqbot'
   | 'hubspot'
-  | 'pandadoc';
+  | 'pandadoc'
+  | 'slack';
 
 /**
  * Channel connection status
@@ -98,6 +99,7 @@ export const CHANNEL_ICONS: Record<ChannelType, string> = {
   qqbot: '🐧',
   hubspot: '🟠',
   pandadoc: '🐼',
+  slack: '💬',
 };
 
 /**
@@ -120,6 +122,7 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   qqbot: 'QQ Bot',
   hubspot: 'HubSpot',
   pandadoc: 'PandaDoc',
+  slack: 'Slack',
 };
 
 /**
@@ -553,6 +556,38 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
       'Click "Create a private app" and name it SimOffice',
       'Under Scopes, enable: crm.objects.contacts, crm.objects.deals, crm.objects.companies',
       'Click "Create app" and copy your access token',
+    ],
+  },
+  slack: {
+    id: 'slack',
+    name: 'Slack',
+    icon: '💬',
+    description: 'Connect Slack so agents can post and respond in channels',
+    connectionType: 'token',
+    docsUrl: 'https://api.slack.com/apps',
+    configFields: [
+      {
+        key: 'botToken',
+        label: 'Bot User OAuth Token',
+        type: 'password',
+        placeholder: 'xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxx',
+        required: true,
+        envVar: 'SLACK_BOT_TOKEN',
+      },
+      {
+        key: 'appToken',
+        label: 'App-Level Token (for Socket Mode)',
+        type: 'password',
+        placeholder: 'xapp-1-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxx',
+        required: false,
+        envVar: 'SLACK_APP_TOKEN',
+        description: 'Optional — needed for real-time events via Socket Mode',
+      },
+    ],
+    instructions: [
+      'Go to api.slack.com/apps and create a new app',
+      'Under OAuth & Permissions, add bot scopes: chat:write, channels:read, channels:history',
+      'Install the app to your workspace and copy the Bot User OAuth Token',
     ],
   },
   pandadoc: {

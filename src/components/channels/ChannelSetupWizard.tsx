@@ -285,6 +285,49 @@ const HUBSPOT_STEPS: WizardStep[] = [
   },
 ];
 
+const SLACK_STEPS: WizardStep[] = [
+  {
+    title: 'Create a Slack App',
+    instructions: (
+      <>
+        <p>Click below to open the Slack API dashboard.</p>
+        <p>Click <b>"Create New App"</b> → <b>"From scratch"</b>.</p>
+        <p>Name it <b>"SimOffice"</b> and pick your workspace.</p>
+      </>
+    ),
+    buttonLabel: 'Open Slack API',
+    buttonUrl: 'https://api.slack.com/apps',
+  },
+  {
+    title: 'Add Bot Permissions',
+    instructions: (
+      <>
+        <p>In your app settings, go to <b>"OAuth & Permissions"</b> in the sidebar.</p>
+        <p>Scroll to <b>"Bot Token Scopes"</b> and add:</p>
+        <ul style={{ marginTop: 8, paddingLeft: 20, lineHeight: 2 }}>
+          <li><b>chat:write</b> — Send messages</li>
+          <li><b>channels:read</b> — See channel list</li>
+          <li><b>channels:history</b> — Read messages</li>
+          <li><b>users:read</b> — See user info</li>
+        </ul>
+        <p style={{ marginTop: 8 }}>Then click <b>"Install to Workspace"</b> at the top and authorize.</p>
+      </>
+    ),
+  },
+  {
+    title: 'Copy your Bot Token',
+    instructions: (
+      <>
+        <p>After installing, go back to <b>"OAuth & Permissions"</b>.</p>
+        <p>Copy the <b>"Bot User OAuth Token"</b> (starts with <code>xoxb-</code>).</p>
+      </>
+    ),
+    hasInput: true,
+    inputLabel: 'Bot Token',
+    inputPlaceholder: 'xoxb-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxx',
+  },
+];
+
 const PANDADOC_STEPS: WizardStep[] = [
   {
     title: 'Open PandaDoc Developer Dashboard',
@@ -336,6 +379,7 @@ const WIZARD_STEPS: Partial<Record<ChannelType, WizardStep[]>> = {
   imessage: IMESSAGE_STEPS,
   hubspot: HUBSPOT_STEPS,
   pandadoc: PANDADOC_STEPS,
+  slack: SLACK_STEPS,
 };
 
 interface ChannelSetupWizardProps {
