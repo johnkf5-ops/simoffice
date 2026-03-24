@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Send, Loader2, X } from 'lucide-react';
 import { useAgentsStore } from '@/stores/agents';
 import { useGatewayStore } from '@/stores/gateway';
+import { useProviderStore } from '@/stores/providers';
 import { useChatStore, type RawMessage } from '@/stores/chat';
 import { StatusDot } from '@/components/common/StatusDot';
 import { extractText } from '@/lib/message-utils';
@@ -28,6 +29,13 @@ export function Lobby() {
   const newSession = useChatStore((s) => s.newSession);
   const sendMessage = useChatStore((s) => s.sendMessage);
   const isOnline = gatewayStatus.state === 'running';
+
+  const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
+  const providerAccounts = useProviderStore((s) => s.accounts);
+  const activeAcct = providerAccounts.find((a) => a.id === defaultAccountId) || providerAccounts.find((a) => a.isDefault);
+  const llmLabel = activeAcct
+    ? (activeAcct.vendorId === 'ollama' ? `Local · ${activeAcct.model?.split(':')[0] || 'Ollama'}` : `API · ${activeAcct.label ?? activeAcct.vendorId}`)
+    : null;
 
   useEffect(() => { void fetchAgents(); }, [fetchAgents]);
 
@@ -222,7 +230,7 @@ export function Lobby() {
         <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
           <span style={{ fontSize: 10, fontWeight: 500, color: isOnline ? '#86efac' : '#fca5a5' }}>
-            {isOnline ? 'Engine running' : 'Engine offline'}
+            {llmLabel ? (isOnline ? llmLabel : `${llmLabel} (offline)`) : (isOnline ? 'No AI configured' : 'Offline')}
           </span>
         </div>
       </div>

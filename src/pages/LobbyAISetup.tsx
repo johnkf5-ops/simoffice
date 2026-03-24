@@ -52,6 +52,11 @@ export function LobbyAISetup() {
   const gatewayStatus = useGatewayStore((s) => s.status);
   const isOnline = gatewayStatus.state === 'running';
 
+  const activeAcct = accounts.find((a) => a.id === defaultAccountId) || accounts.find((a) => a.isDefault);
+  const llmLabel = activeAcct
+    ? (activeAcct.vendorId === 'ollama' ? `Local · ${activeAcct.model?.split(':')[0] || 'Ollama'}` : `API · ${activeAcct.label ?? activeAcct.vendorId}`)
+    : null;
+
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
   const sessions = useChatStore((s) => s.sessions);
@@ -273,7 +278,7 @@ export function LobbyAISetup() {
         <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
           <span style={{ fontSize: 10, fontWeight: 500, color: isOnline ? '#86efac' : '#fca5a5' }}>
-            {isOnline ? 'Engine running' : 'Engine offline'}
+            {llmLabel ? (isOnline ? llmLabel : `${llmLabel} (offline)`) : (isOnline ? 'No AI configured' : 'Offline')}
           </span>
         </div>
       </div>

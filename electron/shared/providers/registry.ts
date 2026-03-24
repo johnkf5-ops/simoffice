@@ -236,6 +236,11 @@ export const PROVIDER_DEFINITIONS: ProviderDefinition[] = [
     supportedAuthModes: ['local'],
     defaultAuthMode: 'local',
     supportsMultipleAccounts: true,
+    providerConfig: {
+      baseUrl: 'http://localhost:11434/v1',
+      api: 'openai-completions',
+      apiKeyEnv: 'OLLAMA_API_KEY',
+    },
   },
   {
     id: 'custom',

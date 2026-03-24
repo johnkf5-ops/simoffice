@@ -14,6 +14,7 @@ import {
   updateAgentModelProvider,
 } from '../../utils/openclaw-auth';
 import { logger } from '../../utils/logger';
+import { swapAllSouls, getSoulTierForProvider, backfillSoulFiles } from '../ollama/soul-manager';
 
 const GOOGLE_OAUTH_RUNTIME_PROVIDER = 'google-gemini-cli';
 const GOOGLE_OAUTH_DEFAULT_MODEL_REF = `${GOOGLE_OAUTH_RUNTIME_PROVIDER}/gemini-3-pro-preview`;
@@ -433,7 +434,26 @@ export async function syncDefaultProviderToRuntime(
   providerId: string,
   gatewayManager?: GatewayManager,
 ): Promise<void> {
-  const provider = await getProvider(providerId);
+  // Try legacy store first, then fall back to account store
+  let provider = await getProvider(providerId);
+  if (!provider) {
+    const account = await getProviderAccount(providerId);
+    if (account) {
+      // Convert account to ProviderConfig shape for sync
+      provider = {
+        id: account.id,
+        name: account.label || account.vendorId,
+        type: account.vendorId,
+        baseUrl: account.baseUrl,
+        model: account.model,
+        fallbackModels: account.fallbackModels,
+        fallbackProviderIds: account.fallbackAccountIds,
+        enabled: account.enabled,
+        createdAt: account.createdAt,
+        updatedAt: account.updatedAt,
+      };
+    }
+  }
   if (!provider) {
     return;
   }
@@ -556,6 +576,18 @@ export async function syncDefaultProviderToRuntime(
       models: modelId ? [{ id: modelId, name: modelId }] : [],
       apiKey: providerKey,
     });
+  }
+
+  // Swap SOUL.md files to match the new model's capability tier
+  try {
+    await backfillSoulFiles(); // Ensure old agents have SOUL.full.md/SOUL.compact.md
+    const tier = getSoulTierForProvider(provider.type, provider.model);
+    const swapped = await swapAllSouls(tier);
+    if (swapped > 0) {
+      logger.info(`Swapped ${swapped} agent SOUL.md files to "${tier}" tier for provider "${ock}"`);
+    }
+  } catch (err) {
+    logger.warn('Failed to swap SOUL.md files on provider switch:', err);
   }
 
   scheduleGatewayRefresh(

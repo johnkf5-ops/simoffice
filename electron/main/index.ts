@@ -547,6 +547,15 @@ if (gotTheLock) {
     hostEventBus.closeAll();
     hostApiServer?.close();
 
+    // Kill any headless Ollama processes we spawned
+    try {
+      const { execSync } = require('node:child_process');
+      execSync('pkill -f "ollama serve"', { timeout: 2000 });
+      logger.info('Killed Ollama serve process on quit');
+    } catch {
+      // Ollama wasn't running or already dead — fine
+    }
+
     const stopPromise = gatewayManager.stop().catch((err) => {
       logger.warn('gatewayManager.stop() error during quit:', err);
     });

@@ -292,7 +292,7 @@ export function OllamaSetupWizard({ onComplete, onCancel }: OllamaSetupWizardPro
     const status = health.data?.status;
     if (status === 'running') {
       setOllamaStatus('running');
-      beginPull();
+      void beginPull();
       return;
     }
 
@@ -301,7 +301,7 @@ export function OllamaSetupWizard({ onComplete, onCancel }: OllamaSetupWizardPro
       const startResult = await invokeIpc<IpcResult>('ollama:start');
       if (startResult.success) {
         setOllamaStatus('running');
-        beginPull();
+        void beginPull();
       } else {
         setError('Could not start Ollama. Try opening Ollama manually.');
       }
@@ -326,7 +326,7 @@ export function OllamaSetupWizard({ onComplete, onCancel }: OllamaSetupWizardPro
       const health = await invokeIpc<IpcResult<{ status: string }>>('ollama:check-status');
       if (health.success && health.data?.status === 'running') {
         setOllamaStatus('running');
-        beginPull();
+        void beginPull();
         return;
       }
 
@@ -334,7 +334,7 @@ export function OllamaSetupWizard({ onComplete, onCancel }: OllamaSetupWizardPro
       const startResult = await invokeIpc<IpcResult>('ollama:start');
       if (startResult.success) {
         setOllamaStatus('running');
-        beginPull();
+        void beginPull();
       } else {
         setError('Ollama installed but not responding yet. Try clicking "Install Ollama" again in a moment.');
         setOllamaStatus('not-installed');
@@ -350,7 +350,7 @@ export function OllamaSetupWizard({ onComplete, onCancel }: OllamaSetupWizardPro
       const startResult = await invokeIpc<IpcResult>('ollama:start');
       if (startResult.success) {
         setOllamaStatus('running');
-        beginPull();
+        void beginPull();
       } else {
         setError('Ollama installed but could not start. Try opening it manually.');
       }
@@ -428,6 +428,18 @@ export function OllamaSetupWizard({ onComplete, onCancel }: OllamaSetupWizardPro
             {recommendation?.hardwareWarning && (
               <div style={{ ...infoBox, background: 'hsl(var(--muted))', fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
                 {recommendation.hardwareWarning}
+              </div>
+            )}
+
+            {hardware && hardware.totalRamGB < 32 && (
+              <div style={{ ...infoBox, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: 12, lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
+                  Good for chat, limited for complex tasks
+                </div>
+                <div style={{ color: 'hsl(var(--muted-foreground))' }}>
+                  With {hardware.totalRamGB}GB of memory, local AI works well for conversations, quick questions, and simple tasks.
+                  For advanced reasoning, long documents, and multi-step work, we recommend connecting a cloud AI (like Claude or GPT) from the Brain page — it's a much better experience.
+                </div>
               </div>
             )}
 

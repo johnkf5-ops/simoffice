@@ -1,7 +1,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { writeFile, mkdir } from 'fs/promises';
+import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
+import { writeSoulFiles, getSoulTierForProvider } from '../../services/ollama/soul-manager';
+import { listProviderAccounts } from '../../services/providers/provider-store';
 import {
   assignChannelToAgent,
   clearChannelBinding,
@@ -247,7 +249,16 @@ export async function handleAgentRoutes(
           : join(openclawDir, `workspace-${agentId}`);
 
         await mkdir(workspaceDir, { recursive: true });
-        await writeFile(join(workspaceDir, 'SOUL.md'), soulContent, 'utf-8');
+
+        // Determine current model tier for soul compression
+        const accounts = await listProviderAccounts();
+        const defaultAcct = accounts.find(a => a.isDefault) || accounts[0];
+        const tier = defaultAcct
+          ? getSoulTierForProvider(defaultAcct.vendorId, defaultAcct.model)
+          : 'full';
+
+        const agentName = agentId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        await writeSoulFiles(agentId, soulContent, agentName, tier);
 
         // Reload gateway so the agent picks up the new SOUL.md
         scheduleGatewayReload(ctx, 'soul-update');
