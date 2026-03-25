@@ -1,34 +1,60 @@
 /**
  * SimOffice Chat — Built from scratch. No ClawX UI.
- * Buddy panel + chat area. Properly handles agent switching and message dedup.
+ * 3-column layout for Rooms (group chat), 2-column for DMs (1:1).
+ * Rooms sidebar | Chat feed | Who's Here panel
  */
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Users } from 'lucide-react';
 import { useChatStore, type RawMessage } from '@/stores/chat';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
 import { useProviderStore } from '@/stores/providers';
-import { StatusDot } from '@/components/common/StatusDot';
+import { useRoomsStore, type MeetingRound } from '@/stores/rooms';
 import { extractText } from '@/lib/message-utils';
+import { CAREERS } from '@/lib/career-templates';
+import { BuddyPanel } from '@/components/common/BuddyPanel';
+import { WhosHerePanel } from '@/components/chat/WhosHerePanel';
+import { AgentSelector } from '@/components/chat/AgentSelector';
+import { runMeeting } from '@/lib/meeting-sequencer';
 
-function MessageBubble({ message }: { message: RawMessage }) {
+// ---------------------------------------------------------------------------
+// Message Bubble — now shows agent name in room mode
+// ---------------------------------------------------------------------------
+
+function MessageBubble({ message, agentName }: { message: RawMessage; agentName?: string }) {
   const isUser = message.role === 'user';
   const text = extractText(message);
   if (!text) return null;
 
   return (
     <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 12 }}>
-      <div style={{
-        maxWidth: '70%', borderRadius: 16, padding: '12px 16px',
-        fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-        background: isUser ? '#3b82f6' : 'hsl(var(--card))',
-        color: isUser ? 'white' : 'hsl(var(--foreground))',
-        border: isUser ? 'none' : '1px solid hsl(var(--border))',
-        borderBottomRightRadius: isUser ? 4 : 16,
-        borderBottomLeftRadius: isUser ? 16 : 4,
-      }}>
-        {text}
+      {!isUser && agentName && (
+        <div style={{
+          width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginRight: 8, marginTop: 2,
+          background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 10, fontWeight: 700, color: 'white',
+        }}>
+          {agentName.charAt(0).toUpperCase()}
+        </div>
+      )}
+      <div>
+        {!isUser && agentName && (
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#a78bfa', marginBottom: 2, paddingLeft: 2 }}>
+            {agentName}
+          </div>
+        )}
+        <div style={{
+          maxWidth: '100%', borderRadius: 16, padding: '12px 16px',
+          fontSize: 14, lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          background: isUser ? '#3b82f6' : 'hsl(var(--card))',
+          color: isUser ? 'white' : 'hsl(var(--foreground))',
+          border: isUser ? 'none' : '1px solid hsl(var(--border))',
+          borderBottomRightRadius: isUser ? 4 : 16,
+          borderBottomLeftRadius: isUser ? 16 : 4,
+        }}>
+          {text}
+        </div>
       </div>
     </div>
   );
@@ -53,190 +79,304 @@ function dedupeMessages(messages: RawMessage[]): RawMessage[] {
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// Meeting Block — renders a team meeting in the feed
+// ---------------------------------------------------------------------------
+
+function MeetingBlock({ meeting }: { meeting: { question: string; responses: Array<{ agentName: string; text: string }>; status: string } }) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div style={{
+      margin: '16px 0', borderRadius: 14, overflow: 'hidden',
+      border: '1px solid rgba(251,191,36,0.3)',
+      background: 'rgba(251,191,36,0.04)',
+    }}>
+      <div style={{
+        padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'rgba(251,191,36,0.08)', borderBottom: expanded ? '1px solid rgba(251,191,36,0.2)' : 'none',
+        cursor: 'pointer',
+      }} onClick={() => setExpanded(!expanded)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Users style={{ width: 14, height: 14, color: '#fbbf24' }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>Team Meeting</span>
+          {meeting.status === 'running' && (
+            <Loader2 style={{ width: 12, height: 12, color: '#fbbf24', animation: 'spin 1s linear infinite' }} />
+          )}
+        </div>
+        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+          {expanded ? '▾' : '▸'} {meeting.responses.length} responses
+        </span>
+      </div>
+
+      {expanded && (
+        <div style={{ padding: '12px 16px' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))', marginBottom: 12 }}>
+            "{meeting.question}"
+          </div>
+          {meeting.responses.map((r, i) => (
+            <div key={i} style={{ marginBottom: 10, paddingLeft: 12, borderLeft: '2px solid rgba(167,139,250,0.3)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#a78bfa', marginBottom: 2 }}>{r.agentName}</div>
+              <div style={{ fontSize: 13, color: 'hsl(var(--foreground))', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{r.text}</div>
+            </div>
+          ))}
+          {meeting.status === 'running' && (
+            <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', fontStyle: 'italic' }}>
+              Waiting for next agent...
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
+
 export function LobbyChat() {
-  const navigate = useNavigate();
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
+  const refreshProviders = useProviderStore((s) => s.refreshProviderSnapshot);
   const gatewayStatus = useGatewayStore((s) => s.status);
   const isOnline = gatewayStatus.state === 'running';
 
-  const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
-  const providerAccounts = useProviderStore((s) => s.accounts);
-  const activeAcct = providerAccounts.find((a) => a.id === defaultAccountId) || providerAccounts.find((a) => a.isDefault);
-  const llmLabel = activeAcct
-    ? (activeAcct.vendorId === 'ollama' ? `Local · ${activeAcct.model?.split(':')[0] || 'Ollama'}` : `API · ${activeAcct.label ?? activeAcct.vendorId}`)
-    : null;
-
   const messages = useChatStore((s) => s.messages);
-  const sessions = useChatStore((s) => s.sessions);
-  const currentSessionKey = useChatStore((s) => s.currentSessionKey);
   const currentAgentId = useChatStore((s) => s.currentAgentId);
-  const sessionLabels = useChatStore((s) => s.sessionLabels);
   const sending = useChatStore((s) => s.sending);
   const sendMessage = useChatStore((s) => s.sendMessage);
-  const switchSession = useChatStore((s) => s.switchSession);
-  const newSession = useChatStore((s) => s.newSession);
   const abortRun = useChatStore((s) => s.abortRun);
 
+  const targetAgentId = useRoomsStore((s) => s.targetAgentId);
+  const setTargetAgent = useRoomsStore((s) => s.setTargetAgent);
+  const meetingInProgress = useRoomsStore((s) => s.meetingInProgress);
+  const setMeeting = useRoomsStore((s) => s.setMeeting);
+  const addCompletedMeeting = useRoomsStore((s) => s.addCompletedMeeting);
+  const meetings = useRoomsStore((s) => s.meetings);
+  const getActiveRoom = useRoomsStore((s) => s.getActiveRoom);
+
+  const activeRoom = getActiveRoom();
+  const isRoomMode = !!activeRoom;
+
   const [input, setInput] = useState('');
+  const [meetingMode, setMeetingMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { void fetchAgents(); }, [fetchAgents]);
+  useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
+
+  // Auto-create rooms for existing agents that match multi-agent career templates
+  const rooms = useRoomsStore((s) => s.rooms);
+  const createRoomFromCareer = useRoomsStore((s) => s.createRoomFromCareer);
+  const updateRoomAgentIds = useRoomsStore((s) => s.updateRoomAgentIds);
+
+  useEffect(() => {
+    if (!agents.length) return;
+
+    for (const career of CAREERS) {
+      if (career.recommended.length < 2) continue;
+      // Skip if room already exists for this career
+      if (rooms.some(r => r.careerId === career.id)) continue;
+
+      // Match template agent IDs to actual agents by normalized name
+      const normalize = (s: string) => s.toLowerCase().replace(/[-_\s]+/g, '');
+      const matched = career.recommended.filter(templateId => {
+        const templateName = normalize(templateId);
+        return agents.some(a => normalize(a.name || '') === normalize(templateId.replace(/-/g, ' ')) || normalize(a.id) === templateName);
+      });
+
+      // If user has at least 2 matching agents, create the room
+      if (matched.length >= 2) {
+        // Map to actual agent IDs
+        const actualIds = career.recommended
+          .map(templateId => {
+            const templateName = normalize(templateId.replace(/-/g, ' '));
+            return agents.find(a => normalize(a.name || '') === templateName || normalize(a.id) === normalize(templateId));
+          })
+          .filter(Boolean)
+          .map(a => a!.id);
+
+        if (actualIds.length >= 2) {
+          // Create room with actual agent IDs
+          const room = createRoomFromCareer(career);
+          // Update the room's agentIds with actual IDs (will be persisted)
+          updateRoomAgentIds(room.id, actualIds);
+        }
+      }
+    }
+    // Fallback: if no rooms were created but user has 2+ agents, make a #general room
+    if (agents.length >= 2 && !useRoomsStore.getState().rooms.length) {
+      const { createCustomRoom } = useRoomsStore.getState();
+      createCustomRoom('general', '🏢', agents.map(a => a.id));
+    }
+  }, [agents, rooms, createRoomFromCareer, updateRoomAgentIds]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, meetingInProgress]);
 
+  // ── Send handler ──
   const handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed || sending) return;
-    // Send to the current agent — the store handles session routing
-    sendMessage(trimmed);
+
+    if (isRoomMode) {
+      // Parse @mention from input
+      const mentionMatch = trimmed.match(/^@([\w-]+)\s+/);
+      let resolvedTarget = targetAgentId;
+      let cleanText = trimmed;
+
+      if (mentionMatch) {
+        const mentionName = mentionMatch[1].toLowerCase();
+        const matchedAgent = agents.find(a =>
+          a.id.toLowerCase() === mentionName ||
+          a.name?.toLowerCase().replace(/\s+/g, '-') === mentionName
+        );
+        if (matchedAgent && activeRoom!.agentIds.includes(matchedAgent.id)) {
+          resolvedTarget = matchedAgent.id;
+          cleanText = trimmed.slice(mentionMatch[0].length);
+        }
+      }
+
+      if (resolvedTarget) {
+        // Send to targeted agent
+        sendMessage(cleanText, undefined, resolvedTarget);
+      } else {
+        // No target — send to first agent in room as default
+        sendMessage(cleanText, undefined, activeRoom!.agentIds[0]);
+      }
+    } else {
+      // DM mode — existing behavior
+      sendMessage(trimmed);
+    }
+
     setInput('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (meetingMode) {
+        handleStartMeeting();
+      } else {
+        handleSend();
+      }
     }
   };
 
-  /** Click an agent in buddy list — switch to that agent's session */
-  const handleAgentClick = (agentId: string) => {
-    const agent = agents.find(a => a.id === agentId);
-    console.log('[handleAgentClick]', { agentId, mainSessionKey: agent?.mainSessionKey, currentSessionKey, currentAgentId });
-    if (agent?.mainSessionKey) {
-      switchSession(agent.mainSessionKey);
-      console.log('[handleAgentClick] switched to', agent.mainSessionKey, 'new agentId:', useChatStore.getState().currentAgentId);
+  // ── Meeting handler ──
+  const handleStartMeeting = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || !activeRoom || meetingInProgress) return;
+
+    setInput('');
+    setMeetingMode(false);
+
+    const onUpdate = (round: MeetingRound) => {
+      setMeeting(round);
+    };
+
+    const completed = await runMeeting(
+      activeRoom.id,
+      trimmed,
+      activeRoom.agentIds,
+      onUpdate,
+    );
+
+    if (completed.status === 'complete') {
+      addCompletedMeeting(completed);
     }
   };
 
-  // Current agent info
+  // Current state
   const currentAgent = agents.find(a => a.id === currentAgentId);
   const displayedMessages = dedupeMessages(messages);
   const isEmpty = displayedMessages.length === 0 && !sending;
+  const targetAgent = agents.find(a => a.id === targetAgentId);
+
+  // Completed meetings for this room
+  const roomMeetings = activeRoom ? meetings.filter(m => m.roomId === activeRoom.id) : [];
+
+  // Placeholder text
+  const placeholderText = meetingMode
+    ? 'Ask your team a question...'
+    : isRoomMode
+      ? (targetAgent ? `Message @${targetAgent.name}...` : `Message ${activeRoom?.name}...`)
+      : (isOnline ? `Message ${currentAgent?.name || 'your assistant'}...` : 'Engine offline');
 
   return (
     <div style={{ display: 'flex', height: '100%' }}>
 
-      {/* ═══ BUDDY PANEL ═══ */}
-      <div style={{
-        width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column',
-        background: 'linear-gradient(180deg, #1a1a6e 0%, #0d0d3b 100%)',
-        borderRight: '2px solid #333',
-      }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <button onClick={() => navigate('/')}
-            style={{ fontSize: 16, fontWeight: 900, color: 'white', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>
-            ← <span style={{ background: 'linear-gradient(135deg, #f97316, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Lobby</span>
-          </button>
-        </div>
+      {/* ═══ LEFT: BUDDY PANEL ═══ */}
+      <BuddyPanel currentPage="/chat" />
 
-        <div style={{ padding: 8 }}>
-          <button onClick={() => newSession()}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            + New Chat
-          </button>
-        </div>
-
-        <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.1)' }} />
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
-          <div style={{ padding: '4px 8px', fontSize: 10, fontWeight: 700, color: 'rgba(52,211,153,0.7)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-            Online ({isOnline ? (agents?.length ?? 0) : 0})
-          </div>
-          {isOnline && agents?.map((agent) => {
-            const isActive = agent.id === currentAgentId;
-            return (
-              <button key={agent.id} onClick={() => handleAgentClick(agent.id)}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8,
-                  border: 'none', background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
-                  cursor: 'pointer', textAlign: 'left',
-                }}
-                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.15)' : 'transparent'; }}>
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                  {agent.name?.charAt(0).toUpperCase() || 'A'}
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agent.name}</div>
-                </div>
-                <StatusDot status="online" size="sm" />
-              </button>
-            );
-          })}
-
-          {sessions?.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <div style={{ padding: '4px 8px', fontSize: 10, fontWeight: 700, color: 'rgba(147,197,253,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-                Conversations
-              </div>
-              {sessions.map((s) => {
-                const label = sessionLabels[s.key] || s.label || s.displayName || 'Conversation';
-                const isActive = s.key === currentSessionKey;
-                return (
-                  <button key={s.key} onClick={() => switchSession(s.key)}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 8, border: 'none', background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                    onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.15)' : 'transparent'; }}>
-                    <span style={{ fontSize: 10 }}>💬</span>
-                    <span style={{ fontSize: 10, color: isActive ? 'white' : 'rgba(191,219,254,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 600 : 400 }}>{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
-          <span style={{ fontSize: 10, fontWeight: 500, color: isOnline ? '#86efac' : '#fca5a5' }}>
-            {llmLabel ? (isOnline ? llmLabel : `${llmLabel} (offline)`) : (isOnline ? 'No AI configured' : 'Offline')}
-          </span>
-        </div>
-      </div>
-
-      {/* ═══ CHAT AREA ═══ */}
+      {/* ═══ CENTER: CHAT AREA ═══ */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'hsl(var(--background))' }}>
 
-        {/* Agent header */}
-        {currentAgent && (
+        {/* Header */}
+        {isRoomMode ? (
+          <div style={{ padding: '12px 32px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 20 }}>{activeRoom!.icon}</span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{activeRoom!.name}</div>
+              <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+                {activeRoom!.agentIds.length} agents
+              </div>
+            </div>
+          </div>
+        ) : currentAgent ? (
           <div style={{ padding: '12px 32px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white' }}>
               {currentAgent.name?.charAt(0).toUpperCase() || 'A'}
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{currentAgent.name}</div>
-              <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-                {currentAgent.modelDisplay || 'Online'}
-              </div>
+              <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{currentAgent.modelDisplay || 'Online'}</div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Messages */}
         <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
           {isEmpty ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
-              <div style={{ fontSize: 48 }}>💬</div>
+              <div style={{ fontSize: 48 }}>{isRoomMode ? '🏠' : '💬'}</div>
               <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
-                {currentAgent ? `Chat with ${currentAgent.name}` : 'Start a conversation'}
+                {isRoomMode ? `Welcome to ${activeRoom!.name}` : currentAgent ? `Chat with ${currentAgent.name}` : 'Start a conversation'}
               </div>
               <div style={{ fontSize: 14, color: 'hsl(var(--muted-foreground))' }}>
-                Type a message below
+                {isRoomMode ? 'Use the @agent selector to talk to specific agents' : 'Type a message below'}
               </div>
             </div>
           ) : (
             <>
-              {displayedMessages.map((msg, i) => (
-                <MessageBubble key={msg.id || `msg-${i}`} message={msg} />
+              {/* Completed meetings */}
+              {roomMeetings.map((m) => (
+                <MeetingBlock key={m.id} meeting={m} />
               ))}
+
+              {/* Messages */}
+              {displayedMessages.map((msg, i) => (
+                <MessageBubble
+                  key={msg.id || `msg-${i}`}
+                  message={msg}
+                  agentName={isRoomMode && msg.role === 'assistant' ? currentAgent?.name : undefined}
+                />
+              ))}
+
+              {/* In-progress meeting */}
+              {meetingInProgress && <MeetingBlock meeting={meetingInProgress} />}
+
+              {/* Typing indicator */}
               {sending && (
-                <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  {isRoomMode && currentAgent && (
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                      {currentAgent.name?.charAt(0).toUpperCase() || 'A'}
+                    </div>
+                  )}
                   <div style={{ borderRadius: 16, padding: '12px 16px', background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderBottomLeftRadius: 4 }}>
                     <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite', color: 'hsl(var(--muted-foreground))' }} />
                   </div>
@@ -253,11 +393,20 @@ export function LobbyChat() {
             background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
             borderRadius: 16, padding: '8px 12px',
           }}>
+            {/* Agent selector — room mode only */}
+            {isRoomMode && (
+              <AgentSelector
+                agentIds={activeRoom!.agentIds}
+                selectedAgentId={targetAgentId}
+                onSelect={setTargetAgent}
+              />
+            )}
+
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isOnline ? `Message ${currentAgent?.name || 'your assistant'}...` : 'Engine offline'}
+              placeholder={placeholderText}
               disabled={!isOnline}
               rows={1}
               style={{
@@ -266,13 +415,34 @@ export function LobbyChat() {
                 maxHeight: 120, lineHeight: '1.5',
               }}
             />
+
+            {/* Meeting button — room mode only */}
+            {isRoomMode && (
+              <button
+                onClick={() => setMeetingMode(!meetingMode)}
+                title={meetingMode ? 'Cancel meeting' : 'Start a team meeting'}
+                style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  border: meetingMode ? '1px solid rgba(251,191,36,0.5)' : '1px solid hsl(var(--border))',
+                  background: meetingMode ? 'rgba(251,191,36,0.15)' : 'transparent',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: meetingMode ? '#fbbf24' : 'hsl(var(--muted-foreground))',
+                }}
+                onMouseEnter={(e) => { if (!meetingMode) { e.currentTarget.style.background = 'rgba(251,191,36,0.1)'; e.currentTarget.style.color = '#fbbf24'; } }}
+                onMouseLeave={(e) => { if (!meetingMode) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'hsl(var(--muted-foreground))'; } }}>
+                <Users style={{ width: 14, height: 14 }} />
+              </button>
+            )}
+
+            {/* Send / Stop */}
             {sending ? (
               <button onClick={() => abortRun()}
                 style={{ width: 36, height: 36, borderRadius: 12, background: '#ef4444', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ width: 12, height: 12, background: 'white', borderRadius: 2 }} />
               </button>
             ) : (
-              <button onClick={handleSend} disabled={!input.trim() || !isOnline}
+              <button onClick={meetingMode ? handleStartMeeting : handleSend} disabled={!input.trim() || !isOnline}
                 style={{
                   width: 36, height: 36, borderRadius: 12, border: 'none',
                   cursor: input.trim() && isOnline ? 'pointer' : 'default',
@@ -286,6 +456,15 @@ export function LobbyChat() {
           </div>
         </div>
       </div>
+
+      {/* ═══ RIGHT: WHO'S HERE (room mode only) ═══ */}
+      {isRoomMode && activeRoom && (
+        <WhosHerePanel
+          room={activeRoom}
+          targetAgentId={targetAgentId}
+          onTargetAgent={setTargetAgent}
+        />
+      )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

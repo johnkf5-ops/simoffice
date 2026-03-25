@@ -607,6 +607,24 @@ export function Onboarding() {
                     }
                     setInstallingSkills(false);
                   }
+                  // Auto-create a group chat room for multi-agent careers
+                  if (career && career.recommended.length > 1) {
+                    const roomsStore = await import('@/stores/rooms').then(m => m.useRoomsStore);
+                    const { createRoomFromCareer } = roomsStore.getState();
+                    const room = createRoomFromCareer(career);
+                    // Patch room agentIds to use actual server-assigned IDs
+                    const actualAgents = useAgentsStore.getState().agents;
+                    const normalize = (s: string) => s.toLowerCase().replace(/[-_\s]+/g, '');
+                    const actualIds = career.recommended
+                      .map(tid => actualAgents.find(a => normalize(a.name || '') === normalize(tid.replace(/-/g, ' '))))
+                      .filter(Boolean)
+                      .map(a => a!.id);
+                    if (actualIds.length > 0) {
+                      roomsStore.setState((s) => ({
+                        rooms: s.rooms.map(r => r.id === room.id ? { ...r, agentIds: actualIds } : r),
+                      }));
+                    }
+                  }
                 } catch { /* continue */ }
                 setBuildingTeam(false);
                 setStep(4);
