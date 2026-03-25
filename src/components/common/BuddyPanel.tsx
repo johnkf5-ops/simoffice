@@ -260,7 +260,9 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
             {sessions.map((s) => {
               const agentId = getAgentIdFromSessionKey(s.key);
               const agent = agents.find(a => a.id === agentId);
-              const label = sessionLabels[s.key] || s.label || s.displayName || agent?.name || 'Conversation';
+              const isMainSession = s.key.endsWith(':main');
+              const customLabel = sessionLabels[s.key] || (!isMainSession && s.label) || undefined;
+              const label = customLabel || agent?.name || 'Conversation';
               const isActive = isOnChat && s.key === currentSessionKey;
               return (
                 <button key={s.key} onClick={() => { setActiveRoom(null); switchSession(s.key); if (!isOnChat) navigate('/chat'); }}
