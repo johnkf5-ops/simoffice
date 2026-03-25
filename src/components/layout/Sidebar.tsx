@@ -24,6 +24,7 @@ import { useChatStore } from '@/stores/chat';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
 import { useProviderStore } from '@/stores/providers';
+import { getAgentIdFromSessionKey } from '@/stores/chat/helpers';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useTranslation } from 'react-i18next';
 
@@ -41,12 +42,6 @@ function getSessionBucket(activityMs: number, nowMs: number): SessionBucketKey {
   if (daysAgo <= 14) return 'withinTwoWeeks';
   if (daysAgo <= 30) return 'withinMonth';
   return 'older';
-}
-
-function getAgentIdFromSessionKey(sessionKey: string): string {
-  if (!sessionKey.startsWith('agent:')) return '';
-  const [, agentId] = sessionKey.split(':');
-  return agentId || '';
 }
 
 const INITIAL_NOW_MS = Date.now();

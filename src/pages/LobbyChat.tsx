@@ -60,20 +60,14 @@ function MessageBubble({ message, agentName }: { message: RawMessage; agentName?
   );
 }
 
-/** Deduplicate messages — by ID and by assistant content text */
+/** Deduplicate messages — by ID only (no text dedup; different agents may give the same answer) */
 function dedupeMessages(messages: RawMessage[]): RawMessage[] {
   const seenIds = new Set<string>();
-  const seenTexts = new Set<string>();
   const result: RawMessage[] = [];
   for (const msg of messages) {
     if (msg.role === 'toolresult') continue;
     if (msg.id && seenIds.has(msg.id)) continue;
     if (msg.id) seenIds.add(msg.id);
-    if (msg.role === 'assistant') {
-      const text = extractText(msg);
-      if (text && seenTexts.has(text)) continue;
-      if (text) seenTexts.add(text);
-    }
     result.push(msg);
   }
   return result;
@@ -163,35 +157,14 @@ export function LobbyChat() {
 
   const [input, setInput] = useState('');
   const [meetingMode, setMeetingMode] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Debug helper
-  useEffect(() => {
-    const handleDebugKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-        setShowDebug(prev => !prev);
-        const { rooms, activeRoomId } = useRoomsStore.getState();
-        console.log('=== ROOMS DEBUG ===');
-        console.log('Active Room ID:', activeRoomId);
-        console.log('All Rooms:', rooms.map(r => ({ id: r.id, name: r.name, agents: r.agentIds })));
-        if (activeRoom) {
-          console.log('Current Active Room:', { id: activeRoom.id, name: activeRoom.name, agents: activeRoom.agentIds });
-        }
-      }
-    };
-    window.addEventListener('keydown', handleDebugKey);
-    return () => window.removeEventListener('keydown', handleDebugKey);
-  }, [activeRoom]);
 
   useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
 
   // Auto-create rooms for existing agents that match multi-agent career templates
-  const createRoomFromCareer = useRoomsStore((s) => s.createRoomFromCareer);
-  const updateRoomAgentIds = useRoomsStore((s) => s.updateRoomAgentIds);
-
   useEffect(() => {
     if (!agents.length) return;
+    const { rooms, createRoomFromCareer, updateRoomAgentIds, createCustomRoom } = useRoomsStore.getState();
 
     for (const career of CAREERS) {
       if (career.recommended.length < 2) continue;
@@ -221,16 +194,15 @@ export function LobbyChat() {
           const room = createRoomFromCareer(career);
           // Update the room's agentIds with actual IDs (will be persisted)
           updateRoomAgentIds(room.id, actualIds);
-          console.log(`[Room Creation] ${career.label}: room=${room.id}, agents=${actualIds.join(',')}`);
         }
       }
     }
     // Fallback: if no rooms were created but user has 2+ agents, make a #general room
-    if (agents.length >= 2 && !useRoomsStore.getState().rooms.length) {
-      const { createCustomRoom } = useRoomsStore.getState();
+    const currentRooms = useRoomsStore.getState().rooms;
+    if (agents.length >= 2 && !currentRooms.length) {
       createCustomRoom('general', '🏢', agents.map(a => a.id));
     }
-  }, [agents, rooms, createRoomFromCareer, updateRoomAgentIds]);
+  }, [agents]);
 
   useEffect(() => {
     if (scrollRef.current) {

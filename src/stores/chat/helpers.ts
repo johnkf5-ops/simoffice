@@ -1,4 +1,5 @@
 import { invokeIpc } from '@/lib/api-client';
+import { useAgentsStore } from '@/stores/agents';
 import type { AttachedFileMeta, ChatSession, ContentBlock, RawMessage, ToolStatus } from './types';
 
 // Module-level timestamp tracking the last chat event received.
@@ -812,6 +813,16 @@ function setLastChatEventAt(value: number): void {
 
 function getLastChatEventAt(): number {
   return _lastChatEventAt;
+}
+
+/** Extract agent ID from a session key like 'agent:my-agent:main' */
+export function getAgentIdFromSessionKey(sessionKey: string): string {
+  if (!sessionKey.startsWith('agent:')) return '';
+  const [, agentId] = sessionKey.split(':');
+  if (agentId) return agentId;
+  // Fall back to default agent from store
+  const { defaultAgentId, agents } = useAgentsStore.getState();
+  return defaultAgentId || agents[0]?.id || '';
 }
 
 export {

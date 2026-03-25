@@ -3,6 +3,7 @@ import { useAgentsStore } from '@/stores/agents';
 import {
   clearErrorRecoveryTimer,
   clearHistoryPoll,
+  getAgentIdFromSessionKey,
   getLastChatEventAt,
   setHistoryPollTimer,
   setLastChatEventAt,
@@ -12,13 +13,11 @@ import type { ChatSession, RawMessage } from './types';
 import type { ChatGet, ChatSet, RuntimeActions } from './store-api';
 
 function normalizeAgentId(value: string | undefined | null): string {
-  return (value ?? '').trim().toLowerCase() || '';
-}
-
-function getAgentIdFromSessionKey(sessionKey: string): string {
-  if (!sessionKey.startsWith('agent:')) return '';
-  const [, agentId] = sessionKey.split(':');
-  return agentId || '';
+  const trimmed = (value ?? '').trim().toLowerCase();
+  if (trimmed) return trimmed;
+  // Fall back to default agent from store
+  const { defaultAgentId, agents } = useAgentsStore.getState();
+  return defaultAgentId || agents[0]?.id || '';
 }
 
 function buildFallbackMainSessionKey(agentId: string): string {

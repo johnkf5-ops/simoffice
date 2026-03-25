@@ -79,7 +79,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
   const statusLabel = llmLabel
     ? (isOnline ? llmLabel : `${llmLabel} (offline)`)
     : isOnline
-      ? (agents?.[0]?.modelDisplay ? `AI · ${agents[0].modelDisplay}` : 'Online')
+      ? (agents?.[0]?.modelDisplay ? `AI · ${agents?.[0]?.modelDisplay}` : 'Online')
       : 'Offline';
 
   return (
