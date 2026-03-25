@@ -1,5 +1,5 @@
 {
-  "total": 179,
+  "total": 193,
   "agents": [
     {
       "id": "churn-predictor",
@@ -3048,6 +3048,272 @@
       ],
       "popular": true,
       "quote": "Campaigns sent, inboxes reached, conversions tracked."
+    },
+    {
+      "id": "insurance-quote",
+      "category": "insurance",
+      "name": "Insurance Quote",
+      "role": "Insurance Quote Comparison Agent",
+      "description": "Pulls and compares quotes from multiple carriers, highlights coverage differences, and prepares comparison summaries for agent review",
+      "emoji": "🛡️",
+      "tags": [
+        "insurance",
+        "quotes",
+        "carriers",
+        "comparison",
+        "P&C"
+      ],
+      "popular": true,
+      "quote": "6 carrier quotes pulled. Progressive is cheapest but Hartford has better liability limits.",
+      "path": "agents/insurance/insurance-quote/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "policy-renewal",
+      "category": "insurance",
+      "name": "Policy Renewal",
+      "role": "Policy Renewal Tracking Agent",
+      "description": "Tracks policy expiration dates, sends renewal reminders at compliant intervals, and flags policies needing review",
+      "emoji": "📆",
+      "tags": [
+        "insurance",
+        "renewals",
+        "expiration",
+        "compliance",
+        "tracking"
+      ],
+      "popular": true,
+      "quote": "14 policies renewing this month. 3 need rate re-shops. Reminders sent.",
+      "path": "agents/insurance/policy-renewal/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "claims-intake",
+      "category": "insurance",
+      "name": "Claims Intake",
+      "role": "First Notice of Loss Agent",
+      "description": "Collects initial claim information, verifies policy coverage, triages by severity, and routes to the right adjuster",
+      "emoji": "📝",
+      "tags": [
+        "insurance",
+        "claims",
+        "FNOL",
+        "triage",
+        "intake"
+      ],
+      "popular": false,
+      "quote": "Claim filed: water damage, policy verified, severity medium. Routed to property adjuster.",
+      "path": "agents/insurance/claims-intake/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "menu-manager",
+      "category": "restaurant",
+      "name": "Menu Manager",
+      "role": "Restaurant Menu Management Agent",
+      "description": "Manages menu items, pricing, descriptions, and allergen info across POS systems like Toast, Square, and Clover",
+      "emoji": "🍽️",
+      "tags": [
+        "restaurant",
+        "menu",
+        "POS",
+        "pricing",
+        "allergens"
+      ],
+      "popular": true,
+      "quote": "Menu synced across Toast and online ordering. 3 items flagged for cost review.",
+      "path": "agents/restaurant/menu-manager/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "reservation-agent",
+      "category": "restaurant",
+      "name": "Reservation Agent",
+      "role": "Restaurant Reservation Management Agent",
+      "description": "Handles bookings, sends confirmations and reminders, manages waitlists, and follows up on no-shows",
+      "emoji": "🪑",
+      "tags": [
+        "restaurant",
+        "reservations",
+        "booking",
+        "waitlist",
+        "no-show"
+      ],
+      "popular": true,
+      "quote": "Tonight: 24 reservations, 22 confirmed. 2 reminders pending. Waitlist: 3 parties.",
+      "path": "agents/restaurant/reservation-agent/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "food-cost",
+      "category": "restaurant",
+      "name": "Food Cost",
+      "role": "Food Cost Calculator Agent",
+      "description": "Tracks ingredient costs, calculates plate costs per menu item, and flags unprofitable dishes",
+      "emoji": "💰",
+      "tags": [
+        "restaurant",
+        "food cost",
+        "ingredients",
+        "pricing",
+        "profit margin"
+      ],
+      "popular": false,
+      "quote": "Burger plate cost: $4.12 (was $3.80). Beef up 8% this month. Margin now 68%.",
+      "path": "agents/restaurant/food-cost/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "property-manager",
+      "category": "real-estate",
+      "name": "Property Manager",
+      "role": "Rental Property Management Agent",
+      "description": "Tracks rent collection, handles maintenance requests, sends tenant communications, and generates owner reports",
+      "emoji": "🏠",
+      "tags": [
+        "property management",
+        "rent",
+        "tenants",
+        "maintenance",
+        "landlord"
+      ],
+      "popular": true,
+      "quote": "Rent collected: 18/20 units. 2 late notices sent. 3 maintenance tickets open.",
+      "path": "agents/real-estate/property-manager/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "rental-screener",
+      "category": "real-estate",
+      "name": "Rental Screener",
+      "role": "Rental Applicant Screening Agent",
+      "description": "Pulls credit, background, and eviction reports for rental applicants, then prepares a summary for human approval",
+      "emoji": "🔍",
+      "tags": [
+        "screening",
+        "tenants",
+        "credit check",
+        "background check",
+        "Fair Housing"
+      ],
+      "popular": false,
+      "quote": "Applicant report ready: credit 720, no evictions, income 3.2x rent. Flagged for your review.",
+      "path": "agents/real-estate/rental-screener/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "grant-writer",
+      "category": "nonprofit",
+      "name": "Grant Writer",
+      "role": "Grant Research and Drafting Agent",
+      "description": "Searches grant databases, matches opportunities to your mission, drafts proposals, and tracks deadlines",
+      "emoji": "📜",
+      "tags": [
+        "nonprofit",
+        "grants",
+        "fundraising",
+        "proposals",
+        "Grants.gov"
+      ],
+      "popular": true,
+      "quote": "Found 8 matching grants. 2 due this month. Draft for the Ford Foundation ready for review.",
+      "path": "agents/nonprofit/grant-writer/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "donor-manager",
+      "category": "nonprofit",
+      "name": "Donor Manager",
+      "role": "Donor Relationship Management Agent",
+      "description": "Tracks donations, segments donors, automates thank-you messages, and generates fundraising reports",
+      "emoji": "❤️",
+      "tags": [
+        "nonprofit",
+        "donors",
+        "fundraising",
+        "CRM",
+        "stewardship"
+      ],
+      "popular": true,
+      "quote": "Q1 donations: $42K from 180 donors. 12 lapsed donors flagged for re-engagement.",
+      "path": "agents/nonprofit/donor-manager/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "social-proof",
+      "category": "marketing",
+      "name": "Social Proof",
+      "role": "Testimonial and Social Proof Collection Agent",
+      "description": "Collects customer testimonials via email/SMS, manages approval workflow, and organizes proof for marketing use",
+      "emoji": "💬",
+      "tags": [
+        "testimonials",
+        "reviews",
+        "case studies",
+        "social proof",
+        "marketing"
+      ],
+      "popular": true,
+      "quote": "8 testimonials collected this month. 5 approved. 2 pending review.",
+      "path": "agents/marketing/social-proof/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "permit-tracker",
+      "category": "business",
+      "name": "Permit Tracker",
+      "role": "Construction Permit Tracking Agent",
+      "description": "Tracks permit applications across jurisdictions, sends status alerts, and flags upcoming inspections and deadlines",
+      "emoji": "🏗️",
+      "tags": [
+        "permits",
+        "construction",
+        "inspections",
+        "compliance",
+        "contractors"
+      ],
+      "popular": false,
+      "quote": "12 active permits. 2 inspections this week. Permit #4821 approved yesterday.",
+      "path": "agents/business/permit-tracker/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "fleet-manager",
+      "category": "supply-chain",
+      "name": "Fleet Manager",
+      "role": "Fleet and Vehicle Management Agent",
+      "description": "Tracks vehicle locations, schedules preventive maintenance, monitors fuel usage, and ensures compliance",
+      "emoji": "🚛",
+      "tags": [
+        "fleet",
+        "vehicles",
+        "maintenance",
+        "GPS",
+        "logistics"
+      ],
+      "popular": false,
+      "quote": "Fleet: 12 vehicles. 2 due for oil change. Unit 7 fuel anomaly flagged.",
+      "path": "agents/supply-chain/fleet-manager/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "warranty-tracker",
+      "category": "business",
+      "name": "Warranty Tracker",
+      "role": "Warranty and Service Contract Tracking Agent",
+      "description": "Tracks product and service warranties, sends expiration alerts, and assists with claim documentation",
+      "emoji": "🔧",
+      "tags": [
+        "warranty",
+        "service contracts",
+        "expiration",
+        "claims",
+        "tracking"
+      ],
+      "popular": false,
+      "quote": "3 warranties expiring in 30 days. HVAC unit claim filed. Server warranty renewed.",
+      "path": "agents/business/warranty-tracker/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent"
     }
   ]
 }
