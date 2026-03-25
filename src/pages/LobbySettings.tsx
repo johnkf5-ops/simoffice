@@ -60,13 +60,6 @@ export function LobbySettings() {
 
   return (
     <div style={{ display: 'flex', height: '100%' }}>
-      {/* Buddy panel */}
-      <div style={{ width: 200, flexShrink: 0, background: 'linear-gradient(180deg, #1a1a6e 0%, #0d0d3b 100%)', borderRight: '2px solid #333', padding: 16 }}>
-        <button onClick={() => navigate('/')} style={{ fontSize: 16, fontWeight: 900, color: 'white', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>
-          ← <span style={{ background: 'linear-gradient(135deg, #f97316, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Lobby</span>
-        </button>
-      </div>
-
       {/* Content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'hsl(var(--background))' }}>
         {/* Header */}

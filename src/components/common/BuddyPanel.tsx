@@ -94,14 +94,14 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
   return (
     <div style={{
       width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column',
-      background: 'linear-gradient(180deg, #1a1a6e 0%, #0d0d3b 100%)',
-      borderRight: '2px solid #333',
+      background: 'hsl(var(--card))',
+      borderRight: '1px solid hsl(var(--border))',
     }}>
       {/* Header */}
       {!hideBackButton && (
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(139,92,246,0.1)' }}>
           <button onClick={() => navigate('/')}
-            style={{ fontSize: 12, fontWeight: 600, color: 'rgba(191,219,254,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary))', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             ← Lobby
           </button>
         </div>
@@ -110,12 +110,12 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
       {/* New Chat */}
       <div style={{ padding: 8 }}>
         <button onClick={() => { setActiveRoom(null); newSession(); if (!isOnChat) navigate('/chat'); }}
-          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          style={{ width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, color: 'hsl(var(--foreground))', background: 'linear-gradient(135deg, #6366f1, #8b5cf6, #c084fc)', border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.1em', boxShadow: '0 2px 12px rgba(139,92,246,0.3)' }}>
           + New Chat
         </button>
       </div>
 
-      <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.1)' }} />
+      <div style={{ width: '100%', height: 1, background: 'rgba(139,92,246,0.1)' }} />
 
       {/* Scrollable content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 8 }}>
@@ -123,7 +123,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
         {/* ── Rooms ── */}
         {rooms.length > 0 && (
           <>
-            <div style={{ padding: '4px 8px', fontSize: 10, fontWeight: 700, color: 'rgba(251,191,36,0.7)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+            <div style={{ padding: '4px 8px', fontSize: 10, fontWeight: 700, color: 'hsl(var(--primary))', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
               Rooms
             </div>
             {rooms.map((room) => {
@@ -133,11 +133,11 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                   onDoubleClick={(e) => { e.stopPropagation(); setRenamingId(room.id); setRenameValue(room.name.replace(/^#/, '')); }}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8,
-                    border: 'none', background: isActive ? 'rgba(251,191,36,0.15)' : 'transparent',
+                    border: 'none', background: isActive ? 'rgba(139,92,246,0.15)' : 'transparent',
                     cursor: 'pointer', textAlign: 'left',
                   }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? 'rgba(251,191,36,0.15)' : 'transparent'; }}>
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(139,92,246,0.08)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? 'rgba(139,92,246,0.15)' : 'transparent'; }}>
                   <span style={{ fontSize: 14 }}>{room.icon}</span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     {renamingId === room.id ? (
@@ -151,21 +151,21 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                           if (e.key === 'Escape') setRenamingId(null);
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        style={{ width: '100%', fontSize: 12, fontWeight: 600, color: '#fbbf24', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(251,191,36,0.5)', borderRadius: 4, padding: '1px 4px', outline: 'none' }}
+                        style={{ width: '100%', fontSize: 12, fontWeight: 600, color: 'hsl(var(--primary))', background: 'hsl(var(--input))', border: '1px solid rgba(139,92,246,0.5)', borderRadius: 4, padding: '1px 4px', outline: 'none' }}
                       />
                     ) : (
-                      <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, color: isActive ? '#fbbf24' : 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, color: isActive ? 'hsl(var(--primary))' : 'hsl(var(--foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {room.name}
                       </div>
                     )}
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>
+                    <div style={{ fontSize: 9, color: 'hsl(var(--muted-foreground))' }}>
                       {room.agentIds.length} agents
                     </div>
                   </div>
                   <span
                     onClick={(e) => { e.stopPropagation(); if (confirm(`Delete room ${room.name}?`)) deleteRoom(room.id); }}
                     style={{
-                      fontSize: 10, color: 'rgba(255,255,255,0.2)', cursor: 'pointer',
+                      fontSize: 10, color: 'hsl(var(--muted-foreground) / 0.4)', cursor: 'pointer',
                       padding: '2px 4px', borderRadius: 4, flexShrink: 0,
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
@@ -184,16 +184,16 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
           <button onClick={() => { setShowCreateRoom(true); setNewRoomAgents(new Set()); }}
             style={{
               width: '100%', padding: '6px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-              color: 'rgba(251,191,36,0.7)', background: 'none', border: '1px dashed rgba(251,191,36,0.3)',
+              color: 'hsl(var(--primary))', background: 'none', border: '1px dashed rgba(139,92,246,0.3)',
               cursor: 'pointer', marginTop: rooms.length > 0 ? 4 : 0, marginBottom: 8,
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#fbbf24'; e.currentTarget.style.color = '#fbbf24'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(251,191,36,0.3)'; e.currentTarget.style.color = 'rgba(251,191,36,0.7)'; }}>
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#c4b5fd'; e.currentTarget.style.color = '#c4b5fd'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.3)'; e.currentTarget.style.color = 'rgba(196,181,253,0.7)'; }}>
             + Create Room
           </button>
         ) : (
-          <div style={{ padding: 6, marginBottom: 8, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(251,191,36,0.3)' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#fbbf24', marginBottom: 6 }}>Select agents:</div>
+          <div style={{ padding: 6, marginBottom: 8, borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(139,92,246,0.3)' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'hsl(var(--primary))', marginBottom: 6 }}>Select agents:</div>
             {agents.map((agent) => {
               const checked = newRoomAgents.has(agent.id);
               return (
@@ -205,18 +205,18 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                   }}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '3px 6px', borderRadius: 6,
-                    border: 'none', background: checked ? 'rgba(251,191,36,0.15)' : 'transparent',
+                    border: 'none', background: checked ? 'rgba(139,92,246,0.15)' : 'transparent',
                     cursor: 'pointer', textAlign: 'left',
                   }}>
                   <div style={{
                     width: 14, height: 14, borderRadius: 3, border: checked ? 'none' : '1px solid rgba(255,255,255,0.3)',
-                    background: checked ? '#fbbf24' : 'transparent',
+                    background: checked ? '#c4b5fd' : 'transparent',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 9, color: '#0d0d3b', fontWeight: 700,
                   }}>
                     {checked ? '✓' : ''}
                   </div>
-                  <span style={{ fontSize: 11, color: 'white' }}>{agent.name}</span>
+                  <span style={{ fontSize: 11, color: 'hsl(var(--foreground))' }}>{agent.name}</span>
                 </button>
               );
             })}
@@ -233,14 +233,14 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                 disabled={newRoomAgents.size < 2}
                 style={{
                   flex: 1, padding: '5px', borderRadius: 6, border: 'none', fontSize: 10, fontWeight: 700,
-                  background: newRoomAgents.size >= 2 ? '#fbbf24' : 'rgba(255,255,255,0.1)',
+                  background: newRoomAgents.size >= 2 ? '#c4b5fd' : 'rgba(139,92,246,0.08)',
                   color: newRoomAgents.size >= 2 ? '#0d0d3b' : 'rgba(255,255,255,0.3)',
                   cursor: newRoomAgents.size >= 2 ? 'pointer' : 'default',
                 }}>
                 Create ({newRoomAgents.size})
               </button>
               <button onClick={() => setShowCreateRoom(false)}
-                style={{ padding: '5px 8px', borderRadius: 6, border: 'none', fontSize: 10, fontWeight: 600, background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}>
+                style={{ padding: '5px 8px', borderRadius: 6, border: 'none', fontSize: 10, fontWeight: 600, background: 'rgba(139,92,246,0.08)', color: 'hsl(var(--muted-foreground))', cursor: 'pointer' }}>
                 ✕
               </button>
             </div>
@@ -248,7 +248,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
         )}
 
         {/* ── Online Agents ── */}
-        <div style={{ padding: '4px 8px', marginTop: rooms.length > 0 ? 4 : 0, fontSize: 10, fontWeight: 700, color: 'rgba(52,211,153,0.7)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+        <div style={{ padding: '4px 8px', marginTop: rooms.length > 0 ? 4 : 0, fontSize: 10, fontWeight: 700, color: 'hsl(var(--primary))', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
           Online ({isOnline ? (agents?.length ?? 0) : 0})
         </div>
         {isOnline && agents?.map((agent) => {
@@ -260,11 +260,11 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                 border: 'none', background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent',
                 cursor: 'pointer', textAlign: 'left',
               }}
-              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(139,92,246,0.08)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.15)' : 'transparent'; }}>
               <AgentAvatar agentId={agent.id} name={agent.name} size={24} />
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agent.name}</div>
+                <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, color: 'hsl(var(--foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agent.name}</div>
               </div>
               <StatusDot status="online" size="sm" />
             </button>
@@ -274,7 +274,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
         {/* ── Conversations ── */}
         {sessions?.length > 0 && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ padding: '4px 8px', fontSize: 10, fontWeight: 700, color: 'rgba(147,197,253,0.4)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+            <div style={{ padding: '4px 8px', fontSize: 10, fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
               Conversations
             </div>
             {sessions.map((s) => {
@@ -288,7 +288,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                 <button key={s.key} onClick={() => { setActiveRoom(null); switchSession(s.key); if (!isOnChat) navigate('/chat'); }}
                   onDoubleClick={(e) => { e.stopPropagation(); setRenamingId(s.key); setRenameValue(label); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 8, border: 'none', background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(139,92,246,0.08)'; }}
                   onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.15)' : 'transparent'; }}>
                   <span style={{ fontSize: 10 }}>💬</span>
                   {renamingId === s.key ? (
@@ -302,7 +302,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                         if (e.key === 'Escape') setRenamingId(null);
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      style={{ flex: 1, fontSize: 10, fontWeight: 600, color: 'white', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(147,197,253,0.5)', borderRadius: 4, padding: '1px 4px', outline: 'none', minWidth: 0 }}
+                      style={{ flex: 1, fontSize: 10, fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--input))', border: '1px solid rgba(139,92,246,0.5)', borderRadius: 4, padding: '1px 4px', outline: 'none', minWidth: 0 }}
                     />
                   ) : (
                     <span style={{ fontSize: 10, color: isActive ? 'white' : 'rgba(191,219,254,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 600 : 400, flex: 1 }}>{label}</span>
@@ -310,7 +310,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                   <span
                     onClick={(e) => { e.stopPropagation(); if (confirm('Delete this conversation?')) deleteSession(s.key); }}
                     style={{
-                      fontSize: 10, color: 'rgba(255,255,255,0.2)', cursor: 'pointer',
+                      fontSize: 10, color: 'hsl(var(--muted-foreground) / 0.4)', cursor: 'pointer',
                       padding: '2px 4px', borderRadius: 4, flexShrink: 0,
                     }}
                     onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
@@ -326,7 +326,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
       </div>
 
       {/* Status footer */}
-      <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: 12, borderTop: '1px solid rgba(139,92,246,0.08)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
         <span style={{ fontSize: 10, fontWeight: 500, color: isOnline ? '#86efac' : '#fca5a5' }}>
           {statusLabel}

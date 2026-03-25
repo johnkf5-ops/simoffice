@@ -31,6 +31,8 @@ export function Onboarding() {
   const setupComplete = useSettingsStore((s) => s.setupComplete);
   const businessName = useSettingsStore((s) => s.businessName);
   const setBusinessName = useSettingsStore((s) => s.setBusinessName);
+  const theme = useSettingsStore((s) => s.theme);
+  const isDark = theme === 'dark';
   const startGateway = useGatewayStore((s) => s.start);
   const gatewayStatus = useGatewayStore((s) => s.status);
   const isOnline = gatewayStatus.state === 'running';
@@ -91,8 +93,11 @@ export function Onboarding() {
       setTimeout(() => setLoadProgress(s.progress), s.time)
     );
     const doneTimer = setTimeout(() => setLoadDone(true), 5400);
+    const autoAdvance = setTimeout(() => {
+      if (setupComplete) { navigate('/'); } else { setStep(1); }
+    }, 5500);
 
-    return () => { timers.forEach(clearTimeout); clearTimeout(doneTimer); };
+    return () => { timers.forEach(clearTimeout); clearTimeout(doneTimer); clearTimeout(autoAdvance); };
   }, [step]);
 
   // Auto-start gateway on final step
@@ -142,7 +147,7 @@ export function Onboarding() {
       {step === 0 && (
         <div style={{
           position: 'absolute', inset: 0,
-          backgroundImage: 'url(/splash-loading2.png)',
+          backgroundImage: isDark ? 'url(/splash-loading-dark.png)' : 'url(/splash-loading-light.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           zIndex: 0,
@@ -155,6 +160,14 @@ export function Onboarding() {
         </div>
       )}
 
+      {/* Powered by MoonPay — top right corner */}
+      {step === 0 && (
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, calc(-50% - 33px))', zIndex: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 22, fontWeight: 700, color: '#000000', letterSpacing: '0.05em' }}>Powered by</span>
+          <img src="/moonpay-logo.png" alt="MoonPay" style={{ height: 30, objectFit: 'contain' }} />
+        </div>
+      )}
+
       <div style={{ width: '100%', maxWidth: step === 2 ? 960 : 560, padding: 32, position: 'relative', zIndex: 1, transition: 'max-width 0.3s' }}>
 
         {/* ═══ STEP 0: LOADING SCREEN ═══ */}
@@ -162,7 +175,7 @@ export function Onboarding() {
           <div style={{
             position: 'absolute',
             left: '50%',
-            top: '30%',
+            top: 'calc(30% + 10px)',
             transform: 'translateX(-50%)',
             width: '40%',
             zIndex: 2,
@@ -191,25 +204,6 @@ export function Onboarding() {
               </div>
             )}
 
-            {/* Button covers the "Loading..." text area after done */}
-            {loadDone && (
-              <button
-                onClick={() => setupComplete ? navigate('/') : setStep(1)}
-                style={{
-                  padding: '18px 48px', borderRadius: 14, border: 'none', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                  color: 'white', fontSize: 20, fontWeight: 700,
-                  fontFamily: 'Space Grotesk, sans-serif',
-                  textShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                  boxShadow: '0 4px 24px rgba(34,197,94,0.4)',
-                  transition: 'transform 0.2s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-              >
-                Click to continue →
-              </button>
-            )}
           </div>
         )}
 

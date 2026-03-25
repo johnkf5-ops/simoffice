@@ -6,33 +6,33 @@
 
 @layer base {
   :root {
-    /* SimOffice — Warm, rich, inviting */
-    --background: 30 25% 96%;
-    --foreground: 240 20% 12%;
-    --card: 30 30% 98%;
-    --card-foreground: 240 20% 12%;
-    --popover: 30 30% 98%;
-    --popover-foreground: 240 20% 12%;
-    --primary: 24 100% 50%;
+    /* SimOffice — Light mode */
+    --background: 240 10% 95%;          /* #f0f0f5 — soft light base */
+    --foreground: 240 15% 15%;          /* #222230 — dark text */
+    --card: 0 0% 100%;                 /* #ffffff — white cards */
+    --card-foreground: 240 15% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 15% 15%;
+    --primary: 263 70% 58%;            /* #7c3aed — purple accent */
     --primary-foreground: 0 0% 100%;
-    --secondary: 30 20% 92%;
-    --secondary-foreground: 240 20% 12%;
-    --muted: 30 15% 90%;
-    --muted-foreground: 240 10% 46%;
-    --accent: 24 90% 95%;
-    --accent-foreground: 24 100% 30%;
+    --secondary: 240 8% 92%;           /* #eaeaf0 */
+    --secondary-foreground: 240 15% 15%;
+    --muted: 240 8% 92%;
+    --muted-foreground: 240 8% 45%;    /* medium gray text */
+    --accent: 263 60% 95%;            /* light purple tint */
+    --accent-foreground: 263 70% 40%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 30 20% 88%;
-    --input: 30 20% 88%;
-    --ring: 24 100% 50%;
+    --border: 240 8% 85%;             /* soft gray border */
+    --input: 240 8% 90%;
+    --ring: 263 70% 58%;
     --radius: 1rem;
 
     /* SimOffice custom palette */
-    --lobby-warm: 30 40% 94%;
-    --lobby-glow: 24 100% 50%;
-    --lobby-deep: 240 20% 12%;
-    --lobby-surface: 30 30% 99%;
+    --lobby-warm: 240 8% 96%;
+    --lobby-glow: 263 70% 58%;
+    --lobby-deep: 240 15% 15%;
+    --lobby-surface: 0 0% 99%;
     --lobby-amber: 38 92% 50%;
     --lobby-teal: 172 66% 50%;
     --lobby-violet: 263 70% 58%;
@@ -40,7 +40,7 @@
     --lobby-sky: 205 85% 55%;
     --lobby-blue: 217 91% 60%;
 
-    /* Section gradients (used in LobbyDoor, SectionHeader) */
+    /* Section gradients */
     --gradient-chat: linear-gradient(135deg, #3b82f6, #4f46e5);
     --gradient-assistants: linear-gradient(135deg, #8b5cf6, #7c3aed);
     --gradient-connections: linear-gradient(135deg, #14b8a6, #0d9488);
@@ -50,43 +50,46 @@
     --gradient-lobby: linear-gradient(135deg, #f97316, #f59e0b);
   }
 
-  /* ═══ DARK MODE: Neon Isometric Executive ═══ */
+  /* ═══ DARK MODE — matching toolbar aesthetic ═══ */
   .dark {
-    /* Surface hierarchy — deep midnight void */
-    --background: 230 15% 7%;        /* #121318 — base layer */
-    --foreground: 185 90% 92%;       /* #dbfcff — primary text */
-    --card: 230 10% 11%;             /* #1a1b21 — surface_container_low */
-    --card-foreground: 185 90% 92%;
-    --popover: 230 8% 16%;           /* #292a2f — surface_container_high */
-    --popover-foreground: 185 90% 92%;
-    --primary: 160 90% 61%;          /* #44f6a8 — neon green accent */
-    --primary-foreground: 160 100% 11%; /* #003822 — on primary */
-    --secondary: 230 8% 16%;         /* #292a2f */
-    --secondary-foreground: 185 90% 92%;
-    --muted: 230 6% 13%;             /* dark muted surface */
-    --muted-foreground: 185 15% 55%; /* subdued cyan text */
-    --accent: 185 100% 47%;          /* #00f0ff — cyan accent */
-    --accent-foreground: 230 15% 7%;
-    --destructive: 0 65% 45%;
+    --background: 240 12% 8%;           /* #121318 — deep dark base */
+    --foreground: 220 15% 90%;          /* #e0e4ed — light text */
+    --card: 240 10% 12%;               /* #1c1d25 — surface cards */
+    --card-foreground: 220 15% 90%;
+    --popover: 240 10% 14%;
+    --popover-foreground: 220 15% 90%;
+    --primary: 263 70% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 8% 16%;
+    --secondary-foreground: 220 15% 90%;
+    --muted: 240 8% 14%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 263 50% 20%;
+    --accent-foreground: 263 70% 75%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 185 20% 18%;           /* ghost border — etched look */
-    --input: 230 10% 9%;             /* sunken input field */
-    --ring: 160 90% 61%;             /* neon green ring */
+    --border: 240 10% 18%;
+    --input: 240 10% 12%;
+    --ring: 263 70% 58%;
 
-    /* Lobby palette — terminal greens */
-    --lobby-warm: 230 10% 11%;       /* dark panel bg */
-    --lobby-glow: 160 90% 61%;       /* neon green */
-    --lobby-deep: 185 90% 92%;       /* light text */
-    --lobby-surface: 230 8% 9%;
-    --lobby-blue: 185 100% 47%;      /* cyan */
+    --lobby-warm: 240 10% 12%;
+    --lobby-glow: 263 70% 58%;
+    --lobby-deep: 220 15% 90%;
+    --lobby-surface: 240 10% 10%;
+    --lobby-amber: 38 92% 50%;
+    --lobby-teal: 172 66% 50%;
+    --lobby-violet: 263 70% 58%;
+    --lobby-rose: 350 80% 60%;
+    --lobby-sky: 205 85% 55%;
+    --lobby-blue: 217 91% 60%;
 
-    --gradient-chat: linear-gradient(135deg, #00f0ff, #0088cc);
-    --gradient-assistants: linear-gradient(135deg, #44f6a8, #00cc88);
-    --gradient-connections: linear-gradient(135deg, #00f0ff, #44f6a8);
-    --gradient-powers: linear-gradient(135deg, #f6447a, #ff0066);
-    --gradient-automations: linear-gradient(135deg, #00f0ff, #0066ff);
-    --gradient-ai: linear-gradient(135deg, #44f6a8, #00ff88);
-    --gradient-lobby: linear-gradient(135deg, #44f6a8, #00f0ff);
+    --gradient-chat: linear-gradient(135deg, #3b82f6, #4f46e5);
+    --gradient-assistants: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    --gradient-connections: linear-gradient(135deg, #14b8a6, #0d9488);
+    --gradient-powers: linear-gradient(135deg, #f43f5e, #e11d48);
+    --gradient-automations: linear-gradient(135deg, #0ea5e9, #0284c7);
+    --gradient-ai: linear-gradient(135deg, #f59e0b, #d97706);
+    --gradient-lobby: linear-gradient(135deg, #f97316, #f59e0b);
   }
 }
 
@@ -140,16 +143,16 @@
   @apply relative rounded-2xl overflow-hidden transition-all duration-300;
   background: hsl(var(--card));
   box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 4px 12px rgba(0, 0, 0, 0.03),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .lobby-card:hover {
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.06),
-    0 8px 24px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transform: translateY(-2px);
 }
 

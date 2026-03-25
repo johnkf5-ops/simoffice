@@ -355,3 +355,41 @@ The `mainSessionKey` on each `AgentSummary` is the canonical session. New conver
 6. **Always compute `activeRoom` reactively** from `activeRoomId` + `rooms` subscriptions. Never use `getActiveRoom()` — it's not reactive.
 7. **Filter `[TEAM MEETING]` prompts from DM view.** The sequencer injects these into agent sessions. They should never be visible to the user.
 8. **Agent IDs in rooms must be actual IDs** from the agents store, not template IDs from career templates.
+9. **All colors must use CSS variables** (`hsl(var(--foreground))`, `hsl(var(--card))`, etc.) — never hardcode `white`, `#fff`, or `rgba(255,255,255,...)`. The app supports light/dark mode via `.dark` class on `<html>`.
+10. **Default theme is `light`.** Persisted in settings store. User can switch in Settings page. Splash screen loads `splash-loading-light.png` or `splash-loading-dark.png` based on theme.
+
+---
+
+## Theming
+
+### How It Works
+- CSS variables in `src/styles/globals.css`: `:root` = light mode, `.dark` = dark mode
+- `App.tsx` adds `.dark` or `.light` class to `<html>` based on `useSettingsStore.theme`
+- Settings store persists theme to localStorage (`clawx-settings`)
+- Default: `'light'`
+
+### Key Variables
+| Variable | Light | Dark | Usage |
+|----------|-------|------|-------|
+| `--background` | `#f0f0f5` | `#121318` | Page backgrounds |
+| `--card` | `#ffffff` | `#1c1d25` | Cards, panels, toolbar, buddy list |
+| `--foreground` | `#222230` | `#e0e4ed` | Primary text |
+| `--muted-foreground` | medium gray | `#737580` | Secondary/subdued text |
+| `--border` | `#d4d4de` | `#292940` | Borders, dividers |
+| `--primary` | `#7c3aed` | `#7c3aed` | Purple accent (same both modes) |
+
+### Rules
+- **Never hardcode colors** in components. Use `hsl(var(--foreground))`, `hsl(var(--card))`, etc.
+- Toolbar uses `hsl(var(--card))` for background — adapts automatically
+- BuddyPanel uses `hsl(var(--card))` for background — adapts automatically
+- Splash screen: `isDark ? 'url(/splash-loading-dark.png)' : 'url(/splash-loading-light.png)'`
+- Toolbar icons use CSS `filter: brightness()` — works in both modes
+
+### Files
+| File | What |
+|------|------|
+| `src/styles/globals.css` | CSS variables for both themes |
+| `src/App.tsx` | Applies `.dark`/`.light` class based on settings |
+| `src/stores/settings.ts` | `theme` field, default `'light'`, persisted |
+| `public/splash-loading-light.png` | Light mode splash |
+| `public/splash-loading-dark.png` | Dark mode splash |

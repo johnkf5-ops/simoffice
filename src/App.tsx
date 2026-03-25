@@ -2,7 +2,7 @@
  * SimOffice — Root Application
  */
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { Component, useEffect, useState } from 'react';
+import { Component, useEffect, useRef, useState } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import i18n from './i18n';
@@ -107,16 +107,21 @@ function App() {
 
   useEffect(() => { initGateway(); }, [initGateway]);
 
-  // Always show splash on app launch, then onboarding if needed
-  const [splashShown, setSplashShown] = useState(false);
+  // Show splash on app launch (once), then guard onboarding if not complete
+  const splashShownRef = useRef(false);
   useEffect(() => {
-    if (!splashShown && !location.pathname.startsWith('/onboarding')) {
-      navigate('/onboarding');
-      setSplashShown(true);
-    } else if (!setupComplete && !location.pathname.startsWith('/setup') && !location.pathname.startsWith('/onboarding')) {
+    if (!splashShownRef.current) {
+      splashShownRef.current = true;
+      if (!location.pathname.startsWith('/onboarding')) {
+        navigate('/onboarding');
+      }
+      return;
+    }
+    // After splash, only redirect if setup not complete
+    if (!setupComplete && !location.pathname.startsWith('/setup') && !location.pathname.startsWith('/onboarding')) {
       navigate('/onboarding');
     }
-  }, [setupComplete, splashShown, location.pathname, navigate]);
+  }, [setupComplete, location.pathname, navigate]);
 
   useEffect(() => {
     const handleNavigate = (...args: unknown[]) => {

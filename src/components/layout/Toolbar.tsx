@@ -1,21 +1,20 @@
 /**
- * SimOffice Toolbar — Always visible at the top of every page.
- * AOL-style icon navigation.
+ * SimOffice Toolbar — Dark mode, custom icons, glow effect on active.
+ * Matches the toolbar mockup design.
  */
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGatewayStore } from '@/stores/gateway';
-import { useProviderStore } from '@/stores/providers';
 import { StatusDot } from '@/components/common/StatusDot';
 
 const TOOLBAR_ITEMS = [
-  { icon: '🏢', label: 'Office', path: '/' },
-  { icon: '💬', label: 'Chat', path: '/chat' },
-  { icon: '🤖', label: 'Assistants', path: '/assistants' },
-  { icon: '🔌', label: 'Connections', path: '/connections' },
-  { icon: '⚡', label: 'Skills', path: '/powers' },
-  { icon: '⏰', label: 'Automations', path: '/automations' },
-  { icon: '🧠', label: 'Brain', path: '/ai-setup' },
-  { icon: '⚙️', label: 'Settings', path: '/settings' },
+  { icon: '/toolbar/office.png', label: 'Office', path: '/' },
+  { icon: '/toolbar/chat.png', label: 'Chat', path: '/chat' },
+  { icon: '/toolbar/assistants.png', label: 'Assistants', path: '/assistants' },
+  { icon: '/toolbar/connections.png', label: 'Connections', path: '/connections' },
+  { icon: '/toolbar/skills.png', label: 'Skills', path: '/powers' },
+  { icon: '/toolbar/automations.png', label: 'Automations', path: '/automations' },
+  { icon: '/toolbar/brain.png', label: 'Brain', path: '/ai-setup' },
+  { icon: '/toolbar/settings.png', label: 'Settings', path: '/settings' },
 ];
 
 export function Toolbar() {
@@ -23,52 +22,66 @@ export function Toolbar() {
   const location = useLocation();
   const gatewayStatus = useGatewayStore((s) => s.status);
   const isOnline = gatewayStatus.state === 'running';
-  const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
-  const accounts = useProviderStore((s) => s.accounts);
-  const activeAccount = accounts.find((a) => a.id === defaultAccountId) || accounts.find((a) => a.isDefault);
-  const isLocal = activeAccount?.vendorId === 'ollama';
-  const modelName = activeAccount?.model?.split(':')[0] ?? '';
-  const providerLabel = activeAccount
-    ? isLocal ? `Local · ${modelName || 'Ollama'}` : `API · ${activeAccount.label ?? activeAccount.vendorId}`
-    : null;
 
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 2, padding: '4px 12px',
+      display: 'flex', alignItems: 'center', gap: 0, padding: '0 8px',
       background: 'hsl(var(--card))',
       borderBottom: '1px solid hsl(var(--border))', flexShrink: 0,
+      height: 64,
     }}>
       {TOOLBAR_ITEMS.map((item) => {
-        const isActive = location.pathname === item.path;
+        const isActive = item.path === '/'
+          ? location.pathname === '/'
+          : location.pathname.startsWith(item.path);
         return (
           <button
             key={item.label}
             onClick={() => navigate(item.path)}
             style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
+              padding: '6px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
               background: isActive ? 'hsl(var(--accent))' : 'transparent',
-              transition: 'all 0.15s',
+              boxShadow: isActive ? '0 0 20px rgba(139,92,246,0.3), 0 0 40px rgba(139,92,246,0.1)' : 'none',
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              height: 56,
+              minWidth: 64,
             }}
-            onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'hsl(var(--muted))'; }}
-            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'hsl(var(--accent))' : 'transparent'; }}
+            onMouseEnter={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                e.currentTarget.style.boxShadow = '0 0 12px rgba(139,92,246,0.15)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.boxShadow = 'none';
+              }
+            }}
           >
-            <span style={{ fontSize: 22, lineHeight: 1, transition: 'transform 0.15s' }}>{item.icon}</span>
+            <img
+              src={item.icon}
+              alt={item.label}
+              style={{
+                width: 32, height: 32, objectFit: 'contain',
+                filter: isActive ? 'brightness(1.2) drop-shadow(0 0 8px rgba(139,92,246,0.5))' : 'brightness(0.85)',
+                transition: 'filter 0.2s ease',
+              }}
+            />
             <span style={{
-              fontSize: 9, fontWeight: 700, color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
+              fontSize: 9, fontWeight: 700,
+              color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))',
               textTransform: 'uppercase', letterSpacing: '0.05em',
+              transition: 'color 0.2s ease',
             }}>{item.label}</span>
           </button>
         );
       })}
 
-      {/* Active LLM + status on far right */}
+      {/* Status indicator on far right */}
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
-        {providerLabel && (
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'hsl(var(--muted-foreground))' }}>
-            {providerLabel}
-          </span>
-        )}
         <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
       </div>
     </div>
