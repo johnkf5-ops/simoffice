@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useRoomsStore } from '@/stores/rooms';
 import { useAgentsStore } from '@/stores/agents';
 import { useChatStore } from '@/stores/chat';
+import { getAgentIdFromSessionKey } from '@/stores/chat/helpers';
 import { useGatewayStore } from '@/stores/gateway';
 import { useProviderStore } from '@/stores/providers';
 import { StatusDot } from '@/components/common/StatusDot';
@@ -27,6 +28,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
   const activeRoomId = useRoomsStore((s) => s.activeRoomId);
   const setActiveRoom = useRoomsStore((s) => s.setActiveRoom);
   const createCustomRoom = useRoomsStore((s) => s.createCustomRoom);
+  const deleteRoom = useRoomsStore((s) => s.deleteRoom);
 
   // Agents
   const agents = useAgentsStore((s) => s.agents);
@@ -40,6 +42,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
   const sessionLabels = useChatStore((s) => s.sessionLabels);
   const switchSession = useChatStore((s) => s.switchSession);
   const newSession = useChatStore((s) => s.newSession);
+  const deleteSession = useChatStore((s) => s.deleteSession);
 
   // Provider
   const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
@@ -143,6 +146,17 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                       {room.agentIds.length} agents
                     </div>
                   </div>
+                  <span
+                    onClick={(e) => { e.stopPropagation(); if (confirm(`Delete room ${room.name}?`)) deleteRoom(room.id); }}
+                    style={{
+                      fontSize: 10, color: 'rgba(255,255,255,0.2)', cursor: 'pointer',
+                      padding: '2px 4px', borderRadius: 4, flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)'; }}
+                  >
+                    ✕
+                  </span>
                 </button>
               );
             })}
@@ -250,7 +264,9 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
               Conversations
             </div>
             {sessions.map((s) => {
-              const label = sessionLabels[s.key] || s.label || s.displayName || 'Conversation';
+              const agentId = getAgentIdFromSessionKey(s.key);
+              const agent = agents.find(a => a.id === agentId);
+              const label = sessionLabels[s.key] || s.label || s.displayName || agent?.name || 'Conversation';
               const isActive = isOnChat && s.key === currentSessionKey;
               return (
                 <button key={s.key} onClick={() => { setActiveRoom(null); switchSession(s.key); if (!isOnChat) navigate('/chat'); }}
@@ -258,7 +274,18 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
                   onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.15)' : 'transparent'; }}>
                   <span style={{ fontSize: 10 }}>💬</span>
-                  <span style={{ fontSize: 10, color: isActive ? 'white' : 'rgba(191,219,254,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 600 : 400 }}>{label}</span>
+                  <span style={{ fontSize: 10, color: isActive ? 'white' : 'rgba(191,219,254,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 600 : 400, flex: 1 }}>{label}</span>
+                  <span
+                    onClick={(e) => { e.stopPropagation(); if (confirm('Delete this conversation?')) deleteSession(s.key); }}
+                    style={{
+                      fontSize: 10, color: 'rgba(255,255,255,0.2)', cursor: 'pointer',
+                      padding: '2px 4px', borderRadius: 4, flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)'; }}
+                  >
+                    ✕
+                  </span>
                 </button>
               );
             })}

@@ -355,7 +355,7 @@ export function LobbyChat() {
                 <MessageBubble
                   key={msg.id || `msg-${i}`}
                   message={msg}
-                  agentName={isRoomMode && msg.role === 'assistant' ? currentAgent?.name : undefined}
+                  agentName={msg.role === 'assistant' ? currentAgent?.name : undefined}
                 />
               ))}
 
