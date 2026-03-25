@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.1-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.2.2-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -61,6 +61,10 @@ pnpm run package:mac  # build DMG
 ```
 
 ## Changelog
+
+### v1.2.2
+- Fixed update flow — Settings now shows Download/Install buttons (was broken since v1.0)
+- Auto-update toggle in Settings — automatically download and install updates
 
 ### v1.2.1
 - Shared provider setup modal — consistent wizard across Brain page and Onboarding
