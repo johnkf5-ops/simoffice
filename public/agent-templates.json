@@ -1,5 +1,5 @@
 {
-  "total": 177,
+  "total": 179,
   "agents": [
     {
       "id": "churn-predictor",
@@ -3009,6 +3009,45 @@
       ],
       "popular": false,
       "quote": "Proposals that land you the gig."
+    },
+    {
+      "id": "reddit-growth",
+      "category": "marketing",
+      "name": "Reddit Growth",
+      "role": "Organic Reddit Promotion Agent",
+      "path": "agents/marketing/reddit-growth/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Researches subreddits, drafts value-first posts and comments, and queues them for human approval to grow your brand organically",
+      "emoji": "📣",
+      "tags": [
+        "reddit",
+        "organic growth",
+        "community",
+        "content marketing",
+        "social"
+      ],
+      "popular": true,
+      "quote": "I find where your audience hangs out and draft posts they actually want to read."
+    },
+    {
+      "id": "email-campaign",
+      "category": "marketing",
+      "name": "Email Campaign",
+      "role": "Mass Email Campaign Agent",
+      "path": "agents/marketing/email-campaign/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Plans and executes bulk email campaigns with list segmentation, A/B testing, scheduling, and CAN-SPAM compliance",
+      "emoji": "📨",
+      "tags": [
+        "email",
+        "campaigns",
+        "bulk",
+        "sendgrid",
+        "mailchimp",
+        "marketing"
+      ],
+      "popular": true,
+      "quote": "Campaigns sent, inboxes reached, conversions tracked."
     }
   ]
 }
