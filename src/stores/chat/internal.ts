@@ -39,7 +39,7 @@ export const initialChatState: Pick<
 
   sessions: [],
   currentSessionKey: DEFAULT_SESSION_KEY,
-  currentAgentId: 'main',
+  currentAgentId: '',
   sessionLabels: {},
   sessionLastActivity: {},
 

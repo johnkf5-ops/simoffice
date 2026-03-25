@@ -12,13 +12,13 @@ import type { ChatSession, RawMessage } from './types';
 import type { ChatGet, ChatSet, RuntimeActions } from './store-api';
 
 function normalizeAgentId(value: string | undefined | null): string {
-  return (value ?? '').trim().toLowerCase() || 'main';
+  return (value ?? '').trim().toLowerCase() || '';
 }
 
 function getAgentIdFromSessionKey(sessionKey: string): string {
-  if (!sessionKey.startsWith('agent:')) return 'main';
+  if (!sessionKey.startsWith('agent:')) return '';
   const [, agentId] = sessionKey.split(':');
-  return agentId || 'main';
+  return agentId || '';
 }
 
 function buildFallbackMainSessionKey(agentId: string): string {

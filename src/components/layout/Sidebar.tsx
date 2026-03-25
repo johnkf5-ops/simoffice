@@ -44,9 +44,9 @@ function getSessionBucket(activityMs: number, nowMs: number): SessionBucketKey {
 }
 
 function getAgentIdFromSessionKey(sessionKey: string): string {
-  if (!sessionKey.startsWith('agent:')) return 'main';
+  if (!sessionKey.startsWith('agent:')) return '';
   const [, agentId] = sessionKey.split(':');
-  return agentId || 'main';
+  return agentId || '';
 }
 
 const INITIAL_NOW_MS = Date.now();
@@ -86,7 +86,10 @@ export function Sidebar() {
 
   const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
   const accounts = useProviderStore((s) => s.accounts);
+  const refreshProviderSnapshot = useProviderStore((s) => s.refreshProviderSnapshot);
   const activeAccount = accounts.find((a) => a.id === defaultAccountId) || accounts.find((a) => a.isDefault);
+
+  useEffect(() => { if (isGatewayRunning && !accounts.length) void refreshProviderSnapshot(); }, [isGatewayRunning, accounts.length, refreshProviderSnapshot]);
   const isLocalAI = activeAccount?.vendorId === 'ollama';
   const modelName = activeAccount?.model?.split(':')[0] ?? '';
   const activeModelLabel = activeAccount

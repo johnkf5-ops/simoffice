@@ -4,9 +4,9 @@ import { DEFAULT_CANONICAL_PREFIX, DEFAULT_SESSION_KEY, type ChatSession, type R
 import type { ChatGet, ChatSet, SessionHistoryActions } from './store-api';
 
 function getAgentIdFromSessionKey(sessionKey: string): string {
-  if (!sessionKey.startsWith('agent:')) return 'main';
+  if (!sessionKey.startsWith('agent:')) return '';
   const [, agentId] = sessionKey.split(':');
-  return agentId || 'main';
+  return agentId || '';
 }
 
 function parseSessionUpdatedAtMs(value: unknown): number | undefined {

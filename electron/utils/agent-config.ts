@@ -185,12 +185,11 @@ function normalizeAgentsConfig(config: AgentConfigDocument): {
     : [];
 
   if (rawEntries.length === 0) {
-    const main = createImplicitMainEntry(config);
     return {
       agentsConfig,
-      entries: [main],
-      defaultAgentId: MAIN_AGENT_ID,
-      syntheticMain: true,
+      entries: [],
+      defaultAgentId: '',
+      syntheticMain: false,
     };
   }
 
@@ -515,13 +514,13 @@ export async function listConfiguredAgentIds(): Promise<string[]> {
   const config = await readOpenClawConfig() as AgentConfigDocument;
   const { entries } = normalizeAgentsConfig(config);
   const ids = [...new Set(entries.map((entry) => entry.id.trim()).filter(Boolean))];
-  return ids.length > 0 ? ids : [MAIN_AGENT_ID];
+  return ids;
 }
 
 export async function createAgent(name: string): Promise<AgentsSnapshot> {
   return withConfigLock(async () => {
     const config = await readOpenClawConfig() as AgentConfigDocument;
-    const { agentsConfig, entries, syntheticMain } = normalizeAgentsConfig(config);
+    const { agentsConfig, entries } = normalizeAgentsConfig(config);
     const normalizedName = normalizeAgentName(name);
     const existingIds = new Set(entries.map((entry) => entry.id));
     const diskIds = await listExistingAgentIdsOnDisk();
@@ -533,7 +532,7 @@ export async function createAgent(name: string): Promise<AgentsSnapshot> {
       suffix += 1;
     }
 
-    const nextEntries = syntheticMain ? [createImplicitMainEntry(config), ...entries.filter((_, index) => index > 0)] : [...entries];
+    const nextEntries = [...entries];
     const newAgent: AgentListEntry = {
       id: nextId,
       name: normalizedName,
@@ -541,9 +540,6 @@ export async function createAgent(name: string): Promise<AgentsSnapshot> {
       agentDir: getDefaultAgentDirPath(nextId),
     };
 
-    if (!nextEntries.some((entry) => entry.id === MAIN_AGENT_ID) && syntheticMain) {
-      nextEntries.unshift(createImplicitMainEntry(config));
-    }
     nextEntries.push(newAgent);
 
     config.agents = {
@@ -586,10 +582,6 @@ export async function updateAgentName(agentId: string, name: string): Promise<Ag
 
 export async function deleteAgentConfig(agentId: string): Promise<{ snapshot: AgentsSnapshot; removedEntry: AgentListEntry }> {
   return withConfigLock(async () => {
-    if (agentId === MAIN_AGENT_ID) {
-      throw new Error('The main agent cannot be deleted');
-    }
-
     const config = await readOpenClawConfig() as AgentConfigDocument;
     const { agentsConfig, entries, defaultAgentId } = normalizeAgentsConfig(config);
     const snapshotBeforeDeletion = await buildSnapshotFromConfig(config);
