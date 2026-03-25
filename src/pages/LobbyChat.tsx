@@ -148,25 +148,45 @@ export function LobbyChat() {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const abortRun = useChatStore((s) => s.abortRun);
 
+  const activeRoomId = useRoomsStore((s) => s.activeRoomId);
+  const rooms = useRoomsStore((s) => s.rooms);
   const targetAgentId = useRoomsStore((s) => s.targetAgentId);
   const setTargetAgent = useRoomsStore((s) => s.setTargetAgent);
   const meetingInProgress = useRoomsStore((s) => s.meetingInProgress);
   const setMeeting = useRoomsStore((s) => s.setMeeting);
   const addCompletedMeeting = useRoomsStore((s) => s.addCompletedMeeting);
   const meetings = useRoomsStore((s) => s.meetings);
-  const getActiveRoom = useRoomsStore((s) => s.getActiveRoom);
 
-  const activeRoom = getActiveRoom();
+  // Get active room — will re-render when activeRoomId or rooms changes
+  const activeRoom = activeRoomId ? rooms.find(r => r.id === activeRoomId) ?? null : null;
   const isRoomMode = !!activeRoom;
 
   const [input, setInput] = useState('');
   const [meetingMode, setMeetingMode] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Debug helper
+  useEffect(() => {
+    const handleDebugKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        setShowDebug(prev => !prev);
+        const { rooms, activeRoomId } = useRoomsStore.getState();
+        console.log('=== ROOMS DEBUG ===');
+        console.log('Active Room ID:', activeRoomId);
+        console.log('All Rooms:', rooms.map(r => ({ id: r.id, name: r.name, agents: r.agentIds })));
+        if (activeRoom) {
+          console.log('Current Active Room:', { id: activeRoom.id, name: activeRoom.name, agents: activeRoom.agentIds });
+        }
+      }
+    };
+    window.addEventListener('keydown', handleDebugKey);
+    return () => window.removeEventListener('keydown', handleDebugKey);
+  }, [activeRoom]);
 
   useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
 
   // Auto-create rooms for existing agents that match multi-agent career templates
-  const rooms = useRoomsStore((s) => s.rooms);
   const createRoomFromCareer = useRoomsStore((s) => s.createRoomFromCareer);
   const updateRoomAgentIds = useRoomsStore((s) => s.updateRoomAgentIds);
 
@@ -201,6 +221,7 @@ export function LobbyChat() {
           const room = createRoomFromCareer(career);
           // Update the room's agentIds with actual IDs (will be persisted)
           updateRoomAgentIds(room.id, actualIds);
+          console.log(`[Room Creation] ${career.label}: room=${room.id}, agents=${actualIds.join(',')}`);
         }
       }
     }
