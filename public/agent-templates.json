@@ -1,5 +1,5 @@
 {
-  "total": 193,
+  "total": 203,
   "agents": [
     {
       "id": "churn-predictor",
@@ -3314,6 +3314,196 @@
       "quote": "3 warranties expiring in 30 days. HVAC unit claim filed. Server warranty renewed.",
       "path": "agents/business/warranty-tracker/SOUL.md",
       "deploy": "https://crewclaw.com/create-agent"
+    },
+    {
+      "id": "mortgage-rate-watcher",
+      "category": "real-estate",
+      "name": "Mortgage Rate Watcher",
+      "role": "Mortgage Rate Monitoring Agent",
+      "path": "agents/real-estate/mortgage-rate-watcher/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Monitors daily mortgage rates, alerts on drops, tracks rate locks, and helps time lock decisions",
+      "emoji": "📉",
+      "tags": [
+        "mortgage",
+        "rates",
+        "rate lock",
+        "lending",
+        "loan officer"
+      ],
+      "popular": true,
+      "quote": "Rates dropped 12bps overnight. Three clients should lock today."
+    },
+    {
+      "id": "loan-pipeline",
+      "category": "real-estate",
+      "name": "Loan Pipeline",
+      "role": "Loan Pipeline Management Agent",
+      "path": "agents/real-estate/loan-pipeline/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Tracks loan applications from pre-qual to closing, flags stalled files, and generates pipeline reports",
+      "emoji": "🏗️",
+      "tags": [
+        "mortgage",
+        "pipeline",
+        "loan",
+        "origination",
+        "tracking"
+      ],
+      "popular": true,
+      "quote": "3 files stuck in underwriting, 2 closing this week, 1 rate lock expiring Friday."
+    },
+    {
+      "id": "doc-chaser",
+      "category": "real-estate",
+      "name": "Doc Chaser",
+      "role": "Mortgage Document Collection Agent",
+      "path": "agents/real-estate/doc-chaser/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Tracks missing borrower documents, sends follow-up reminders, and validates completeness by loan type",
+      "emoji": "📋",
+      "tags": [
+        "mortgage",
+        "documents",
+        "collection",
+        "compliance",
+        "underwriting"
+      ],
+      "popular": true,
+      "quote": "Smith file is missing 2 months bank statements. Third reminder sent."
+    },
+    {
+      "id": "realtor-partner",
+      "category": "real-estate",
+      "name": "Realtor Partner",
+      "role": "Realtor Relationship Management Agent",
+      "path": "agents/real-estate/realtor-partner/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Manages realtor referral relationships, sends deal status updates, tracks referral volume, and ensures RESPA compliance",
+      "emoji": "🤝",
+      "tags": [
+        "mortgage",
+        "realtor",
+        "referral",
+        "RESPA",
+        "partnerships"
+      ],
+      "popular": false,
+      "quote": "Agent Lisa Chen sent 4 deals this quarter. Status update going out now."
+    },
+    {
+      "id": "rate-sheet",
+      "category": "real-estate",
+      "name": "Rate Sheet",
+      "role": "Daily Rate Sheet Generator",
+      "path": "agents/real-estate/rate-sheet/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Generates and distributes daily rate sheets with program comparisons and lock period pricing",
+      "emoji": "📊",
+      "tags": [
+        "mortgage",
+        "rates",
+        "rate sheet",
+        "pricing",
+        "wholesale"
+      ],
+      "popular": false,
+      "quote": "Today's sheet is ready. 30yr fixed down 8bps from yesterday."
+    },
+    {
+      "id": "review-asker",
+      "category": "business",
+      "name": "Review Asker",
+      "role": "Google Review Generation Agent",
+      "path": "agents/business/review-asker/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Sends personalized review requests to happy customers via SMS/email, monitors new reviews, and drafts responses",
+      "emoji": "⭐",
+      "tags": [
+        "reviews",
+        "google",
+        "reputation",
+        "local business",
+        "customer feedback"
+      ],
+      "popular": true,
+      "quote": "12 reviews requested this week. 7 posted. Average: 4.8 stars."
+    },
+    {
+      "id": "appointment-booker",
+      "category": "business",
+      "name": "Appointment Booker",
+      "role": "Appointment Scheduling Agent",
+      "path": "agents/business/appointment-booker/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Handles booking requests, manages calendar availability, sends reminders, and follows up on no-shows",
+      "emoji": "📅",
+      "tags": [
+        "appointments",
+        "scheduling",
+        "calendar",
+        "reminders",
+        "booking"
+      ],
+      "popular": true,
+      "quote": "Tomorrow: 6 appointments booked. 2 confirmed. Reminder going out at 6pm."
+    },
+    {
+      "id": "referral-manager",
+      "category": "business",
+      "name": "Referral Manager",
+      "role": "Referral Program Management Agent",
+      "path": "agents/business/referral-manager/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Tracks referral sources, calculates commissions, sends thank-you messages, and reports on referral performance",
+      "emoji": "🔗",
+      "tags": [
+        "referrals",
+        "commissions",
+        "tracking",
+        "partnerships",
+        "growth"
+      ],
+      "popular": false,
+      "quote": "Mike referred 3 clients this month. $150 commission pending payout."
+    },
+    {
+      "id": "local-seo",
+      "category": "marketing",
+      "name": "Local SEO",
+      "role": "Local Search Optimization Agent",
+      "path": "agents/marketing/local-seo/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Optimizes Google Business Profile, monitors local rankings, manages review responses, and publishes Google Posts",
+      "emoji": "📍",
+      "tags": [
+        "SEO",
+        "local search",
+        "google business",
+        "rankings",
+        "maps"
+      ],
+      "popular": true,
+      "quote": "Your GBP profile is 73% optimized. 3 posts scheduled. 2 reviews need responses."
+    },
+    {
+      "id": "estimate-builder",
+      "category": "business",
+      "name": "Estimate Builder",
+      "role": "Quote and Estimate Generation Agent",
+      "path": "agents/business/estimate-builder/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Generates professional estimates from job descriptions, pulls from pricing catalogs, and tracks sent vs accepted quotes",
+      "emoji": "🧾",
+      "tags": [
+        "estimates",
+        "quotes",
+        "contractors",
+        "pricing",
+        "proposals"
+      ],
+      "popular": true,
+      "quote": "Estimate #247 sent. 3 pending response. Win rate this month: 62%."
     }
   ]
 }
