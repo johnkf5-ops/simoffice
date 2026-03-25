@@ -393,3 +393,34 @@ The `mainSessionKey` on each `AgentSummary` is the canonical session. New conver
 | `src/stores/settings.ts` | `theme` field, default `'light'`, persisted |
 | `public/splash-loading-light.png` | Light mode splash |
 | `public/splash-loading-dark.png` | Dark mode splash |
+| `public/moonpay-logo.png` | MoonPay logo (black text, light mode) |
+| `public/moonpay-logo-white.png` | MoonPay logo (white text, dark mode) |
+
+---
+
+## Trading Desk (`/trading`)
+
+Separate page — NOT part of the chat system. A MoonPay-branded chat where the user talks naturally and the LLM uses MoonPay CLI to execute trades.
+
+**Key points:**
+- **No SimOffice agents** — zero trade liability. MoonPay handles execution.
+- Sends to `agent:moonpay-trader:main` session via Gateway RPC
+- Polls `chat.history` for responses (same pattern as meeting sequencer)
+- Suggestion chips pre-fill common prompts for non-technical users
+- Right sidebar: capabilities, 13 supported chains, disclaimer
+- Theme-aware MoonPay logos (`moonpay-logo.png` / `moonpay-logo-white.png`)
+
+**File:** `src/pages/TradingPage.tsx`
+
+---
+
+## Lobby / Home Page (`/`)
+
+3D office hero section (60vh) with scrollable content below:
+
+1. **Hero** — `OfficeAdapter` rendering the retro 3D office with agents at desks
+2. **Agent count** — "X agents online · Your office is running"
+3. **Quick Actions** — 4 cards: Trading Desk, Chat, Manage Team, Connect Apps
+4. **What's New** — Featured card (MoonPay Trading) + 2-column grid of v2.0 and v1.2 features
+
+**File:** `src/pages/Lobby.tsx`

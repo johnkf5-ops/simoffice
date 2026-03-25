@@ -26,7 +26,7 @@ const SUGGESTIONS = [
   { icon: <HelpCircle style={{ width: 14, height: 14 }} />, label: 'What can you do?', prompt: 'What can MoonPay help me with?' },
 ];
 
-const SUPPORTED_CHAINS = ['Solana', 'Ethereum', 'Polygon', 'Base', 'Arbitrum', 'Bitcoin'];
+const SUPPORTED_CHAINS = ['Solana', 'Ethereum', 'Polygon', 'Base', 'Arbitrum', 'Bitcoin', 'Avalanche', 'Optimism', 'BNB', 'Linea', 'Sei', 'Tron', 'Celo'];
 
 // ---------------------------------------------------------------------------
 // Message types for the trading chat

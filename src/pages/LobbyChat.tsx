@@ -94,19 +94,19 @@ function MeetingBlock({ meeting }: { meeting: { question: string; responses: Arr
   return (
     <div style={{
       margin: '16px 0', borderRadius: 14, overflow: 'hidden',
-      border: '1px solid rgba(251,191,36,0.3)',
-      background: 'rgba(251,191,36,0.04)',
+      border: '1px solid rgba(139,92,246,0.3)',
+      background: 'rgba(139,92,246,0.04)',
     }}>
       <div style={{
         padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'rgba(251,191,36,0.08)', borderBottom: expanded ? '1px solid rgba(251,191,36,0.2)' : 'none',
+        background: 'rgba(139,92,246,0.08)', borderBottom: expanded ? '1px solid rgba(139,92,246,0.2)' : 'none',
         cursor: 'pointer',
       }} onClick={() => setExpanded(!expanded)}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Users style={{ width: 14, height: 14, color: '#fbbf24' }} />
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>Team Meeting</span>
+          <Users style={{ width: 14, height: 14, color: '#a855f7' }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#a855f7' }}>Team Meeting</span>
           {meeting.status === 'running' && (
-            <Loader2 style={{ width: 12, height: 12, color: '#fbbf24', animation: 'spin 1s linear infinite' }} />
+            <Loader2 style={{ width: 12, height: 12, color: '#a855f7', animation: 'spin 1s linear infinite' }} />
           )}
         </div>
         <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
@@ -376,8 +376,8 @@ export function LobbyChat() {
             {teamMode && (
               <div style={{
                 padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
-                background: 'rgba(251,191,36,0.15)', color: '#fbbf24',
-                border: '1px solid rgba(251,191,36,0.3)',
+                background: 'rgba(139,92,246,0.15)', color: '#a855f7',
+                border: '1px solid rgba(139,92,246,0.3)',
               }}>
                 TEAM
               </div>
@@ -471,9 +471,9 @@ export function LobbyChat() {
                   title="All agents respond to your message in order"
                   style={{
                     padding: '5px 8px', borderRadius: 8, fontSize: 10, fontWeight: 700,
-                    background: teamMode ? 'rgba(251,191,36,0.2)' : 'transparent',
-                    color: teamMode ? '#fbbf24' : 'hsl(var(--muted-foreground))',
-                    border: teamMode ? '1px solid rgba(251,191,36,0.4)' : '1px solid hsl(var(--border))',
+                    background: teamMode ? 'rgba(139,92,246,0.2)' : 'transparent',
+                    color: teamMode ? '#a855f7' : 'hsl(var(--muted-foreground))',
+                    border: teamMode ? '1px solid rgba(139,92,246,0.4)' : '1px solid hsl(var(--border))',
                     cursor: 'pointer', whiteSpace: 'nowrap',
                   }}>
                   Team

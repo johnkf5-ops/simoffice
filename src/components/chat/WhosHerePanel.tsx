@@ -43,7 +43,7 @@ export function WhosHerePanel({ room, targetAgentId, onTargetAgent }: WhosHerePa
         }}>
           <div style={{
             width: 24, height: 24, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #f97316, #fbbf24)',
+            background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0,
           }}>
