@@ -614,7 +614,7 @@ export function OllamaSetupWizard({ onComplete, onCancel }: OllamaSetupWizardPro
               Your computer doesn't have enough memory to run a local AI brain comfortably.
               You can still connect to cloud AI providers for a great experience.
             </div>
-            <button onClick={onCancel} style={primaryBtn}>Choose a cloud provider</button>
+            <button onClick={onCancel} style={primaryBtn}>OK</button>
           </>
         )}
 

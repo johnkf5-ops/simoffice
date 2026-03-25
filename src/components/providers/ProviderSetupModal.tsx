@@ -30,6 +30,7 @@ export const FRIENDLY_NAMES: Partial<Record<ProviderType, { name: string; brain:
   'minimax-portal': { name: 'MiniMax', brain: 'MiniMax', description: 'MiniMax AI (Global)', emoji: '\u{2601}\uFE0F' },
   'minimax-portal-cn': { name: 'MiniMax CN', brain: 'MiniMax', description: 'MiniMax AI (China)', emoji: '\u{2601}\uFE0F' },
   'qwen-portal': { name: 'Qwen', brain: 'Qwen', description: 'Alibaba Cloud AI models', emoji: '\u{2601}\uFE0F' },
+  xai: { name: 'xAI', brain: 'Grok', description: 'Grok AI models from xAI', emoji: '\u{2716}\uFE0F' },
   custom: { name: 'Custom', brain: 'Custom AI', description: 'Connect any OpenAI-compatible service', emoji: '\u{2699}\uFE0F' },
 };
 
@@ -160,7 +161,7 @@ export function ProviderSetupModal({ providerId, onSave, onClose }: ProviderSetu
     return (
       <OllamaSetupWizard
         onComplete={handleOllamaComplete}
-        onCancel={() => setShowOllamaWizard(false)}
+        onCancel={onClose}
       />
     );
   }

@@ -43,12 +43,20 @@ export function LobbyAISetup() {
   const defaultAccount = accounts.find((a) => a.id === defaultAccountId) || accounts.find((a) => a.isDefault) || accounts[0];
   const defaultFriendly = defaultAccount ? FRIENDLY_NAMES[defaultAccount.vendorId] : undefined;
 
-  // Build grid of available provider types with status
+  // Popular providers shown first with badge
+  const POPULAR_PROVIDERS = new Set(['anthropic', 'openai', 'google', 'openrouter', 'xai']);
+
+  // Build grid of available provider types with status, popular first
   const providerGrid = PROVIDER_TYPE_INFO.map((info) => {
     const friendly = FRIENDLY_NAMES[info.id];
     const configured = accounts.filter((a) => a.vendorId === info.id);
     const isActive = configured.some((a) => a.id === defaultAccountId || a.isDefault);
-    return { info, friendly, configured, isActive };
+    const isPopular = POPULAR_PROVIDERS.has(info.id);
+    return { info, friendly, configured, isActive, isPopular };
+  }).sort((a, b) => {
+    if (a.isPopular && !b.isPopular) return -1;
+    if (!a.isPopular && b.isPopular) return 1;
+    return 0;
   });
 
   return (
@@ -369,7 +377,7 @@ export function LobbyAISetup() {
               Connect a cloud AI service with your API key.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-              {providerGrid.filter(({ info }) => info.id !== 'ollama').map(({ info, friendly, configured, isActive }) => {
+              {providerGrid.filter(({ info }) => info.id !== 'ollama').map(({ info, friendly, configured, isActive, isPopular }) => {
                 const hasAccount = configured.length > 0;
                 const iconUrl = getProviderIconUrl(info.id);
                 return (
@@ -380,6 +388,7 @@ export function LobbyAISetup() {
                       borderRadius: 12,
                       padding: 16,
                       transition: 'all 0.2s',
+                      position: 'relative',
                     }}
                     onMouseEnter={(e) => {
                       if (!hasAccount) {
@@ -394,6 +403,17 @@ export function LobbyAISetup() {
                       }
                     }}
                   >
+                    {isPopular && (
+                      <div style={{
+                        position: 'absolute', top: 8, right: 8,
+                        padding: '2px 8px', borderRadius: 6,
+                        background: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+                        color: 'white', fontSize: 9, fontWeight: 800,
+                        letterSpacing: '0.05em', textTransform: 'uppercase',
+                      }}>
+                        Popular
+                      </div>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                       <div style={{
                         width: 36, height: 36, borderRadius: 8,
