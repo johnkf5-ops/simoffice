@@ -22,6 +22,17 @@ export interface RoomDefinition {
 
 export type RoomMode = 'chat' | 'meeting';
 
+export interface TeamMessage {
+  id: string;
+  roomId: string;
+  role: 'user' | 'assistant';
+  agentId?: string;
+  agentName?: string;
+  text: string;
+  timestamp: number;
+  roundId: string;
+}
+
 export interface MeetingResponse {
   agentId: string;
   agentName: string;
@@ -52,6 +63,13 @@ interface RoomsState {
   meetingInProgress: MeetingRound | null;
   meetings: MeetingRound[];           // completed meetings for history
 
+  // Team mode
+  teamMode: boolean;
+  teamMessages: TeamMessage[];
+  teamRoundInProgress: boolean;
+  currentRoundAgentIndex: number;
+  currentRoundAgentId: string | null;
+
   // Actions
   createRoomFromCareer: (career: CareerTemplate) => RoomDefinition;
   createCustomRoom: (name: string, icon: string, agentIds: string[]) => RoomDefinition;
@@ -63,6 +81,10 @@ interface RoomsState {
   setMeeting: (meeting: MeetingRound | null) => void;
   addCompletedMeeting: (meeting: MeetingRound) => void;
   updateRoomAgentIds: (roomId: string, agentIds: string[]) => void;
+  setTeamMode: (on: boolean) => void;
+  addTeamMessage: (msg: TeamMessage) => void;
+  setTeamRoundStatus: (inProgress: boolean, agentIndex?: number, agentId?: string | null) => void;
+  clearTeamMessages: (roomId: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +108,11 @@ export const useRoomsStore = create<RoomsState>()(
       mode: 'chat',
       meetingInProgress: null,
       meetings: [],
+      teamMode: false,
+      teamMessages: [],
+      teamRoundInProgress: false,
+      currentRoundAgentIndex: 0,
+      currentRoundAgentId: null,
 
       createRoomFromCareer: (career) => {
         const existing = get().rooms.find(r => r.careerId === career.id);
@@ -158,6 +185,22 @@ export const useRoomsStore = create<RoomsState>()(
       updateRoomAgentIds: (roomId, agentIds) => {
         set((s) => ({
           rooms: s.rooms.map(r => r.id === roomId ? { ...r, agentIds } : r),
+        }));
+      },
+
+      setTeamMode: (on) => set({ teamMode: on }),
+
+      addTeamMessage: (msg) => {
+        set((s) => ({ teamMessages: [...s.teamMessages, msg] }));
+      },
+
+      setTeamRoundStatus: (inProgress, agentIndex = 0, agentId = null) => {
+        set({ teamRoundInProgress: inProgress, currentRoundAgentIndex: agentIndex, currentRoundAgentId: agentId });
+      },
+
+      clearTeamMessages: (roomId) => {
+        set((s) => ({
+          teamMessages: s.teamMessages.filter(m => m.roomId !== roomId),
         }));
       },
     }),

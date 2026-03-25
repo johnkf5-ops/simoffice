@@ -93,17 +93,16 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
     }}>
       {/* Header */}
       {hideBackButton ? (
-        <div style={{ textAlign: 'center', padding: '16px 12px' }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: 'white', fontFamily: 'Space Grotesk, sans-serif' }}>
-            Sim<span style={{ background: 'linear-gradient(135deg, #f97316, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Office</span>
-          </div>
+        <div style={{ textAlign: 'center', padding: '8px 12px' }}>
+          <img src="/simoffice-logo.png" alt="SimOffice" style={{ height: 32, objectFit: 'contain' }} />
         </div>
       ) : (
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ padding: '8px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={() => navigate('/')}
-            style={{ fontSize: 16, fontWeight: 900, color: 'white', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>
-            ← <span style={{ background: 'linear-gradient(135deg, #f97316, #fbbf24)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Lobby</span>
+            style={{ fontSize: 14, fontWeight: 700, color: 'rgba(191,219,254,0.7)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>
+            ←
           </button>
+          <img src="/simoffice-logo.png" alt="SimOffice" style={{ height: 28, objectFit: 'contain', cursor: 'pointer' }} onClick={() => navigate('/')} />
         </div>
       )}
 

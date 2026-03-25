@@ -9,13 +9,14 @@ import { useChatStore, type RawMessage } from '@/stores/chat';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
 import { useProviderStore } from '@/stores/providers';
-import { useRoomsStore, type MeetingRound } from '@/stores/rooms';
+import { useRoomsStore, type MeetingRound, type TeamMessage } from '@/stores/rooms';
 import { extractText } from '@/lib/message-utils';
 import { CAREERS } from '@/lib/career-templates';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
 import { WhosHerePanel } from '@/components/chat/WhosHerePanel';
 import { AgentSelector } from '@/components/chat/AgentSelector';
 import { runMeeting } from '@/lib/meeting-sequencer';
+import { runTeamRound } from '@/lib/meeting-sequencer';
 
 // ---------------------------------------------------------------------------
 // Message Bubble — now shows agent name in room mode
@@ -151,12 +152,20 @@ export function LobbyChat() {
   const addCompletedMeeting = useRoomsStore((s) => s.addCompletedMeeting);
   const meetings = useRoomsStore((s) => s.meetings);
 
+  // Team mode
+  const teamMode = useRoomsStore((s) => s.teamMode);
+  const setTeamMode = useRoomsStore((s) => s.setTeamMode);
+  const teamMessages = useRoomsStore((s) => s.teamMessages);
+  const addTeamMessage = useRoomsStore((s) => s.addTeamMessage);
+  const teamRoundInProgress = useRoomsStore((s) => s.teamRoundInProgress);
+  const setTeamRoundStatus = useRoomsStore((s) => s.setTeamRoundStatus);
+  const currentRoundAgentId = useRoomsStore((s) => s.currentRoundAgentId);
+
   // Get active room — will re-render when activeRoomId or rooms changes
   const activeRoom = activeRoomId ? rooms.find(r => r.id === activeRoomId) ?? null : null;
   const isRoomMode = !!activeRoom;
 
   const [input, setInput] = useState('');
-  const [meetingMode, setMeetingMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
@@ -208,15 +217,60 @@ export function LobbyChat() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, meetingInProgress]);
+  }, [messages, meetingInProgress, teamMessages, teamRoundInProgress]);
 
   // ── Send handler ──
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending || teamRoundInProgress) return;
+
+    setInput('');
+
+    // Team mode — broadcast to all agents in room via sequencer
+    if (isRoomMode && teamMode && activeRoom) {
+      const roundId = `round-${Date.now()}`;
+
+      // Add user message to team feed
+      addTeamMessage({
+        id: `user-${Date.now()}`,
+        roomId: activeRoom.id,
+        role: 'user',
+        text: trimmed,
+        timestamp: Date.now(),
+        roundId,
+      });
+
+      setTeamRoundStatus(true, 0, activeRoom.agentIds[0] || null);
+
+      await runTeamRound(
+        activeRoom.id,
+        trimmed,
+        activeRoom.agentIds,
+        // onAgentResponse — add each response as a chat bubble
+        (agentId, agentName, text) => {
+          addTeamMessage({
+            id: `agent-${agentId}-${Date.now()}`,
+            roomId: activeRoom.id,
+            role: 'assistant',
+            agentId,
+            agentName,
+            text,
+            timestamp: Date.now(),
+            roundId,
+          });
+        },
+        // onProgress — update which agent is "typing"
+        (agentIndex, agentId) => {
+          setTeamRoundStatus(true, agentIndex, agentId);
+        },
+      );
+
+      setTeamRoundStatus(false);
+      return;
+    }
 
     if (isRoomMode) {
-      // Parse @mention from input
+      // Single-agent mode: parse @mention or use selected target
       const mentionMatch = trimmed.match(/^@([\w-]+)\s+/);
       let resolvedTarget = targetAgentId;
       let cleanText = trimmed;
@@ -234,67 +288,40 @@ export function LobbyChat() {
       }
 
       if (resolvedTarget) {
-        // Send to targeted agent
         sendMessage(cleanText, undefined, resolvedTarget);
       } else {
-        // No target — send to first agent in room as default
         sendMessage(cleanText, undefined, activeRoom!.agentIds[0]);
       }
     } else {
-      // DM mode — existing behavior
+      // DM mode
       sendMessage(trimmed);
     }
-
-    setInput('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (meetingMode) {
-        handleStartMeeting();
-      } else {
-        handleSend();
-      }
-    }
-  };
-
-  // ── Meeting handler ──
-  const handleStartMeeting = async () => {
-    const trimmed = input.trim();
-    if (!trimmed || !activeRoom || meetingInProgress) return;
-
-    setInput('');
-    setMeetingMode(false);
-
-    const onUpdate = (round: MeetingRound) => {
-      setMeeting(round);
-    };
-
-    const completed = await runMeeting(
-      activeRoom.id,
-      trimmed,
-      activeRoom.agentIds,
-      onUpdate,
-    );
-
-    if (completed.status === 'complete') {
-      addCompletedMeeting(completed);
+      handleSend();
     }
   };
 
   // Current state
   const currentAgent = agents.find(a => a.id === currentAgentId);
   const displayedMessages = dedupeMessages(messages);
-  const isEmpty = displayedMessages.length === 0 && !sending;
   const targetAgent = agents.find(a => a.id === targetAgentId);
+  const typingAgent = agents.find(a => a.id === currentRoundAgentId);
+
+  // Team messages for this room
+  const roomTeamMessages = activeRoom ? teamMessages.filter(m => m.roomId === activeRoom.id) : [];
+  const showTeamFeed = isRoomMode && teamMode && roomTeamMessages.length > 0;
+  const isEmpty = showTeamFeed ? false : (displayedMessages.length === 0 && !sending && !teamRoundInProgress);
 
   // Completed meetings for this room
   const roomMeetings = activeRoom ? meetings.filter(m => m.roomId === activeRoom.id) : [];
 
   // Placeholder text
-  const placeholderText = meetingMode
-    ? 'Ask your team a question...'
+  const placeholderText = (isRoomMode && teamMode)
+    ? 'Ask your team...'
     : isRoomMode
       ? (targetAgent ? `Message @${targetAgent.name}...` : `Message ${activeRoom?.name}...`)
       : (isOnline ? `Message ${currentAgent?.name || 'your assistant'}...` : 'Engine offline');
@@ -312,12 +339,21 @@ export function LobbyChat() {
         {isRoomMode ? (
           <div style={{ padding: '12px 32px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 20 }}>{activeRoom!.icon}</span>
-            <div>
+            <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{activeRoom!.name}</div>
               <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-                {activeRoom!.agentIds.length} agents
+                {activeRoom!.agentIds.length} agents{teamMode ? ' · Team Mode' : ''}
               </div>
             </div>
+            {teamMode && (
+              <div style={{
+                padding: '3px 10px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+                background: 'rgba(251,191,36,0.15)', color: '#fbbf24',
+                border: '1px solid rgba(251,191,36,0.3)',
+              }}>
+                TEAM
+              </div>
+            )}
           </div>
         ) : currentAgent ? (
           <div style={{ padding: '12px 32px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -340,18 +376,27 @@ export function LobbyChat() {
                 {isRoomMode ? `Welcome to ${activeRoom!.name}` : currentAgent ? `Chat with ${currentAgent.name}` : 'Start a conversation'}
               </div>
               <div style={{ fontSize: 14, color: 'hsl(var(--muted-foreground))' }}>
-                {isRoomMode ? 'Use the @agent selector to talk to specific agents' : 'Type a message below'}
+                {isRoomMode && teamMode ? 'Team mode is ON — your messages go to all agents' : isRoomMode ? 'Use the @agent selector to talk to specific agents' : 'Type a message below'}
               </div>
             </div>
           ) : (
             <>
-              {/* Completed meetings */}
+              {/* Completed meetings (legacy) */}
               {roomMeetings.map((m) => (
                 <MeetingBlock key={m.id} meeting={m} />
               ))}
 
-              {/* Messages */}
-              {displayedMessages.map((msg, i) => (
+              {/* Team mode messages — flowing group conversation */}
+              {showTeamFeed && roomTeamMessages.map((tm) => (
+                <MessageBubble
+                  key={tm.id}
+                  message={{ role: tm.role, content: tm.text, id: tm.id, timestamp: tm.timestamp / 1000 }}
+                  agentName={tm.role === 'assistant' ? tm.agentName : undefined}
+                />
+              ))}
+
+              {/* Regular messages (DM or single-agent room mode) */}
+              {!showTeamFeed && displayedMessages.map((msg, i) => (
                 <MessageBubble
                   key={msg.id || `msg-${i}`}
                   message={msg}
@@ -359,17 +404,28 @@ export function LobbyChat() {
                 />
               ))}
 
-              {/* In-progress meeting */}
+              {/* In-progress meeting (legacy) */}
               {meetingInProgress && <MeetingBlock meeting={meetingInProgress} />}
 
-              {/* Typing indicator */}
-              {sending && (
+              {/* Team mode typing indicator — shows which agent is responding */}
+              {teamRoundInProgress && typingAgent && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  {isRoomMode && currentAgent && (
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                      {currentAgent.name?.charAt(0).toUpperCase() || 'A'}
-                    </div>
-                  )}
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, fontWeight: 700, color: 'white',
+                  }}>
+                    {typingAgent.name?.charAt(0).toUpperCase() || 'A'}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 600 }}>{typingAgent.name} is thinking...</div>
+                  <Loader2 style={{ width: 12, height: 12, animation: 'spin 1s linear infinite', color: '#a78bfa' }} />
+                </div>
+              )}
+
+              {/* Regular typing indicator */}
+              {sending && !teamRoundInProgress && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                   <div style={{ borderRadius: 16, padding: '12px 16px', background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderBottomLeftRadius: 4 }}>
                     <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite', color: 'hsl(var(--muted-foreground))' }} />
                   </div>
@@ -386,8 +442,8 @@ export function LobbyChat() {
             background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
             borderRadius: 16, padding: '8px 12px',
           }}>
-            {/* Agent selector — room mode only */}
-            {isRoomMode && (
+            {/* Agent selector — room mode, hidden in team mode */}
+            {isRoomMode && !teamMode && (
               <AgentSelector
                 agentIds={activeRoom!.agentIds}
                 selectedAgentId={targetAgentId}
@@ -395,12 +451,24 @@ export function LobbyChat() {
               />
             )}
 
+            {/* Team mode badge */}
+            {isRoomMode && teamMode && (
+              <div style={{
+                padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                background: 'rgba(251,191,36,0.15)', color: '#fbbf24',
+                border: '1px solid rgba(251,191,36,0.3)',
+                whiteSpace: 'nowrap',
+              }}>
+                TEAM
+              </div>
+            )}
+
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholderText}
-              disabled={!isOnline}
+              disabled={!isOnline || teamRoundInProgress}
               rows={1}
               style={{
                 flex: 1, resize: 'none', border: 'none', outline: 'none', background: 'transparent',
@@ -409,33 +477,38 @@ export function LobbyChat() {
               }}
             />
 
-            {/* Meeting button — room mode only */}
+            {/* Team mode toggle — room mode only */}
             {isRoomMode && (
               <button
-                onClick={() => setMeetingMode(!meetingMode)}
-                title={meetingMode ? 'Cancel meeting' : 'Start a team meeting'}
+                onClick={() => setTeamMode(!teamMode)}
+                title={teamMode ? 'Team mode ON — click to switch to @mention mode' : 'Click for team mode — all agents respond'}
                 style={{
                   width: 32, height: 32, borderRadius: 8,
-                  border: meetingMode ? '1px solid rgba(251,191,36,0.5)' : '1px solid hsl(var(--border))',
-                  background: meetingMode ? 'rgba(251,191,36,0.15)' : 'transparent',
+                  border: teamMode ? '1px solid rgba(251,191,36,0.5)' : '1px solid hsl(var(--border))',
+                  background: teamMode ? 'rgba(251,191,36,0.15)' : 'transparent',
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: meetingMode ? '#fbbf24' : 'hsl(var(--muted-foreground))',
+                  color: teamMode ? '#fbbf24' : 'hsl(var(--muted-foreground))',
                 }}
-                onMouseEnter={(e) => { if (!meetingMode) { e.currentTarget.style.background = 'rgba(251,191,36,0.1)'; e.currentTarget.style.color = '#fbbf24'; } }}
-                onMouseLeave={(e) => { if (!meetingMode) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'hsl(var(--muted-foreground))'; } }}>
+                onMouseEnter={(e) => { if (!teamMode) { e.currentTarget.style.background = 'rgba(251,191,36,0.1)'; e.currentTarget.style.color = '#fbbf24'; } }}
+                onMouseLeave={(e) => { if (!teamMode) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'hsl(var(--muted-foreground))'; } }}>
                 <Users style={{ width: 14, height: 14 }} />
               </button>
             )}
 
             {/* Send / Stop */}
-            {sending ? (
+            {teamRoundInProgress ? (
+              <button onClick={() => setTeamRoundStatus(false)}
+                style={{ width: 36, height: 36, borderRadius: 12, background: '#ef4444', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 12, height: 12, background: 'white', borderRadius: 2 }} />
+              </button>
+            ) : sending ? (
               <button onClick={() => abortRun()}
                 style={{ width: 36, height: 36, borderRadius: 12, background: '#ef4444', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <div style={{ width: 12, height: 12, background: 'white', borderRadius: 2 }} />
               </button>
             ) : (
-              <button onClick={meetingMode ? handleStartMeeting : handleSend} disabled={!input.trim() || !isOnline}
+              <button onClick={handleSend} disabled={!input.trim() || !isOnline}
                 style={{
                   width: 36, height: 36, borderRadius: 12, border: 'none',
                   cursor: input.trim() && isOnline ? 'pointer' : 'default',

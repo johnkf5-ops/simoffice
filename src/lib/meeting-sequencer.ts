@@ -30,7 +30,7 @@ function resolveSessionKey(agentId: string): string {
   return agent?.mainSessionKey || `agent:${agentId}:main`;
 }
 
-function buildMeetingPrompt(question: string, priorResponses: MeetingResponse[]): string {
+function buildMeetingPrompt(question: string, priorResponses: Array<{ agentName: string; text: string }>): string {
   let prompt = `[TEAM MEETING]\n\nQuestion from the user: "${question}"`;
 
   if (priorResponses.length > 0) {
@@ -170,4 +170,63 @@ export async function runMeeting(
   round.status = 'complete';
   onUpdate({ ...round });
   return round;
+}
+
+// ---------------------------------------------------------------------------
+// Team Mode — multi-round sequencer for flowing group conversations
+// ---------------------------------------------------------------------------
+
+/**
+ * Run a team round — sends the user's question to all agents in sequence.
+ * Each agent sees prior agents' responses as context.
+ * Responses are pushed one at a time via onAgentResponse (for inline chat bubbles).
+ * Human-gated: only runs when called, agents cannot trigger each other.
+ */
+export async function runTeamRound(
+  roomId: string,
+  question: string,
+  agentIds: string[],
+  onAgentResponse: (agentId: string, agentName: string, text: string) => void,
+  onProgress: (agentIndex: number, agentId: string) => void,
+): Promise<void> {
+  const agents = useAgentsStore.getState().agents;
+  const responses: Array<{ agentName: string; text: string }> = [];
+
+  for (let i = 0; i < agentIds.length; i++) {
+    // Check if aborted
+    if (!useRoomsStore.getState().teamRoundInProgress) break;
+
+    const agentId = agentIds[i];
+    const agent = agents.find(a => a.id === agentId);
+    const agentName = agent?.name || agentId;
+    const sessionKey = resolveSessionKey(agentId);
+
+    onProgress(i, agentId);
+
+    const prompt = buildMeetingPrompt(question, responses);
+    const sendTime = Date.now();
+
+    try {
+      const rpc = useGatewayStore.getState().rpc;
+      if (!rpc) throw new Error('Gateway not connected');
+
+      await rpc('chat.send', {
+        sessionKey,
+        message: prompt,
+        deliver: false,
+        idempotencyKey: `team-${roomId}-${agentId}-${Date.now()}`,
+      }, SEND_TIMEOUT_MS);
+
+      const responseText = await fetchLatestAssistantMessage(sessionKey, sendTime);
+
+      if (responseText && responseText.toLowerCase().trim() !== 'pass') {
+        responses.push({ agentName, text: responseText });
+        onAgentResponse(agentId, agentName, responseText);
+      }
+    } catch (err) {
+      const errorText = `(failed to respond: ${err instanceof Error ? err.message : 'unknown error'})`;
+      responses.push({ agentName, text: errorText });
+      onAgentResponse(agentId, agentName, errorText);
+    }
+  }
 }
