@@ -30,6 +30,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
   const setActiveRoom = useRoomsStore((s) => s.setActiveRoom);
   const createCustomRoom = useRoomsStore((s) => s.createCustomRoom);
   const deleteRoom = useRoomsStore((s) => s.deleteRoom);
+  const renameRoom = useRoomsStore((s) => s.renameRoom);
 
   // Agents
   const agents = useAgentsStore((s) => s.agents);
@@ -63,6 +64,10 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
   // Room creation state
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [newRoomAgents, setNewRoomAgents] = useState<Set<string>>(new Set());
+
+  // Inline rename state
+  const [renamingId, setRenamingId] = useState<string | null>(null);  // room ID or session key
+  const [renameValue, setRenameValue] = useState('');
 
   const isOnChat = currentPage === '/chat';
 
@@ -125,6 +130,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
               const isActive = isOnChat && room.id === activeRoomId;
               return (
                 <button key={room.id} onClick={() => handleRoomClick(room.id)}
+                  onDoubleClick={(e) => { e.stopPropagation(); setRenamingId(room.id); setRenameValue(room.name.replace(/^#/, '')); }}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8,
                     border: 'none', background: isActive ? 'rgba(251,191,36,0.15)' : 'transparent',
@@ -134,9 +140,24 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                   onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? 'rgba(251,191,36,0.15)' : 'transparent'; }}>
                   <span style={{ fontSize: 14 }}>{room.icon}</span>
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, color: isActive ? '#fbbf24' : 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {room.name}
-                    </div>
+                    {renamingId === room.id ? (
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onBlur={() => { if (renameValue.trim()) renameRoom(room.id, renameValue.trim()); setRenamingId(null); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { if (renameValue.trim()) renameRoom(room.id, renameValue.trim()); setRenamingId(null); }
+                          if (e.key === 'Escape') setRenamingId(null);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ width: '100%', fontSize: 12, fontWeight: 600, color: '#fbbf24', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(251,191,36,0.5)', borderRadius: 4, padding: '1px 4px', outline: 'none' }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, color: isActive ? '#fbbf24' : 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {room.name}
+                      </div>
+                    )}
                     <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>
                       {room.agentIds.length} agents
                     </div>
@@ -265,11 +286,27 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
               const isActive = isOnChat && s.key === currentSessionKey;
               return (
                 <button key={s.key} onClick={() => { setActiveRoom(null); switchSession(s.key); if (!isOnChat) navigate('/chat'); }}
+                  onDoubleClick={(e) => { e.stopPropagation(); setRenamingId(s.key); setRenameValue(label); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 8, border: 'none', background: isActive ? 'rgba(255,255,255,0.15)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
                   onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.15)' : 'transparent'; }}>
                   <span style={{ fontSize: 10 }}>💬</span>
-                  <span style={{ fontSize: 10, color: isActive ? 'white' : 'rgba(191,219,254,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 600 : 400, flex: 1 }}>{label}</span>
+                  {renamingId === s.key ? (
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onBlur={() => { if (renameValue.trim()) useChatStore.setState((st) => ({ sessionLabels: { ...st.sessionLabels, [s.key]: renameValue.trim() } })); setRenamingId(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { if (renameValue.trim()) useChatStore.setState((st) => ({ sessionLabels: { ...st.sessionLabels, [s.key]: renameValue.trim() } })); setRenamingId(null); }
+                        if (e.key === 'Escape') setRenamingId(null);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ flex: 1, fontSize: 10, fontWeight: 600, color: 'white', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(147,197,253,0.5)', borderRadius: 4, padding: '1px 4px', outline: 'none', minWidth: 0 }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 10, color: isActive ? 'white' : 'rgba(191,219,254,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 600 : 400, flex: 1 }}>{label}</span>
+                  )}
                   <span
                     onClick={(e) => { e.stopPropagation(); if (confirm('Delete this conversation?')) deleteSession(s.key); }}
                     style={{

@@ -81,6 +81,7 @@ interface RoomsState {
   setMeeting: (meeting: MeetingRound | null) => void;
   addCompletedMeeting: (meeting: MeetingRound) => void;
   updateRoomAgentIds: (roomId: string, agentIds: string[]) => void;
+  renameRoom: (roomId: string, name: string) => void;
   setTeamMode: (on: boolean) => void;
   addTeamMessage: (msg: TeamMessage) => void;
   setTeamRoundStatus: (inProgress: boolean, agentIndex?: number, agentId?: string | null) => void;
@@ -185,6 +186,12 @@ export const useRoomsStore = create<RoomsState>()(
       updateRoomAgentIds: (roomId, agentIds) => {
         set((s) => ({
           rooms: s.rooms.map(r => r.id === roomId ? { ...r, agentIds } : r),
+        }));
+      },
+
+      renameRoom: (roomId, name) => {
+        set((s) => ({
+          rooms: s.rooms.map(r => r.id === roomId ? { ...r, name: name.startsWith('#') ? name : `#${name}` } : r),
         }));
       },
 

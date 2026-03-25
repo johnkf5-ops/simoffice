@@ -155,6 +155,7 @@ export function LobbyChat() {
 
   const activeRoomId = useRoomsStore((s) => s.activeRoomId);
   const rooms = useRoomsStore((s) => s.rooms);
+  const renameRoom = useRoomsStore((s) => s.renameRoom);
   const targetAgentId = useRoomsStore((s) => s.targetAgentId);
   const setTargetAgent = useRoomsStore((s) => s.setTargetAgent);
   const meetingInProgress = useRoomsStore((s) => s.meetingInProgress);
@@ -176,6 +177,8 @@ export function LobbyChat() {
   const isRoomMode = !!activeRoom;
 
   const [input, setInput] = useState('');
+  const [editingHeader, setEditingHeader] = useState(false);
+  const [headerName, setHeaderName] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
@@ -345,7 +348,27 @@ export function LobbyChat() {
           <div style={{ padding: '12px 32px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 20 }}>{activeRoom!.icon}</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{activeRoom!.name}</div>
+              {editingHeader ? (
+                <input
+                  autoFocus
+                  value={headerName}
+                  onChange={(e) => setHeaderName(e.target.value)}
+                  onBlur={() => { if (headerName.trim()) renameRoom(activeRoom!.id, headerName.trim()); setEditingHeader(false); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { if (headerName.trim()) renameRoom(activeRoom!.id, headerName.trim()); setEditingHeader(false); }
+                    if (e.key === 'Escape') setEditingHeader(false);
+                  }}
+                  style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))', background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))', borderRadius: 6, padding: '2px 8px', outline: 'none', width: '100%' }}
+                />
+              ) : (
+                <div
+                  onClick={() => { setHeaderName(activeRoom!.name.replace(/^#/, '')); setEditingHeader(true); }}
+                  style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))', cursor: 'pointer' }}
+                  title="Click to rename"
+                >
+                  {activeRoom!.name}
+                </div>
+              )}
               <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
                 {activeRoom!.agentIds.length} agents{teamMode ? ' · Team Mode' : ''}
               </div>
