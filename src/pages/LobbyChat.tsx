@@ -61,14 +61,23 @@ function MessageBubble({ message, agentName }: { message: RawMessage; agentName?
   );
 }
 
-/** Deduplicate messages — by ID only (no text dedup; different agents may give the same answer) */
+/** Deduplicate messages — by ID + consecutive identical assistant text (streaming artifact) */
 function dedupeMessages(messages: RawMessage[]): RawMessage[] {
   const seenIds = new Set<string>();
   const result: RawMessage[] = [];
+  let lastAssistantText = '';
   for (const msg of messages) {
     if (msg.role === 'toolresult') continue;
     if (msg.id && seenIds.has(msg.id)) continue;
     if (msg.id) seenIds.add(msg.id);
+    // Skip consecutive identical assistant messages (streaming + history poll artifact)
+    if (msg.role === 'assistant') {
+      const text = extractText(msg);
+      if (text && text === lastAssistantText) continue;
+      lastAssistantText = text || '';
+    } else {
+      lastAssistantText = '';
+    }
     result.push(msg);
   }
   return result;
