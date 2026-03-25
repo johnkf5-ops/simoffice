@@ -1,5 +1,5 @@
 {
-  "total": 203,
+  "total": 207,
   "agents": [
     {
       "id": "churn-predictor",
@@ -3504,6 +3504,82 @@
       ],
       "popular": true,
       "quote": "Estimate #247 sent. 3 pending response. Win rate this month: 62%."
+    },
+    {
+      "id": "therapy-intake",
+      "category": "healthcare",
+      "name": "Therapy Intake",
+      "role": "Therapy Client Intake Agent",
+      "path": "agents/healthcare/therapy-intake/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Collects new client information: presenting concerns, therapy history, goals, insurance, consent forms, and emergency contacts",
+      "emoji": "📝",
+      "tags": [
+        "therapy",
+        "intake",
+        "mental health",
+        "counseling",
+        "forms"
+      ],
+      "popular": true,
+      "quote": "New client intake complete. Presenting concern: anxiety. Goals documented. Consent signed."
+    },
+    {
+      "id": "therapy-notes",
+      "category": "healthcare",
+      "name": "Therapy Notes",
+      "role": "Therapy Session Notes Agent",
+      "path": "agents/healthcare/therapy-notes/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Generates SOAP, DAP, or BIRP therapy session notes from session summaries with proper CPT codes and HIPAA compliance",
+      "emoji": "🗒️",
+      "tags": [
+        "therapy",
+        "SOAP",
+        "DAP",
+        "session notes",
+        "HIPAA"
+      ],
+      "popular": true,
+      "quote": "Session note drafted (DAP format). CPT 90837. Ready for your signature."
+    },
+    {
+      "id": "superbill",
+      "category": "healthcare",
+      "name": "Superbill",
+      "role": "Superbill and Insurance Billing Agent",
+      "path": "agents/healthcare/superbill/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Generates superbills with CPT codes, diagnosis codes, and session details for clients to submit to their insurance",
+      "emoji": "🧾",
+      "tags": [
+        "therapy",
+        "superbill",
+        "billing",
+        "CPT codes",
+        "insurance"
+      ],
+      "popular": false,
+      "quote": "Superbill generated: CPT 90834, ICD-10 F41.1. Sent to client for reimbursement."
+    },
+    {
+      "id": "client-checkin",
+      "category": "healthcare",
+      "name": "Client Check-In",
+      "role": "Between-Session Client Check-In Agent",
+      "path": "agents/healthcare/client-checkin/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Sends brief check-in messages between therapy sessions, tracks mood and progress, and flags concerning responses",
+      "emoji": "💛",
+      "tags": [
+        "therapy",
+        "check-in",
+        "mood tracking",
+        "wellness",
+        "retention"
+      ],
+      "popular": true,
+      "quote": "Check-ins sent to 12 clients. 3 reported low mood. Flagged for your review."
     }
   ]
 }

@@ -178,10 +178,21 @@ export const CAREERS: CareerTemplate[] = [
     ],
   },
   {
+    id: 'therapist',
+    label: 'Therapist / Counselor',
+    icon: '🧠',
+    description: 'Intake, session notes, billing, client check-ins',
+    recommended: [
+      'therapy-intake', 'therapy-notes', 'superbill', 'client-checkin',
+      'appointment-booker', 'review-asker', 'local-seo', 'personal-crm',
+      'invoice-manager', 'journal-prompter',
+    ],
+  },
+  {
     id: 'custom',
     label: 'Custom / Other',
     icon: '⚙️',
-    description: 'Browse all 204 agents and pick your own team',
+    description: 'Browse all 207 agents and pick your own team',
     recommended: [],
   },
 ];
