@@ -9,7 +9,7 @@ import { Toolbar } from './Toolbar';
 
 export function MainLayout() {
   const location = useLocation();
-  const lobbyPages = ['/', '/chat', '/assistants', '/connections', '/powers', '/automations', '/ai-setup', '/settings'];
+  const lobbyPages = ['/', '/chat', '/assistants', '/connections', '/powers', '/automations', '/ai-setup', '/settings', '/crypto'];
   const isFullScreen = lobbyPages.includes(location.pathname);
 
   return (

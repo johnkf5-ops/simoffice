@@ -72,24 +72,34 @@ export function LobbyAssistants() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleAddFromCatalog = async (agent: { id: string; name: string }) => {
-    const name = agent.name || agent.id.replace(/-/g, ' ');
-    const displayName = name.charAt(0).toUpperCase() + name.slice(1);
-    try {
-      await createAgent(displayName);
-      // Find the newly created agent to get its actual ID
-      const updatedAgents = useAgentsStore.getState().agents;
-      const created = updatedAgents.find(a => a.name === displayName);
-      // Write SOUL.md template if available
-      const soul = soulTemplates[agent.id];
-      if (soul && created) {
-        await hostApiFetch(`/api/agents/${encodeURIComponent(created.id)}/soul`, {
-          method: 'PUT',
-          body: JSON.stringify({ content: soul }),
-        });
-      }
-      await fetchAgents();
-    } catch { /* handled by store */ }
+  // Queue to prevent concurrent agent creation race conditions
+  const addQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  const handleAddFromCatalog = (agent: { id: string; name: string }) => {
+    addQueueRef.current = addQueueRef.current.then(async () => {
+      const name = agent.name || agent.id.replace(/-/g, ' ');
+      const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+      try {
+        await createAgent(displayName);
+        await fetchAgents();
+        // Find the newly created agent by name
+        const created = useAgentsStore.getState().agents.find(a => a.name === displayName);
+        // Write SOUL.md — try local cache first, then fetch
+        let soul = soulTemplates[agent.id];
+        if (!soul) {
+          try {
+            const soulsData = await fetch('/agent-souls.json').then(r => r.json());
+            soul = soulsData[agent.id];
+          } catch { /* non-blocking */ }
+        }
+        if (soul && created) {
+          await hostApiFetch(`/api/agents/${encodeURIComponent(created.id)}/soul`, {
+            method: 'PUT',
+            body: JSON.stringify({ content: soul }),
+          });
+        }
+      } catch { /* handled by store */ }
+    });
   };
 
   const handleCreate = async () => {

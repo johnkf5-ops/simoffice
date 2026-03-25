@@ -21,6 +21,7 @@ import { LobbySettings } from './pages/LobbySettings';
 import { Onboarding } from './pages/Onboarding';
 import { WebGLTest } from './pages/WebGLTest';
 import { Office3D } from './pages/Office3D';
+import { CryptoPage } from './pages/CryptoPage';
 
 import { useSettingsStore } from './stores/settings';
 import { useGatewayStore } from './stores/gateway';
@@ -167,6 +168,7 @@ function App() {
             <Route path="/settings/*" element={<LobbySettings />} />
             <Route path="/webgl-test" element={<WebGLTest />} />
             <Route path="/office" element={<Office3D />} />
+            <Route path="/crypto" element={<CryptoPage />} />
           </Route>
         </Routes>
 
