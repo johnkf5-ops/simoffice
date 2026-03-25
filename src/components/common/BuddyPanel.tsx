@@ -93,11 +93,11 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
     }}>
       {/* Header */}
       {hideBackButton ? (
-        <div style={{ textAlign: 'center', padding: '6px 8px' }}>
+        <div style={{ textAlign: 'center', padding: '4px 8px' }}>
           <img src="/simoffice-logo.png" alt="SimOffice" style={{ width: 180, objectFit: 'contain' }} />
         </div>
       ) : (
-        <div style={{ padding: '6px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 2 }}>
           <button onClick={() => navigate('/')}
             style={{ fontSize: 14, fontWeight: 700, color: 'rgba(191,219,254,0.7)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif', flexShrink: 0 }}>
             ←
