@@ -160,13 +160,6 @@ export function Onboarding() {
         </div>
       )}
 
-      {/* Powered by MoonPay — top right corner */}
-      {step === 0 && (
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, calc(-50% - 33px))', zIndex: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 22, fontWeight: 700, color: '#000000', letterSpacing: '0.05em' }}>Powered by</span>
-          <img src="/moonpay-logo.png" alt="MoonPay" style={{ height: 30, objectFit: 'contain' }} />
-        </div>
-      )}
 
       <div style={{ width: '100%', maxWidth: step === 2 ? 960 : 560, padding: 32, position: 'relative', zIndex: 1, transition: 'max-width 0.3s' }}>
 
