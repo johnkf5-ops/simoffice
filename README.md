@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.2-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.2.3-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -25,8 +25,8 @@
 
 - **Free Local AI** — Run AI on your own Mac with Ollama. No account, no fees, fully private. Auto-installs and configures everything.
 - **3D Virtual Office** — Watch your AI agents work in a retro-style 3D office powered by Three.js/WebGL
-- **174 Agent Templates** — Browse a curated catalog of agents with personalities, emojis, tags, and popularity badges
-- **Career-Based Teams** — Pick your career and get a recommended AI team instantly
+- **207 Agent Templates** — Browse agents across 27 categories: sales, marketing, finance, legal, healthcare, insurance, restaurant, real estate, therapy, and more
+- **17 Career Templates** — Pick your career (Loan Officer, Therapist, Restaurant Owner, Contractor, etc.) and get a pre-built team instantly
 - **Multi-Provider AI** — Connect Claude, ChatGPT, Grok, Gemini, or run locally with Ollama
 - **Chat with Agents** — Talk to your team through an inline buddy-list chat
 - **Messaging Integrations** — Connect Discord, Telegram, WhatsApp, and iMessage with step-by-step wizards
@@ -61,6 +61,14 @@ pnpm run package:mac  # build DMG
 ```
 
 ## Changelog
+
+### v1.2.3
+- 207 agents across 27 categories (was 174 across 24)
+- 17 career templates (was 9) — new: Loan Officer, Insurance Agent, Restaurant Owner, Contractor, Therapist, Nonprofit, Property Management, Logistics
+- New categories: Insurance, Restaurant, Nonprofit, Therapy
+- New agents: mortgage rate watcher, loan pipeline, doc chaser, claims intake, menu manager, reservation agent, food cost tracker, therapy notes, superbill generator, client check-in, grant writer, donor manager, and more
+- All agent SOUL.md files trimmed 50% — faster loading, same quality
+- Fixed all broken career template references
 
 ### v1.2.2
 - Fixed update flow — Settings now shows Download/Install buttons (was broken since v1.0)
