@@ -412,21 +412,32 @@ export function LobbyChat() {
             background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
             borderRadius: 16, padding: '8px 12px',
           }}>
-            {/* Mode selector — team mode toggle + agent selector */}
+            {/* Room mode buttons — Team Meeting or @Mention */}
             {isRoomMode && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                 <button
-                  onClick={() => setTeamMode(!teamMode)}
+                  onClick={() => setTeamMode(true)}
+                  title="All agents respond to your message in order"
                   style={{
-                    padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
-                    background: teamMode ? 'rgba(251,191,36,0.15)' : 'rgba(59,130,246,0.1)',
-                    color: teamMode ? '#fbbf24' : '#3b82f6',
-                    border: teamMode ? '1px solid rgba(251,191,36,0.4)' : '1px solid rgba(59,130,246,0.3)',
+                    padding: '5px 8px', borderRadius: 8, fontSize: 10, fontWeight: 700,
+                    background: teamMode ? 'rgba(251,191,36,0.2)' : 'transparent',
+                    color: teamMode ? '#fbbf24' : 'hsl(var(--muted-foreground))',
+                    border: teamMode ? '1px solid rgba(251,191,36,0.4)' : '1px solid hsl(var(--border))',
                     cursor: 'pointer', whiteSpace: 'nowrap',
-                    display: 'flex', alignItems: 'center', gap: 4,
                   }}>
-                  <Users style={{ width: 12, height: 12 }} />
-                  {teamMode ? 'TEAM' : 'SOLO'}
+                  Team
+                </button>
+                <button
+                  onClick={() => setTeamMode(false)}
+                  title="Pick one agent to message"
+                  style={{
+                    padding: '5px 8px', borderRadius: 8, fontSize: 10, fontWeight: 700,
+                    background: !teamMode ? 'rgba(59,130,246,0.15)' : 'transparent',
+                    color: !teamMode ? '#3b82f6' : 'hsl(var(--muted-foreground))',
+                    border: !teamMode ? '1px solid rgba(59,130,246,0.3)' : '1px solid hsl(var(--border))',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}>
+                  @Mention
                 </button>
                 {!teamMode && (
                   <AgentSelector
