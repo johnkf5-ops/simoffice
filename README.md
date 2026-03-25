@@ -2,40 +2,88 @@
 <h1 align="center">SimOffice</h1>
 
 <p align="center">
-  <strong>AI Office Desktop App</strong>
+  <strong>Your AI Office — Run a team of AI agents from a 3D virtual desktop</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/platform-MacOS%20%7C%20Windows%20%7C%20Linux-blue" alt="Platform" />
+  <img src="https://img.shields.io/badge/version-1.2.1-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/johnkf5-ops/simoffice/releases/latest"><strong>Download Latest Release</strong></a>
 </p>
 
 ---
 
-## Overview
+## What is SimOffice?
 
-**SimOffice** is a desktop application that lets you build and manage AI agent teams through a virtual 3D office. Set up an AI provider, pick a career, and get a pre-built team of agents with unique personalities — all without touching a terminal.
+**SimOffice** is a desktop app that lets non-technical people build and manage AI agent teams through a virtual 3D office. Pick a career, get a pre-built team of AI agents with unique personalities, and start chatting — no terminal required.
 
 ## Features
 
-- **3D Virtual Office** — Watch your AI agents work in a retro-style 3D office
-- **177 Agent Templates** — Browse a catalog of pre-built agents with personalities, emojis, and descriptions
+- **Free Local AI** — Run AI on your own Mac with Ollama. No account, no fees, fully private. Auto-installs and configures everything.
+- **3D Virtual Office** — Watch your AI agents work in a retro-style 3D office powered by Three.js/WebGL
+- **174 Agent Templates** — Browse a curated catalog of agents with personalities, emojis, tags, and popularity badges
 - **Career-Based Teams** — Pick your career and get a recommended AI team instantly
-- **Multi-Provider AI** — Connect Claude, GPT, Grok, Gemini, Ollama, and more
-- **Chat with Agents** — Talk to your agents through an inline buddy-list chat
+- **Multi-Provider AI** — Connect Claude, ChatGPT, Grok, Gemini, or run locally with Ollama
+- **Chat with Agents** — Talk to your team through an inline buddy-list chat
 - **Messaging Integrations** — Connect Discord, Telegram, WhatsApp, and iMessage with step-by-step wizards
 - **SOUL.md Personalities** — Each agent gets a unique personality file that shapes how they respond
-- **Custom Office Name** — Name your headquarters and see it displayed in the 3D office
+- **Auto-Updates** — App updates automatically via GitHub Releases
 
-## Getting Started
+## System Requirements
+
+| | Minimum | Recommended |
+|---|---|---|
+| **macOS** | 12 Monterey | 14 Sonoma+ |
+| **RAM** | 8 GB (cloud AI only) | 16 GB+ (local AI) |
+| **Chip** | Intel or Apple Silicon | Apple Silicon (M1/M2/M3/M4) |
+| **Disk** | 500 MB | 5 GB+ (with local AI models) |
+
+## Download
+
+Grab the latest DMG from [Releases](https://github.com/johnkf5-ops/simoffice/releases/latest):
+
+- **Apple Silicon (M1/M2/M3/M4):** `SimOffice-*-mac-arm64.dmg`
+- **Intel Mac:** `SimOffice-*-mac-x64.dmg`
+
+Both builds are signed and notarized by Apple.
+
+## Development
 
 ```bash
 pnpm install
-pnpm run dev
+pnpm dev          # run in dev mode
+pnpm test         # run tests
+pnpm run package:mac  # build DMG
 ```
+
+## Changelog
+
+### v1.2.1
+- Shared provider setup modal — consistent wizard across Brain page and Onboarding
+- Gateway sync fixes, provider validation improvements
+- Removed low-quality 8GB models, 16 GB minimum for local AI
+- Intel Macs get "use cloud" messaging instead of broken local AI
+
+### v1.2.0
+- Local AI via Ollama — full setup wizard, auto-download, headless, 17 curated models
+- Hardware detection + model recommendation engine
+- Onboarding redesign with FREE local AI hero card
+- Brain page redesign — local AI hero at top, cloud grid below
+- Toolbar/sidebar show active LLM (Local vs API indicator)
+- 46 unit tests for hardware detection, model recommender, Ollama services
+
+### v1.1.2
+- 3D office with GPU acceleration
+- 174 agent catalog with SOUL.md personalities
+- Career-based team builder
+- Messaging integrations (Discord, Telegram, WhatsApp, iMessage)
 
 ## License
 
-Copyright © 2026 CrashOverride LLC. All rights reserved.
+Copyright 2026 CrashOverride LLC. All rights reserved.
 
 This software is proprietary. See [LICENSE](LICENSE) for details.
