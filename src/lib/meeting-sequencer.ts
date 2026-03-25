@@ -40,7 +40,7 @@ function buildMeetingPrompt(question: string, priorResponses: Array<{ agentName:
     }
   }
 
-  prompt += '\n\nIt is now your turn. Respond with your perspective based on your role. If this topic is not relevant to your expertise, respond with just "pass".';
+  prompt += '\n\nIt is now your turn. Respond with your perspective based on your role. Keep your answer concise and relevant.';
 
   return prompt;
 }
@@ -219,9 +219,14 @@ export async function runTeamRound(
 
       const responseText = await fetchLatestAssistantMessage(sessionKey, sendTime);
 
-      if (responseText && responseText.toLowerCase().trim() !== 'pass') {
+      if (responseText) {
         responses.push({ agentName, text: responseText });
         onAgentResponse(agentId, agentName, responseText);
+      } else {
+        // Timeout — agent didn't respond in time
+        const timeoutText = '(no response — timed out)';
+        responses.push({ agentName, text: timeoutText });
+        onAgentResponse(agentId, agentName, timeoutText);
       }
     } catch (err) {
       const errorText = `(failed to respond: ${err instanceof Error ? err.message : 'unknown error'})`;
