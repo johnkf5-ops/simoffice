@@ -37,6 +37,11 @@ export function LobbySettings() {
   const currentVersion = rawVersion && rawVersion !== '0.0.0' ? rawVersion : __APP_VERSION__;
   const updateStatus = useUpdateStore((s) => s.status);
   const checkForUpdates = useUpdateStore((s) => s.checkForUpdates);
+  const downloadUpdate = useUpdateStore((s) => s.downloadUpdate);
+  const installUpdate = useUpdateStore((s) => s.installUpdate);
+  const setAutoDownload = useUpdateStore((s) => s.setAutoDownload);
+  const autoDownloadUpdate = useSettingsStore((s) => s.autoDownloadUpdate);
+  const setAutoDownloadUpdate = useSettingsStore((s) => s.setAutoDownloadUpdate);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [restarting, setRestarting] = useState(false);
@@ -185,13 +190,58 @@ export function LobbySettings() {
                  updateStatus === 'error' ? 'Check failed' : ''}
               </div>
             </div>
-            <button onClick={() => checkForUpdates()} disabled={updateStatus === 'checking'} style={{
-              padding: '8px 16px', borderRadius: 8, border: '1px solid hsl(var(--border))',
-              background: 'hsl(var(--card))', color: 'hsl(var(--foreground))',
-              fontSize: 13, fontWeight: 600, cursor: updateStatus === 'checking' ? 'default' : 'pointer',
-              opacity: updateStatus === 'checking' ? 0.5 : 1,
-            }}>
-              Check for Updates
+            {updateStatus === 'available' ? (
+              <button onClick={() => downloadUpdate()} style={{
+                padding: '8px 16px', borderRadius: 8, border: 'none',
+                background: 'linear-gradient(135deg, #d97706, #fbbf24)', color: 'white',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              }}>
+                Download Update
+              </button>
+            ) : updateStatus === 'downloaded' ? (
+              <button onClick={() => installUpdate()} style={{
+                padding: '8px 16px', borderRadius: 8, border: 'none',
+                background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              }}>
+                Install & Restart
+              </button>
+            ) : (
+              <button onClick={() => checkForUpdates()} disabled={updateStatus === 'checking' || updateStatus === 'downloading'} style={{
+                padding: '8px 16px', borderRadius: 8, border: '1px solid hsl(var(--border))',
+                background: 'hsl(var(--card))', color: 'hsl(var(--foreground))',
+                fontSize: 13, fontWeight: 600, cursor: updateStatus === 'checking' || updateStatus === 'downloading' ? 'default' : 'pointer',
+                opacity: updateStatus === 'checking' || updateStatus === 'downloading' ? 0.5 : 1,
+              }}>
+                {updateStatus === 'checking' ? 'Checking...' : updateStatus === 'downloading' ? 'Downloading...' : 'Check for Updates'}
+              </button>
+            )}
+          </div>
+
+          <div style={row}>
+            <div>
+              <div style={label}>Auto-update</div>
+              <div style={desc}>Automatically download and install updates</div>
+            </div>
+            <button
+              onClick={() => {
+                const next = !autoDownloadUpdate;
+                setAutoDownloadUpdate(next);
+                void setAutoDownload(next);
+              }}
+              style={{
+                width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                background: autoDownloadUpdate ? '#22c55e' : 'hsl(var(--muted))',
+                position: 'relative', transition: 'background 0.2s',
+              }}
+            >
+              <div style={{
+                width: 18, height: 18, borderRadius: 9,
+                background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                position: 'absolute', top: 3,
+                left: autoDownloadUpdate ? 23 : 3,
+                transition: 'left 0.2s',
+              }} />
             </button>
           </div>
 
