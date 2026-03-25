@@ -412,24 +412,29 @@ export function LobbyChat() {
             background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
             borderRadius: 16, padding: '8px 12px',
           }}>
-            {/* Agent selector — room mode, hidden in team mode */}
-            {isRoomMode && !teamMode && (
-              <AgentSelector
-                agentIds={activeRoom!.agentIds}
-                selectedAgentId={targetAgentId}
-                onSelect={setTargetAgent}
-              />
-            )}
-
-            {/* Team mode badge */}
-            {isRoomMode && teamMode && (
-              <div style={{
-                padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
-                background: 'rgba(251,191,36,0.15)', color: '#fbbf24',
-                border: '1px solid rgba(251,191,36,0.3)',
-                whiteSpace: 'nowrap',
-              }}>
-                TEAM
+            {/* Mode selector — team mode toggle + agent selector */}
+            {isRoomMode && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <button
+                  onClick={() => setTeamMode(!teamMode)}
+                  style={{
+                    padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                    background: teamMode ? 'rgba(251,191,36,0.15)' : 'rgba(59,130,246,0.1)',
+                    color: teamMode ? '#fbbf24' : '#3b82f6',
+                    border: teamMode ? '1px solid rgba(251,191,36,0.4)' : '1px solid rgba(59,130,246,0.3)',
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                  <Users style={{ width: 12, height: 12 }} />
+                  {teamMode ? 'TEAM' : 'SOLO'}
+                </button>
+                {!teamMode && (
+                  <AgentSelector
+                    agentIds={activeRoom!.agentIds}
+                    selectedAgentId={targetAgentId}
+                    onSelect={setTargetAgent}
+                  />
+                )}
               </div>
             )}
 
@@ -446,25 +451,6 @@ export function LobbyChat() {
                 maxHeight: 120, lineHeight: '1.5',
               }}
             />
-
-            {/* Team mode toggle — room mode only */}
-            {isRoomMode && (
-              <button
-                onClick={() => setTeamMode(!teamMode)}
-                title={teamMode ? 'Team mode ON — click to switch to @mention mode' : 'Click for team mode — all agents respond'}
-                style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  border: teamMode ? '1px solid rgba(251,191,36,0.5)' : '1px solid hsl(var(--border))',
-                  background: teamMode ? 'rgba(251,191,36,0.15)' : 'transparent',
-                  cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: teamMode ? '#fbbf24' : 'hsl(var(--muted-foreground))',
-                }}
-                onMouseEnter={(e) => { if (!teamMode) { e.currentTarget.style.background = 'rgba(251,191,36,0.1)'; e.currentTarget.style.color = '#fbbf24'; } }}
-                onMouseLeave={(e) => { if (!teamMode) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'hsl(var(--muted-foreground))'; } }}>
-                <Users style={{ width: 14, height: 14 }} />
-              </button>
-            )}
 
             {/* Send / Stop */}
             {teamRoundInProgress ? (
