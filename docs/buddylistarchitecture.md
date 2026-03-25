@@ -113,7 +113,7 @@ Three Zustand stores power everything. They are independent — rooms and chat d
 - `isRoomMode` — `!!activeRoom`
 - `teamMode` — from rooms store, toggles team vs @mention behavior
 
-**Room auto-creation:** A `useEffect` on `[agents]` creates rooms from career templates when agents match. Uses `getState()` inside the effect to avoid infinite loops (rooms is NOT in the dependency array).
+**Room auto-creation:** Removed. Users create rooms manually via "+ Create Room". Auto-creation from career templates was removed because it created unwanted rooms whenever agents matched template names.
 
 ### WhosHerePanel (`src/components/chat/WhosHerePanel.tsx`)
 
@@ -158,19 +158,21 @@ handleSend()
   → User can send next message (next round)
 ```
 
-### 3. User Sends Message in @mention Mode
+### 3. User Sends Message in @Mention Mode (in a Room)
 
 ```
 handleSend()
-  → teamMode is OFF
+  → teamMode is OFF + isRoomMode
   → Parse @mention from input (optional)
   → resolvedTarget = mentioned agent || targetAgentId || room.agentIds[0]
-  → sendMessage(text, undefined, resolvedTarget)
-      → Chat store switches to agent's session
-      → Gateway RPC: chat.send
-      → Streaming events → messages update
-      → MessageBubble renders
+  → addTeamMessage({ role: 'user', text, roomId, roundId })  // SAME feed as team mode
+  → runTeamRound(roomId, text, [resolvedTarget], ...)         // just 1 agent
+      → Agent responds via Gateway RPC
+      → addTeamMessage({ role: 'assistant', agentId, agentName, text })
+  → MessageBubble renders in the SAME feed as team messages
 ```
+
+**Critical:** @mention mode uses the SAME `teamMessages` feed as team mode. The user never sees a different screen. The only difference is how many agents respond (1 vs all).
 
 ### 4. User Clicks Agent for DM
 
@@ -184,18 +186,21 @@ handleAgentClick(agentId)
 
 ---
 
-## Team Mode vs Legacy Meetings
+## Room Chat Modes
 
-| Aspect | Team Mode (current) | Legacy Meeting |
-|--------|-------------------|----------------|
-| Trigger | 👥 toggle button | Was one-shot meeting button |
-| Flow | Multi-round, human-gated | Single question, one round |
-| Display | Normal MessageBubbles | Collapsed MeetingBlock card |
-| Storage | `teamMessages[]` in rooms store | `meetings[]` in rooms store |
-| Function | `runTeamRound()` | `runMeeting()` |
-| Both in | `src/lib/meeting-sequencer.ts` | Same file |
+Rooms have TWO send modes, controlled by "Team" and "@Mention" buttons in the input bar. **Both modes write to the same `teamMessages` feed** — the user always sees one unified conversation.
 
-Legacy meetings still render in the feed if they exist in history.
+| Aspect | Team Mode | @Mention Mode |
+|--------|-----------|---------------|
+| Button | "Team" (yellow when active) | "@Mention" (blue when active) |
+| Who responds | ALL agents in room, sequentially | ONE agent you pick from dropdown |
+| Feed | `teamMessages[]` | `teamMessages[]` (same!) |
+| Context | Each agent sees prior agents' answers | Single agent gets your message directly |
+| Use case | Group discussion, brainstorming | Follow-up with specific agent |
+
+### Legacy Meetings
+
+The old `runMeeting()` + `MeetingBlock` system still exists for backward compatibility. Legacy meetings render as collapsible cards if they exist in history. New rooms use `runTeamRound()` exclusively.
 
 ---
 
@@ -213,27 +218,11 @@ This is critical. Without these guardrails, agents will loop infinitely (experie
 
 ## Room Creation
 
-Rooms are created two ways:
-
-### 1. Auto-creation from Career Templates (on LobbyChat mount)
-
-```
-useEffect on [agents]:
-  For each CareerTemplate with 2+ recommended agents:
-    Skip if room for this careerId already exists
-    Match template agent IDs to actual agents by normalized name
-    If 2+ agents match:
-      createRoomFromCareer(career)
-      updateRoomAgentIds(room.id, actualAgentIds)  // template IDs → real IDs
-
-  Fallback: if 2+ agents but no rooms, create #general room
-```
-
-**Important:** This effect reads `rooms` via `getState()` inside the effect, NOT as a dependency. Adding `rooms` to deps caused an infinite loop (creating a room changed rooms, re-triggered effect).
-
-### 2. Manual Creation via BuddyPanel
+Rooms are created **manually only** via BuddyPanel:
 
 User clicks "+ Create Room" → selects 2+ agents → `createCustomRoom(name, icon, agentIds)`.
+
+Auto-creation from career templates was removed — it created unwanted rooms whenever agents matched template names. Rooms during onboarding are created by the onboarding flow explicitly.
 
 ---
 
@@ -281,9 +270,9 @@ The `mainSessionKey` on each `AgentSummary` is the canonical session. New conver
 **Cause:** Room `agentIds` were template IDs (e.g., "language-tutor") not actual agent IDs. Patches weren't persisted.
 **Fix:** Added `updateRoomAgentIds()` store action that properly persists.
 
-### 3. Room auto-creation infinite loop
-**Cause:** `rooms` was in the useEffect dependency array. Creating a room changed rooms, re-triggered effect.
-**Fix:** Read rooms via `getState()` inside effect. Only depend on `[agents]`.
+### 3. Room auto-creation infinite loop / unwanted rooms
+**Cause:** `rooms` was in the useEffect dependency array. Also, auto-creation matched agents to career templates and created rooms the user didn't ask for.
+**Fix:** Removed auto-creation entirely. Users create rooms manually via "+ Create Room".
 
 ### 4. Default "Main Agent" created automatically
 **Cause:** Backend `normalizeAgentsConfig()` created an implicit main agent when config was empty.
@@ -297,13 +286,31 @@ The `mainSessionKey` on each `AgentSummary` is the canonical session. New conver
 **Cause:** Changing `defaultAgentId` from `'main'` to `''` caused `agent::main` session keys.
 **Fix:** `normalizeAgentId()` falls back to first available agent from store.
 
+### 7. Team meeting prompts visible in DM view
+**Cause:** `runTeamRound()` sends `[TEAM MEETING]` prefixed prompts to each agent's Gateway session. When user opens that agent's DM, those prompts appear as user messages.
+**Fix:** `dedupeMessages()` filters out any user message starting with `[TEAM MEETING]`.
+
+### 8. @Mention mode showed different screen than Team mode
+**Cause:** Switching from Team to @Mention toggled `showTeamFeed`, which fell back to showing the chat store's DM history instead of the room's team messages.
+**Fix:** Room mode ALWAYS shows `teamMessages` feed. @Mention mode now also writes to `teamMessages` — it sends to 1 agent via `runTeamRound([targetId])` instead of all agents. Same feed, same view, just fewer respondents.
+
+### 9. Duplicate assistant messages on first send
+**Cause:** Streaming response + history poll both add the same message. Text-based dedup was removed (needed for room mode), so duplicates appeared.
+**Fix:** Re-added dedup for **consecutive** identical assistant messages only. Different agents giving the same answer in a room won't be affected.
+
+### 10. Only 1 of N agents responded in team mode
+**Cause:** The prompt told agents to respond with "pass" if the topic wasn't relevant. Some agents did.
+**Fix:** Removed "pass" instruction. All agents respond. Timeout shows "(no response — timed out)".
+
 ---
 
 ## Architecture Rules
 
 1. **Rooms are frontend-only.** No backend concept of rooms. Don't touch Gateway or backend for room features.
 2. **Each agent has its own Gateway session.** There is no shared "room session." Room is just a UI grouping.
-3. **Team mode bypasses the chat store.** Uses direct Gateway RPC via `runTeamRound()`. Team messages live in rooms store.
-4. **Never put `rooms` in a useEffect dependency array** if the effect creates rooms. Use `getState()` inside.
-5. **Always compute `activeRoom` reactively** from `activeRoomId` + `rooms` subscriptions. Never use `getActiveRoom()` — it's not reactive.
-6. **Agent IDs in rooms must be actual IDs** from the agents store, not template IDs from career templates. Always map template → actual after room creation.
+3. **ALL room messages go through `teamMessages` in the rooms store.** Both Team and @Mention modes write to the same feed. The chat store's `messages` are ONLY for DM mode (no active room).
+4. **Room mode bypasses the chat store.** Uses direct Gateway RPC via `runTeamRound()`. Never call `sendMessage()` from the chat store when in a room.
+5. **Never auto-create rooms.** Users create rooms manually. Auto-creation caused unwanted rooms and infinite loops.
+6. **Always compute `activeRoom` reactively** from `activeRoomId` + `rooms` subscriptions. Never use `getActiveRoom()` — it's not reactive.
+7. **Filter `[TEAM MEETING]` prompts from DM view.** The sequencer injects these into agent sessions. They should never be visible to the user.
+8. **Agent IDs in rooms must be actual IDs** from the agents store, not template IDs from career templates.

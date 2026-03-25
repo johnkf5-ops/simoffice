@@ -61,7 +61,7 @@ function MessageBubble({ message, agentName }: { message: RawMessage; agentName?
   );
 }
 
-/** Deduplicate messages — by ID + consecutive identical assistant text (streaming artifact) */
+/** Deduplicate messages + filter out injected team meeting prompts */
 function dedupeMessages(messages: RawMessage[]): RawMessage[] {
   const seenIds = new Set<string>();
   const result: RawMessage[] = [];
@@ -70,6 +70,11 @@ function dedupeMessages(messages: RawMessage[]): RawMessage[] {
     if (msg.role === 'toolresult') continue;
     if (msg.id && seenIds.has(msg.id)) continue;
     if (msg.id) seenIds.add(msg.id);
+    // Hide injected team meeting prompts from DM/mention view
+    if (msg.role === 'user') {
+      const text = extractText(msg);
+      if (text && text.startsWith('[TEAM MEETING]')) continue;
+    }
     // Skip consecutive identical assistant messages (streaming + history poll artifact)
     if (msg.role === 'assistant') {
       const text = extractText(msg);
@@ -237,8 +242,8 @@ export function LobbyChat() {
       return;
     }
 
-    if (isRoomMode) {
-      // Single-agent mode: parse @mention or use selected target
+    if (isRoomMode && activeRoom) {
+      // @mention mode in room — send to one agent but keep in the same team feed
       const mentionMatch = trimmed.match(/^@([\w-]+)\s+/);
       let resolvedTarget = targetAgentId;
       let cleanText = trimmed;
@@ -249,17 +254,51 @@ export function LobbyChat() {
           a.id.toLowerCase() === mentionName ||
           a.name?.toLowerCase().replace(/\s+/g, '-') === mentionName
         );
-        if (matchedAgent && activeRoom!.agentIds.includes(matchedAgent.id)) {
+        if (matchedAgent && activeRoom.agentIds.includes(matchedAgent.id)) {
           resolvedTarget = matchedAgent.id;
           cleanText = trimmed.slice(mentionMatch[0].length);
         }
       }
 
-      if (resolvedTarget) {
-        sendMessage(cleanText, undefined, resolvedTarget);
-      } else {
-        sendMessage(cleanText, undefined, activeRoom!.agentIds[0]);
-      }
+      const targetId = resolvedTarget || activeRoom.agentIds[0];
+      const roundId = `mention-${Date.now()}`;
+
+      // Add user message to team feed
+      addTeamMessage({
+        id: `user-${Date.now()}`,
+        roomId: activeRoom.id,
+        role: 'user',
+        text: cleanText,
+        timestamp: Date.now(),
+        roundId,
+      });
+
+      // Send to single agent via sequencer (same as team but just 1 agent)
+      setTeamRoundStatus(true, 0, targetId);
+
+      await runTeamRound(
+        activeRoom.id,
+        cleanText,
+        [targetId],
+        (agentId, agentName, text) => {
+          addTeamMessage({
+            id: `agent-${agentId}-${Date.now()}`,
+            roomId: activeRoom.id,
+            role: 'assistant',
+            agentId,
+            agentName,
+            text,
+            timestamp: Date.now(),
+            roundId,
+          });
+        },
+        (agentIndex, agentId) => {
+          setTeamRoundStatus(true, agentIndex, agentId);
+        },
+      );
+
+      setTeamRoundStatus(false);
+      return;
     } else {
       // DM mode
       sendMessage(trimmed);
@@ -281,7 +320,7 @@ export function LobbyChat() {
 
   // Team messages for this room
   const roomTeamMessages = activeRoom ? teamMessages.filter(m => m.roomId === activeRoom.id) : [];
-  const showTeamFeed = isRoomMode && teamMode;
+  const showTeamFeed = isRoomMode;  // Room always uses team feed — both team and @mention add to it
   const isEmpty = showTeamFeed
     ? (roomTeamMessages.length === 0 && !teamRoundInProgress)
     : (displayedMessages.length === 0 && !sending && !teamRoundInProgress);
