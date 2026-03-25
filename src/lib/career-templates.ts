@@ -3,15 +3,49 @@
  * Each career gets a curated team from the 204 available agents
  */
 
+export interface CareerPartner {
+  name: string;
+  slug: string;    // e.g. 'moonpay' — used for logo/color lookup
+  label: string;   // e.g. 'Powered by MoonPay'
+}
+
 export interface CareerTemplate {
   id: string;
   label: string;
   icon: string;
   description: string;
   recommended: string[]; // agent IDs from agents.json
+  partner?: CareerPartner;
+  requiredSkills?: string[]; // ClawHub slugs to auto-install
 }
 
 export const CAREERS: CareerTemplate[] = [
+  {
+    id: 'crypto-trader',
+    label: 'Crypto Trader',
+    icon: '🟣',
+    description: 'Trade crypto, manage your portfolio, and automate strategies',
+    partner: { name: 'MoonPay', slug: 'moonpay', label: 'Powered by MoonPay' },
+    requiredSkills: [
+      'moonpay-auth', 'moonpay-check-wallet', 'moonpay-swap-tokens', 'moonpay-buy-crypto',
+    ],
+    recommended: ['moonpay-trader'],
+  },
+  {
+    id: 'crypto-trading-team',
+    label: 'Crypto Trading Team',
+    icon: '🏦',
+    description: 'Full trading desk — execution, research, DCA, arbitrage scanning',
+    partner: { name: 'MoonPay', slug: 'moonpay', label: 'Powered by MoonPay' },
+    requiredSkills: [
+      'moonpay-auth', 'moonpay-check-wallet', 'moonpay-swap-tokens',
+      'moonpay-buy-crypto', 'moonpay-bridge',
+    ],
+    recommended: [
+      'moonpay-trader', 'trading-bot', 'portfolio-rebalancer', 'copy-trader',
+      'crypto-researcher', 'dca-agent', 'market-scanner',
+    ],
+  },
   {
     id: 'musician',
     label: 'Musician / Artist',
@@ -209,6 +243,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   'devops': 'DevOps',
   'ecommerce': 'E-Commerce',
   'education': 'Education',
+  'crypto': 'Crypto Trading',
   'finance': 'Finance',
   'freelance': 'Freelance',
   'healthcare': 'Healthcare',

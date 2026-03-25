@@ -16,6 +16,7 @@ import { invokeIpc } from '@/lib/api-client';
 import { hostApiFetch } from '@/lib/host-api';
 import { SETUP_PROVIDERS } from '@/lib/providers';
 import { CAREERS, CATEGORY_LABELS } from '@/lib/career-templates';
+import { MoonPaySetupModal } from '@/components/moonpay/MoonPaySetupModal';
 
 const CLOUD_PROVIDERS = SETUP_PROVIDERS.filter(p =>
   ['anthropic', 'openai', 'google', 'xai'].includes(p.id)
@@ -40,6 +41,8 @@ export function Onboarding() {
   const createAgent = useAgentsStore((s) => s.createAgent);
   const [selectedCareer, setSelectedCareer] = useState<string | null>(null);
   const [buildingTeam, setBuildingTeam] = useState(false);
+  const [installingSkills, setInstallingSkills] = useState(false);
+  const [showMoonPaySetup, setShowMoonPaySetup] = useState(false);
   const [agentCatalog, setAgentCatalog] = useState<Array<{ id: string; category: string; name: string; role: string; path: string }>>([]);
   const [selectedAgents, setSelectedAgents] = useState<Set<string>>(new Set());
   const [soulTemplates, setSoulTemplates] = useState<Record<string, string>>({});
@@ -124,8 +127,7 @@ export function Onboarding() {
   };
 
   const handleSkip = () => {
-    markSetupComplete();
-    navigate('/');
+    setStep(2);
   };
 
 
@@ -153,7 +155,7 @@ export function Onboarding() {
         </div>
       )}
 
-      <div style={{ width: '100%', maxWidth: 560, padding: 32, position: 'relative', zIndex: 1 }}>
+      <div style={{ width: '100%', maxWidth: step === 2 ? 960 : 560, padding: 32, position: 'relative', zIndex: 1, transition: 'max-width 0.3s' }}>
 
         {/* ═══ STEP 0: LOADING SCREEN ═══ */}
         {step === 0 && (
@@ -392,24 +394,60 @@ export function Onboarding() {
               We'll recommend an AI team based on your work
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {CAREERS.map(career => (
-                <button key={career.id} onClick={() => { handleCareerSelect(career.id); setStep(3); }}
-                  style={{
-                    padding: '16px', borderRadius: 12,
-                    border: '2px solid rgba(255,255,255,0.1)',
-                    background: 'rgba(255,255,255,0.05)',
-                    cursor: 'pointer', textAlign: 'left',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.border = '2px solid rgba(249,115,22,0.5)'; e.currentTarget.style.background = 'rgba(249,115,22,0.1)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.border = '2px solid rgba(255,255,255,0.1)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                >
-                  <div style={{ fontSize: 28, marginBottom: 6 }}>{career.icon}</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>{career.label}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(191,219,254,0.4)', marginTop: 2 }}>{career.description}</div>
-                </button>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, maxHeight: '60vh', overflowY: 'auto', paddingRight: 4 }}>
+              {CAREERS.map(career => {
+                const hasPartner = !!career.partner;
+                return (
+                  <button key={career.id} onClick={() => { handleCareerSelect(career.id); setStep(3); }}
+                    style={{
+                      padding: '10px 12px', borderRadius: 10,
+                      border: hasPartner
+                        ? '2px solid rgba(123,63,228,0.4)'
+                        : '2px solid rgba(255,255,255,0.1)',
+                      background: hasPartner
+                        ? 'rgba(123,63,228,0.08)'
+                        : 'rgba(255,255,255,0.05)',
+                      cursor: 'pointer', textAlign: 'left',
+                      transition: 'all 0.2s',
+                      boxShadow: hasPartner ? '0 0 20px rgba(123,63,228,0.15)' : 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (hasPartner) {
+                        e.currentTarget.style.border = '2px solid rgba(123,63,228,0.7)';
+                        e.currentTarget.style.boxShadow = '0 0 28px rgba(123,63,228,0.3)';
+                      } else {
+                        e.currentTarget.style.border = '2px solid rgba(249,115,22,0.5)';
+                        e.currentTarget.style.background = 'rgba(249,115,22,0.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (hasPartner) {
+                        e.currentTarget.style.border = '2px solid rgba(123,63,228,0.4)';
+                        e.currentTarget.style.boxShadow = '0 0 20px rgba(123,63,228,0.15)';
+                      } else {
+                        e.currentTarget.style.border = '2px solid rgba(255,255,255,0.1)';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                      }
+                    }}
+                  >
+                    <div style={{ fontSize: 22, marginBottom: 4 }}>{career.icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>{career.label}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(191,219,254,0.4)', marginTop: 2, lineHeight: 1.3 }}>{career.description}</div>
+                    {career.partner && (
+                      <div style={{
+                        marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '3px 10px', borderRadius: 20,
+                        background: 'linear-gradient(135deg, rgba(123,63,228,0.3), rgba(168,85,247,0.2))',
+                        border: '1px solid rgba(123,63,228,0.3)',
+                        fontSize: 10, fontWeight: 700, color: 'rgba(196,181,253,0.9)',
+                        letterSpacing: '0.02em',
+                      }}>
+                        ⚡ {career.partner.label}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Step dots */}
@@ -504,6 +542,35 @@ export function Onboarding() {
               }
             </div>
 
+            {/* MoonPay connection prompt for partner careers */}
+            {selectedCareer && CAREERS.find(c => c.id === selectedCareer)?.partner && (
+              <div style={{
+                padding: '10px 12px', borderRadius: 8, marginBottom: 12,
+                background: 'rgba(123,63,228,0.1)',
+                border: '1px solid rgba(123,63,228,0.25)',
+              }}>
+                <div style={{ fontSize: 11, color: 'rgba(196,181,253,0.85)', marginBottom: 8 }}>
+                  ⚡ This team is powered by <strong style={{ color: '#c4b5fd' }}>MoonPay</strong>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setShowMoonPaySetup(true)} style={{
+                    flex: 1, padding: '6px 0', borderRadius: 6, border: 'none',
+                    background: 'linear-gradient(135deg, #7B3FE4, #a855f7)',
+                    color: 'white', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  }}>
+                    Connect Now
+                  </button>
+                  <button onClick={() => {}} style={{
+                    flex: 1, padding: '6px 0', borderRadius: 6,
+                    border: '1px solid rgba(123,63,228,0.3)', background: 'none',
+                    color: 'rgba(196,181,253,0.7)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                    Connect Later in Settings
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button onClick={async () => {
                 setBuildingTeam(true);
                 try {
@@ -528,6 +595,18 @@ export function Onboarding() {
                       } catch { /* skip if already exists */ }
                     }
                   }
+
+                  // Install required skills for partner careers (e.g. MoonPay)
+                  const career = CAREERS.find(c => c.id === selectedCareer);
+                  if (career?.requiredSkills?.length) {
+                    setInstallingSkills(true);
+                    for (const slug of career.requiredSkills) {
+                      try {
+                        await invokeIpc('clawhub:install', { slug });
+                      } catch { /* skill may not be available yet — non-blocking */ }
+                    }
+                    setInstallingSkills(false);
+                  }
                 } catch { /* continue */ }
                 setBuildingTeam(false);
                 setStep(4);
@@ -540,7 +619,11 @@ export function Onboarding() {
                 cursor: buildingTeam ? 'default' : 'pointer',
                 boxShadow: buildingTeam ? 'none' : '0 4px 20px rgba(249,115,22,0.3)',
               }}>
-              {buildingTeam ? `Creating ${selectedAgents.size} agents...` : 'Build My Team →'}
+              {installingSkills
+                ? 'Installing MoonPay skills...'
+                : buildingTeam
+                  ? `Creating ${selectedAgents.size} agents...`
+                  : 'Build My Team →'}
             </button>
 
             {/* Step dots */}
@@ -638,6 +721,13 @@ export function Onboarding() {
           providerId={setupProvider}
           onSave={() => { setSetupProvider(null); setStep(2); }}
           onClose={() => setSetupProvider(null)}
+        />
+      )}
+
+      {/* MoonPay Setup Modal */}
+      {showMoonPaySetup && (
+        <MoonPaySetupModal
+          onClose={() => setShowMoonPaySetup(false)}
         />
       )}
     </div>

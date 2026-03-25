@@ -1,5 +1,5 @@
 {
-  "total": 207,
+  "total": 211,
   "agents": [
     {
       "id": "churn-predictor",
@@ -853,7 +853,7 @@
     },
     {
       "id": "trading-bot",
-      "category": "finance",
+      "category": "crypto",
       "name": "Trading Bot",
       "role": "",
       "path": "agents/finance/trading-bot/SOUL.md",
@@ -2043,7 +2043,7 @@
     },
     {
       "id": "portfolio-rebalancer",
-      "category": "finance",
+      "category": "crypto",
       "name": "Portfolio Rebalancer",
       "role": "Portfolio Management Agent",
       "path": "agents/finance/portfolio-rebalancer/SOUL.md",
@@ -2740,7 +2740,7 @@
     },
     {
       "id": "copy-trader",
-      "category": "finance",
+      "category": "crypto",
       "name": "Copy Trader",
       "role": "Copy Trading Agent",
       "path": "agents/finance/copy-trader/SOUL.md",
@@ -3580,6 +3580,82 @@
       ],
       "popular": true,
       "quote": "Check-ins sent to 12 clients. 3 reported low mood. Flagged for your review."
+    },
+    {
+      "id": "moonpay-trader",
+      "category": "crypto",
+      "name": "MoonPay Trader",
+      "role": "Crypto Trading Execution Agent",
+      "path": "agents/finance/moonpay-trader/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Executes crypto swaps, buys, and cross-chain bridges via MoonPay",
+      "emoji": "🟣",
+      "tags": [
+        "crypto",
+        "trading",
+        "moonpay",
+        "swaps",
+        "defi"
+      ],
+      "popular": true,
+      "quote": "Swapped 500 USDC → ETH on Base. Tx confirmed, portfolio updated."
+    },
+    {
+      "id": "crypto-researcher",
+      "category": "crypto",
+      "name": "Crypto Researcher",
+      "role": "Token Research & Alpha Scouting Agent",
+      "path": "agents/finance/crypto-researcher/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Token research, on-chain analytics, and alpha scouting via Messari",
+      "emoji": "🔬",
+      "tags": [
+        "crypto",
+        "research",
+        "moonpay",
+        "analytics",
+        "alpha"
+      ],
+      "popular": true,
+      "quote": "3 tokens flagged: strong on-chain activity, low market cap. Report ready."
+    },
+    {
+      "id": "dca-agent",
+      "category": "crypto",
+      "name": "DCA Agent",
+      "role": "Dollar-Cost Averaging Strategy Agent",
+      "path": "agents/finance/dca-agent/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Runs automated dollar-cost averaging strategies for crypto portfolios",
+      "emoji": "📅",
+      "tags": [
+        "crypto",
+        "dca",
+        "moonpay",
+        "automation",
+        "investing"
+      ],
+      "popular": true,
+      "quote": "Weekly DCA executed: $100 → ETH at $3,241. 12-week avg: $3,089."
+    },
+    {
+      "id": "market-scanner",
+      "category": "crypto",
+      "name": "Market Scanner",
+      "role": "Crypto Market Monitoring Agent",
+      "path": "agents/finance/market-scanner/SOUL.md",
+      "deploy": "https://crewclaw.com/create-agent",
+      "description": "Monitors prices, alerts on dips, and scans for arbitrage opportunities",
+      "emoji": "🔭",
+      "tags": [
+        "crypto",
+        "moonpay",
+        "alerts",
+        "arbitrage",
+        "markets"
+      ],
+      "popular": true,
+      "quote": "Alert: ETH down 8% in 4h. ARB opportunity: 0.3% spread on USDC across Base/Arbitrum."
     }
   ]
 }

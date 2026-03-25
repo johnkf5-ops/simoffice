@@ -2018,6 +2018,46 @@ function registerShellHandlers(): void {
   ipcMain.handle('shell:openPath', async (_, path: string) => {
     return await shell.openPath(path);
   });
+
+  // MoonPay CLI: get the mp entry path (bundled with the app)
+  function getMoonPayBin(): string {
+    const { join } = require('path');
+    if (app.isPackaged) {
+      return join(process.resourcesPath, 'moonpay', 'dist', 'index.js');
+    }
+    // Dev: use node_modules
+    return join(__dirname, '../../node_modules/@moonpay/cli/dist/index.js');
+  }
+
+  function runMoonPay(args: string[]): Promise<{ success: boolean; stdout: string; error?: string }> {
+    const { execFile } = require('child_process');
+    const mpBin = getMoonPayBin();
+    return new Promise((resolve) => {
+      execFile(process.execPath, [mpBin, ...args], {
+        timeout: 30000,
+        env: { ...process.env },
+      }, (err: Error | null, stdout: string, stderr: string) => {
+        if (err) return resolve({ success: false, stdout: stdout || '', error: stderr || String(err) });
+        resolve({ success: true, stdout: stdout.trim() });
+      });
+    });
+  }
+
+  // MoonPay: send login OTP to email
+  ipcMain.handle('moonpay:login', async (_, { email }: { email: string }) => {
+    return await runMoonPay(['login', '--email', email]);
+  });
+
+  // MoonPay: verify OTP code
+  ipcMain.handle('moonpay:verify', async (_, { email, code }: { email: string; code: string }) => {
+    return await runMoonPay(['verify', '--email', email, '--code', code]);
+  });
+
+  // MoonPay: check if authenticated
+  ipcMain.handle('moonpay:check-auth', async () => {
+    const result = await runMoonPay(['user', 'retrieve']);
+    return { authenticated: result.success };
+  });
 }
 
 /**

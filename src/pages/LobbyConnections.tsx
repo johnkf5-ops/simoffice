@@ -13,6 +13,7 @@ import { StatusDot } from '@/components/common/StatusDot';
 import { ChannelConfigModal } from '@/components/channels/ChannelConfigModal';
 import { ChannelSetupWizard, hasSetupWizard } from '@/components/channels/ChannelSetupWizard';
 import { CHANNEL_NAMES, CHANNEL_ICONS, type ChannelType } from '@/types/channel';
+import { MoonPaySetupModal } from '@/components/moonpay/MoonPaySetupModal';
 
 const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
   { type: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'CRM — contacts, deals, companies' },
@@ -103,6 +104,8 @@ export function LobbyConnections() {
   /* Modal state */
   const [configModalType, setConfigModalType] = useState<ChannelType | null>(null);
   const [wizardType, setWizardType] = useState<ChannelType | null>(null);
+  const [showMoonPaySetup, setShowMoonPaySetup] = useState(false);
+  const [moonPayConnected, setMoonPayConnected] = useState(false);
 
   useEffect(() => { void fetchChannels(); void fetchAgents(); }, [fetchChannels, fetchAgents]);
 
@@ -300,6 +303,68 @@ export function LobbyConnections() {
             </div>
           )}
 
+          {/* Partners */}
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
+              Partners
+            </h2>
+            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
+              Premium integrations from our partners
+            </p>
+            <div
+              onClick={() => setShowMoonPaySetup(true)}
+              style={{
+                background: moonPayConnected ? 'rgba(123,63,228,0.06)' : 'hsl(var(--card))',
+                border: `2px solid ${moonPayConnected ? 'rgba(123,63,228,0.4)' : 'rgba(123,63,228,0.2)'}`,
+                borderRadius: 16, padding: 20,
+                display: 'flex', alignItems: 'center', gap: 16,
+                cursor: 'pointer', transition: 'all 0.2s',
+                boxShadow: '0 0 20px rgba(123,63,228,0.08)',
+                maxWidth: 480,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(123,63,228,0.6)';
+                e.currentTarget.style.boxShadow = '0 0 28px rgba(123,63,228,0.18)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = moonPayConnected ? 'rgba(123,63,228,0.4)' : 'rgba(123,63,228,0.2)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(123,63,228,0.08)';
+              }}
+            >
+              <div style={{
+                width: 48, height: 48, borderRadius: 12,
+                background: 'linear-gradient(135deg, #7B3FE4, #a855f7)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 24, flexShrink: 0,
+              }}>
+                🟣
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
+                  MoonPay
+                </div>
+                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>
+                  Crypto swaps, on-ramps, bridges, and DCA — required for Crypto Trading careers
+                </div>
+                {moonPayConnected && (
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
+                    <span style={{ fontSize: 10, fontWeight: 600, color: '#34d399' }}>CONNECTED</span>
+                  </div>
+                )}
+              </div>
+              <div style={{
+                padding: '8px 16px', borderRadius: 8,
+                background: moonPayConnected ? 'rgba(34,211,153,0.1)' : 'linear-gradient(135deg, #7B3FE4, #a855f7)',
+                color: moonPayConnected ? '#34d399' : 'white',
+                fontSize: 13, fontWeight: 700, flexShrink: 0,
+                fontFamily: 'Space Grotesk, sans-serif',
+              }}>
+                {moonPayConnected ? 'Connected' : 'Connect →'}
+              </div>
+            </div>
+          </div>
+
           {/* Business Integrations */}
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
@@ -394,6 +459,14 @@ export function LobbyConnections() {
           </div>
         </div>
       </div>
+
+      {/* === MoonPay Setup Modal === */}
+      {showMoonPaySetup && (
+        <MoonPaySetupModal
+          onClose={() => setShowMoonPaySetup(false)}
+          onConnected={() => setMoonPayConnected(true)}
+        />
+      )}
 
       {/* === Channel Config Modal === */}
       {configModalType && (

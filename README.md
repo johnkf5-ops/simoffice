@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.3-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-1.3.0-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -25,8 +25,9 @@
 
 - **Free Local AI** — Run AI on your own Mac with Ollama. No account, no fees, fully private. Auto-installs and configures everything.
 - **3D Virtual Office** — Watch your AI agents work in a retro-style 3D office powered by Three.js/WebGL
-- **207 Agent Templates** — Browse agents across 27 categories: sales, marketing, finance, legal, healthcare, insurance, restaurant, real estate, therapy, and more
-- **17 Career Templates** — Pick your career (Loan Officer, Therapist, Restaurant Owner, Contractor, etc.) and get a pre-built team instantly
+- **211 Agent Templates** — Browse agents across 28 categories: sales, marketing, finance, crypto trading, legal, healthcare, insurance, restaurant, real estate, therapy, and more
+- **19 Career Templates** — Pick your career (Crypto Trader, Loan Officer, Therapist, Restaurant Owner, Contractor, etc.) and get a pre-built team instantly
+- **Crypto Trading with MoonPay** — Trade crypto, DCA, scan markets, and research tokens. Powered by MoonPay with in-app setup, no terminal required.
 - **Multi-Provider AI** — Connect Claude, ChatGPT, Grok, Gemini, or run locally with Ollama
 - **Chat with Agents** — Talk to your team through an inline buddy-list chat
 - **Messaging Integrations** — Connect Discord, Telegram, WhatsApp, and iMessage with step-by-step wizards
@@ -61,6 +62,17 @@ pnpm run package:mac  # build DMG
 ```
 
 ## Changelog
+
+### v1.3.0
+- **MoonPay integration** — Crypto Trader and Crypto Trading Team career templates, powered by MoonPay
+- 4 new crypto agents: MoonPay Trader, Crypto Researcher, DCA Agent, Market Scanner
+- New Crypto Trading category with 7 agents
+- In-app MoonPay setup wizard — email + OTP, no terminal needed
+- MoonPay partner branding on career cards
+- Partners section in Connections page
+- 211 agents across 28 categories (was 207 across 27)
+- 19 career templates (was 17)
+- Dynamic agent count in catalog (was hardcoded)
 
 ### v1.2.3
 - 207 agents across 27 categories (was 174 across 24)

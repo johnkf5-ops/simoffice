@@ -400,7 +400,7 @@ export function LobbyAssistants() {
                   Agent Catalog
                 </h2>
                 <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>
-                  174 pre-built agents ready to add to your team
+                  {catalog.length || 211} pre-built agents ready to add to your team
                 </p>
               </div>
               <button onClick={() => setShowCatalog(!showCatalog)}

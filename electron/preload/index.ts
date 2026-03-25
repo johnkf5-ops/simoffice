@@ -104,6 +104,10 @@ const electronAPI = {
         // WhatsApp
         'channel:requestWhatsAppQr',
         'channel:cancelWhatsAppQr',
+        // MoonPay
+        'moonpay:login',
+        'moonpay:verify',
+        'moonpay:check-auth',
         // ClawHub
         'clawhub:search',
         'clawhub:install',
