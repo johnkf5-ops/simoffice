@@ -281,8 +281,10 @@ export function LobbyChat() {
 
   // Team messages for this room
   const roomTeamMessages = activeRoom ? teamMessages.filter(m => m.roomId === activeRoom.id) : [];
-  const showTeamFeed = isRoomMode && teamMode && roomTeamMessages.length > 0;
-  const isEmpty = showTeamFeed ? false : (displayedMessages.length === 0 && !sending && !teamRoundInProgress);
+  const showTeamFeed = isRoomMode && teamMode;
+  const isEmpty = showTeamFeed
+    ? (roomTeamMessages.length === 0 && !teamRoundInProgress)
+    : (displayedMessages.length === 0 && !sending && !teamRoundInProgress);
 
   // Completed meetings for this room
   const roomMeetings = activeRoom ? meetings.filter(m => m.roomId === activeRoom.id) : [];
@@ -363,7 +365,7 @@ export function LobbyChat() {
                 />
               ))}
 
-              {/* Regular messages (DM or single-agent room mode) */}
+              {/* Regular messages (DM or single-agent @mention mode — hidden when team feed is active) */}
               {!showTeamFeed && displayedMessages.map((msg, i) => (
                 <MessageBubble
                   key={msg.id || `msg-${i}`}
