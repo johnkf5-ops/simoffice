@@ -5,6 +5,7 @@
 import type { RoomDefinition } from '@/stores/rooms';
 import { useAgentsStore } from '@/stores/agents';
 import { StatusDot } from '@/components/common/StatusDot';
+import { AgentAvatar } from '@/components/common/AgentAvatar';
 
 interface WhosHerePanelProps {
   room: RoomDefinition;
@@ -67,16 +68,7 @@ export function WhosHerePanel({ room, targetAgentId, onTargetAgent }: WhosHerePa
               }}
               onMouseEnter={(e) => { if (!isTarget) e.currentTarget.style.background = 'hsl(var(--muted))'; }}
               onMouseLeave={(e) => { if (!isTarget) e.currentTarget.style.background = 'transparent'; }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: '50%',
-                background: isTarget
-                  ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
-                  : 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0,
-              }}>
-                {agent.name?.charAt(0).toUpperCase() || 'A'}
-              </div>
+              <AgentAvatar agentId={agent.id} name={agent.name} size={24} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{
                   fontSize: 11, fontWeight: isTarget ? 700 : 600,

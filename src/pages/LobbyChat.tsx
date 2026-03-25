@@ -15,6 +15,7 @@ import { CAREERS } from '@/lib/career-templates';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
 import { WhosHerePanel } from '@/components/chat/WhosHerePanel';
 import { AgentSelector } from '@/components/chat/AgentSelector';
+import { AgentAvatar } from '@/components/common/AgentAvatar';
 import { runMeeting } from '@/lib/meeting-sequencer';
 import { runTeamRound } from '@/lib/meeting-sequencer';
 
@@ -22,7 +23,7 @@ import { runTeamRound } from '@/lib/meeting-sequencer';
 // Message Bubble — now shows agent name in room mode
 // ---------------------------------------------------------------------------
 
-function MessageBubble({ message, agentName }: { message: RawMessage; agentName?: string }) {
+function MessageBubble({ message, agentName, agentId }: { message: RawMessage; agentName?: string; agentId?: string }) {
   const isUser = message.role === 'user';
   const text = extractText(message);
   if (!text) return null;
@@ -30,13 +31,8 @@ function MessageBubble({ message, agentName }: { message: RawMessage; agentName?
   return (
     <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 12 }}>
       {!isUser && agentName && (
-        <div style={{
-          width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginRight: 8, marginTop: 2,
-          background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 10, fontWeight: 700, color: 'white',
-        }}>
-          {agentName.charAt(0).toUpperCase()}
+        <div style={{ flexShrink: 0, marginRight: 8, marginTop: 2 }}>
+          <AgentAvatar agentId={agentId || ''} name={agentName} size={28} />
         </div>
       )}
       <div>
@@ -366,9 +362,7 @@ export function LobbyChat() {
           </div>
         ) : currentAgent ? (
           <div style={{ padding: '12px 32px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white' }}>
-              {currentAgent.name?.charAt(0).toUpperCase() || 'A'}
-            </div>
+            <AgentAvatar agentId={currentAgent.id} name={currentAgent.name} size={32} />
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{currentAgent.name}</div>
               <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{currentAgent.modelDisplay || 'Online'}</div>
@@ -401,6 +395,7 @@ export function LobbyChat() {
                   key={tm.id}
                   message={{ role: tm.role, content: tm.text, id: tm.id, timestamp: tm.timestamp / 1000 }}
                   agentName={tm.role === 'assistant' ? tm.agentName : undefined}
+                  agentId={tm.role === 'assistant' ? tm.agentId : undefined}
                 />
               ))}
 
@@ -410,6 +405,7 @@ export function LobbyChat() {
                   key={msg.id || `msg-${i}`}
                   message={msg}
                   agentName={msg.role === 'assistant' ? currentAgent?.name : undefined}
+                  agentId={msg.role === 'assistant' ? currentAgent?.id : undefined}
                 />
               ))}
 
@@ -419,14 +415,7 @@ export function LobbyChat() {
               {/* Team mode typing indicator — shows which agent is responding */}
               {teamRoundInProgress && typingAgent && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <div style={{
-                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                    background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, fontWeight: 700, color: 'white',
-                  }}>
-                    {typingAgent.name?.charAt(0).toUpperCase() || 'A'}
-                  </div>
+                  <AgentAvatar agentId={typingAgent.id} name={typingAgent.name} size={28} />
                   <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 600 }}>{typingAgent.name} is thinking...</div>
                   <Loader2 style={{ width: 12, height: 12, animation: 'spin 1s linear infinite', color: '#a78bfa' }} />
                 </div>

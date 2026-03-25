@@ -2,13 +2,20 @@
  * SimOffice Assistants — Built from scratch. No ClawX UI.
  * Dark buddy panel + assistants management matching SimOffice design.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAgentsStore } from '@/stores/agents';
 import { useChatStore } from '@/stores/chat';
+import { useAgentCustomizationStore } from '@/stores/agent-customization';
 import { CATEGORY_LABELS } from '@/lib/career-templates';
 import { hostApiFetch } from '@/lib/host-api';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
+import { AgentAvatar } from '@/components/common/AgentAvatar';
+
+const AGENT_COLORS = [
+  '#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444',
+  '#ec4899', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316',
+];
 
 export function LobbyAssistants() {
   const navigate = useNavigate();
@@ -16,12 +23,20 @@ export function LobbyAssistants() {
   const loading = useAgentsStore((s) => s.loading);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
   const createAgent = useAgentsStore((s) => s.createAgent);
+  const updateAgent = useAgentsStore((s) => s.updateAgent);
   const deleteAgent = useAgentsStore((s) => s.deleteAgent);
   const newSession = useChatStore((s) => s.newSession);
+  const setCustomization = useAgentCustomizationStore((s) => s.setCustomization);
 
   const [newName, setNewName] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+
+  // Edit modal state
+  const [editingAgentId, setEditingAgentId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('#7c3aed');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Template catalog
   const [catalog, setCatalog] = useState<Array<{ id: string; category: string; name: string; role: string; path: string; description?: string; emoji?: string; tags?: string[]; popular?: boolean; quote?: string }>>([]);
@@ -159,14 +174,7 @@ export function LobbyAssistants() {
                 onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 48, height: 48, borderRadius: 12,
-                    background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 22, fontWeight: 700, color: 'white', flexShrink: 0,
-                  }}>
-                    {agent.name?.charAt(0).toUpperCase() || 'A'}
-                  </div>
+                  <AgentAvatar agentId={agent.id} name={agent.name} size={48} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {agent.name}
@@ -203,6 +211,106 @@ export function LobbyAssistants() {
                   )}
                 </div>
 
+                {/* Edit Form (inline) */}
+                {editingAgentId === agent.id && (
+                  <div style={{
+                    padding: 16, borderRadius: 12,
+                    background: 'hsl(var(--muted))', border: '1px solid hsl(var(--border))',
+                    display: 'flex', flexDirection: 'column', gap: 12,
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>Name</div>
+                      <input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        style={{
+                          width: '100%', padding: '8px 12px', borderRadius: 8,
+                          border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
+                          color: 'hsl(var(--foreground))', fontSize: 14, outline: 'none',
+                          fontFamily: 'Inter, sans-serif', boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>Color</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {AGENT_COLORS.map((c) => (
+                          <button key={c} onClick={() => setEditColor(c)}
+                            style={{
+                              width: 28, height: 28, borderRadius: '50%', border: editColor === c ? '2px solid white' : '2px solid transparent',
+                              background: c, cursor: 'pointer', outline: editColor === c ? '2px solid #3b82f6' : 'none',
+                              outlineOffset: 1,
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>Avatar</div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setCustomization(agent.id, { avatarUrl: reader.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => fileInputRef.current?.click()}
+                          style={{
+                            padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                            border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
+                            color: 'hsl(var(--foreground))', cursor: 'pointer',
+                          }}>
+                          Upload Image
+                        </button>
+                        {useAgentCustomizationStore.getState().customizations[agent.id]?.avatarUrl && (
+                          <button onClick={() => setCustomization(agent.id, { avatarUrl: undefined })}
+                            style={{
+                              padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                              border: '1px solid hsl(var(--border))', background: 'transparent',
+                              color: '#ef4444', cursor: 'pointer',
+                            }}>
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={async () => {
+                        const trimmed = editName.trim();
+                        if (trimmed && trimmed !== agent.name) {
+                          await updateAgent(agent.id, trimmed);
+                        }
+                        setCustomization(agent.id, { color: editColor });
+                        setEditingAgentId(null);
+                      }}
+                        style={{
+                          flex: 1, padding: '8px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                          background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', color: 'white',
+                          fontSize: 12, fontWeight: 700,
+                        }}>
+                        Save
+                      </button>
+                      <button onClick={() => setEditingAgentId(null)}
+                        style={{
+                          padding: '8px 14px', borderRadius: 8, border: '1px solid hsl(var(--border))',
+                          background: 'transparent', color: 'hsl(var(--muted-foreground))',
+                          fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        }}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
                   <button
@@ -213,6 +321,21 @@ export function LobbyAssistants() {
                       fontSize: 13, fontWeight: 700, fontFamily: 'Inter, sans-serif',
                     }}>
                     Chat Now
+                  </button>
+                  <button
+                    onClick={() => {
+                      const cust = useAgentCustomizationStore.getState().customizations[agent.id];
+                      setEditName(agent.name);
+                      setEditColor(cust?.color || '#7c3aed');
+                      setEditingAgentId(agent.id);
+                    }}
+                    style={{
+                      padding: '10px 16px', borderRadius: 10,
+                      border: '1px solid hsl(var(--border))', background: 'transparent',
+                      color: '#7c3aed', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      fontFamily: 'Inter, sans-serif',
+                    }}>
+                    Edit
                   </button>
                   <button
                     onClick={() => handleDelete(agent.id)}

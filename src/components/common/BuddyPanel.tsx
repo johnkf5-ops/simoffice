@@ -12,6 +12,7 @@ import { getAgentIdFromSessionKey } from '@/stores/chat/helpers';
 import { useGatewayStore } from '@/stores/gateway';
 import { useProviderStore } from '@/stores/providers';
 import { StatusDot } from '@/components/common/StatusDot';
+import { AgentAvatar } from '@/components/common/AgentAvatar';
 
 interface BuddyPanelProps {
   /** Hide the "← Lobby" back button (used on the main Lobby page) */
@@ -240,9 +241,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
               }}
               onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = isActive ? 'rgba(255,255,255,0.15)' : 'transparent'; }}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0 }}>
-                {agent.name?.charAt(0).toUpperCase() || 'A'}
-              </div>
+              <AgentAvatar agentId={agent.id} name={agent.name} size={24} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{agent.name}</div>
               </div>

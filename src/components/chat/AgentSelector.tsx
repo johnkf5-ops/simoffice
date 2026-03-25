@@ -4,6 +4,7 @@
 import { ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useAgentsStore } from '@/stores/agents';
+import { AgentAvatar } from '@/components/common/AgentAvatar';
 
 interface AgentSelectorProps {
   agentIds: string[];
@@ -47,14 +48,7 @@ export function AgentSelector({ agentIds, selectedAgentId, onSelect }: AgentSele
         }}>
         {selected ? (
           <>
-            <div style={{
-              width: 18, height: 18, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 8, fontWeight: 700, color: 'white', flexShrink: 0,
-            }}>
-              {selected.name?.charAt(0).toUpperCase() || 'A'}
-            </div>
+            <AgentAvatar agentId={selected.id} name={selected.name} size={18} />
             {selected.name}
           </>
         ) : (
@@ -81,14 +75,7 @@ export function AgentSelector({ agentIds, selectedAgentId, onSelect }: AgentSele
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = 'hsl(var(--muted))'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = agent.id === selectedAgentId ? 'rgba(59,130,246,0.1)' : 'transparent'; }}>
-              <div style={{
-                width: 20, height: 20, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 9, fontWeight: 700, color: 'white', flexShrink: 0,
-              }}>
-                {agent.name?.charAt(0).toUpperCase() || 'A'}
-              </div>
+              <AgentAvatar agentId={agent.id} name={agent.name} size={20} />
               <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
                 {agent.name}
               </span>
