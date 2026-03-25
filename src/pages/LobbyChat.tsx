@@ -179,48 +179,7 @@ export function LobbyChat() {
 
   useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
 
-  // Auto-create rooms for existing agents that match multi-agent career templates
-  useEffect(() => {
-    if (!agents.length) return;
-    const { rooms, createRoomFromCareer, updateRoomAgentIds, createCustomRoom } = useRoomsStore.getState();
-
-    for (const career of CAREERS) {
-      if (career.recommended.length < 2) continue;
-      // Skip if room already exists for this career
-      if (rooms.some(r => r.careerId === career.id)) continue;
-
-      // Match template agent IDs to actual agents by normalized name
-      const normalize = (s: string) => s.toLowerCase().replace(/[-_\s]+/g, '');
-      const matched = career.recommended.filter(templateId => {
-        const templateName = normalize(templateId);
-        return agents.some(a => normalize(a.name || '') === normalize(templateId.replace(/-/g, ' ')) || normalize(a.id) === templateName);
-      });
-
-      // If user has at least 2 matching agents, create the room
-      if (matched.length >= 2) {
-        // Map to actual agent IDs
-        const actualIds = career.recommended
-          .map(templateId => {
-            const templateName = normalize(templateId.replace(/-/g, ' '));
-            return agents.find(a => normalize(a.name || '') === templateName || normalize(a.id) === normalize(templateId));
-          })
-          .filter(Boolean)
-          .map(a => a!.id);
-
-        if (actualIds.length >= 2) {
-          // Create room with actual agent IDs
-          const room = createRoomFromCareer(career);
-          // Update the room's agentIds with actual IDs (will be persisted)
-          updateRoomAgentIds(room.id, actualIds);
-        }
-      }
-    }
-    // Fallback: if no rooms were created but user has 2+ agents, make a #general room
-    const currentRooms = useRoomsStore.getState().rooms;
-    if (agents.length >= 2 && !currentRooms.length) {
-      createCustomRoom('general', '🏢', agents.map(a => a.id));
-    }
-  }, [agents]);
+  // Room auto-creation removed — users create their own rooms via "+ Create Room" button
 
   useEffect(() => {
     if (scrollRef.current) {
