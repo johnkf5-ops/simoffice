@@ -56,6 +56,25 @@ Three Zustand stores power everything. They are independent — rooms and chat d
 - `mainSessionKey` — canonical session key (e.g., `"agent:language-tutor:main"`)
 - `modelDisplay` — LLM model label
 
+### useAgentCustomizationStore (`src/stores/agent-customization.ts`)
+
+**Persisted to localStorage** as `simoffice:agent-customization`.
+
+Frontend-only store for per-agent visual overrides (no backend needed).
+
+| State | Type | Purpose |
+|-------|------|---------|
+| `customizations` | `Record<string, AgentCustomization>` | Keyed by agent ID |
+
+**AgentCustomization fields:**
+- `avatarUrl?` — data URL from uploaded image
+- `color?` — hex color for the circle (default: `#7c3aed`)
+
+**Actions:**
+- `setCustomization(agentId, { avatarUrl?, color? })` — merge partial update
+
+**Used by:** `AgentAvatar` component, `LobbyAssistants` edit form.
+
 ### useChatStore (`src/stores/chat.ts` + `src/stores/chat/`)
 
 **NOT persisted** — fetched from Gateway on demand.
@@ -88,10 +107,10 @@ Three Zustand stores power everything. They are independent — rooms and chat d
 **Sections (top to bottom):**
 1. Header — "← Lobby" back link (hidden on main Lobby page)
 2. "+ New Chat" button — clears room, creates new session, navigates to /chat
-3. Rooms — list of rooms with agent count + delete (X) button
+3. Rooms — list of rooms with agent count + delete (X) + double-click to rename
 4. "+ Create Room" — modal to select 2+ agents for custom room
-5. Online Agents — list of all agents with status dots, click for DM
-6. Conversations — session list with agent display names + delete (X) button
+5. Online Agents — list of all agents with custom avatars, status dots, click for DM
+6. Conversations — session list with agent display names + delete (X) + double-click to rename
 7. Status Footer — online/offline + LLM provider label
 
 **Props:**
@@ -101,6 +120,26 @@ Three Zustand stores power everything. They are independent — rooms and chat d
 **Key handlers:**
 - `handleAgentClick(agentId)` — finds agent's `mainSessionKey`, calls `switchSession()`, sets `activeRoom(null)`, navigates to /chat
 - `handleRoomClick(roomId)` — calls `setActiveRoom(roomId)`, navigates to /chat
+- **Double-click room** → inline rename (calls `renameRoom()`)
+- **Double-click conversation** → inline rename (updates `sessionLabels`)
+
+### AgentAvatar (`src/components/common/AgentAvatar.tsx`)
+
+Reusable component rendering an agent's avatar. Uses `useAgentCustomizationStore` to check for custom image or color.
+
+- If `avatarUrl` is set → renders `<img>` (circular, cropped)
+- If `color` is set → renders colored circle with initial letter
+- Default → purple gradient circle with initial letter
+
+**Used everywhere:** BuddyPanel, LobbyChat (message bubbles, header, typing indicator), WhosHerePanel, AgentSelector, LobbyAssistants.
+
+### LobbyAssistants — Agent Edit Form (`src/pages/LobbyAssistants.tsx`)
+
+Each agent card has an **Edit** button that opens an inline form with:
+- **Name** — text input, saves to backend via `updateAgent()`
+- **Color** — 10-color swatch palette, saves to `agent-customization` store
+- **Avatar** — file upload, stored as data URL in `agent-customization` store
+- **Remove avatar** — clears the custom image
 
 ### LobbyChat (`src/pages/LobbyChat.tsx`)
 
@@ -256,6 +295,8 @@ The `mainSessionKey` on each `AgentSummary` is the canonical session. New conver
 | `src/lib/meeting-sequencer.ts` | runTeamRound() + runMeeting() — Gateway RPC sequencer |
 | `src/components/chat/WhosHerePanel.tsx` | Right panel showing room agents |
 | `src/components/chat/AgentSelector.tsx` | @mention dropdown in input bar |
+| `src/components/common/AgentAvatar.tsx` | Reusable avatar (custom image/color/initial) |
+| `src/stores/agent-customization.ts` | Per-agent avatar + color overrides (localStorage) |
 | `electron/utils/agent-config.ts` | Backend agent CRUD, session key building |
 
 ---
