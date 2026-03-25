@@ -93,16 +93,16 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
     }}>
       {/* Header */}
       {hideBackButton ? (
-        <div style={{ textAlign: 'center', padding: '8px 12px' }}>
-          <img src="/simoffice-logo.png" alt="SimOffice" style={{ height: 32, objectFit: 'contain' }} />
+        <div style={{ textAlign: 'center', padding: '8px 4px' }}>
+          <img src="/simoffice-logo.png" alt="SimOffice" style={{ width: '100%', maxHeight: 48, objectFit: 'contain' }} />
         </div>
       ) : (
-        <div style={{ padding: '8px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ padding: '8px 4px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', gap: 4 }}>
           <button onClick={() => navigate('/')}
-            style={{ fontSize: 14, fontWeight: 700, color: 'rgba(191,219,254,0.7)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif' }}>
+            style={{ fontSize: 14, fontWeight: 700, color: 'rgba(191,219,254,0.7)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Space Grotesk, sans-serif', flexShrink: 0 }}>
             ←
           </button>
-          <img src="/simoffice-logo.png" alt="SimOffice" style={{ height: 28, objectFit: 'contain', cursor: 'pointer' }} onClick={() => navigate('/')} />
+          <img src="/simoffice-logo.png" alt="SimOffice" style={{ width: '100%', maxHeight: 40, objectFit: 'contain', cursor: 'pointer' }} onClick={() => navigate('/')} />
         </div>
       )}
 
