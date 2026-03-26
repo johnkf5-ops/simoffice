@@ -39,6 +39,7 @@ asar: true
 asarUnpack:
   - "**/*.node"
   - "dist/office-assets/**/*"
+  - "dist/toolbar/**/*"
 
 # Disable native module rebuilding.
 # The Electron renderer/main process has no native (.node) dependencies.

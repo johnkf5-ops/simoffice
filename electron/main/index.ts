@@ -496,13 +496,16 @@ if (gotTheLock) {
     // Without this, Three.js fetch() calls for .glb models fail in production.
     protocol.interceptFileProtocol('file', (request, callback) => {
       let url = request.url.substring('file://'.length);
-      // On macOS the URL may start with a leading slash before the actual path
-      // Absolute paths like /office-assets/ need to be resolved relative to dist/
-      if (url.startsWith('/office-assets/') || url.startsWith('/splash-loading2.png') || url.startsWith('/agent-templates.json') || url.startsWith('/agent-souls.json')) {
+      // Resolve root-relative paths (e.g. /toolbar/icon.png, /splash-loading-dark.png,
+      // /office-assets/model.glb, /agent-templates.json) to the dist/ directory inside
+      // the app bundle. Without this, assets from public/ fail to load in production
+      // because they're packed inside the asar archive.
+      // Match: starts with / followed by a filename or known directory (not an absolute OS path like /Users/)
+      if (/^\/(?:office-assets|toolbar|office)\b/.test(url) || /^\/[^/]+\.(png|json|jpg|svg|glb|gltf)$/.test(url)) {
         const distPath = join(__dirname, '../../dist', url);
         callback({ path: distPath });
       } else {
-        // Let all other file:// requests pass through normally
+        // Let all other file:// requests pass through normally (absolute OS paths, etc.)
         callback({ path: decodeURIComponent(url) });
       }
     });

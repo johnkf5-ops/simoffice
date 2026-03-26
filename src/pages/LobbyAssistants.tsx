@@ -98,7 +98,9 @@ export function LobbyAssistants() {
             body: JSON.stringify({ content: soul }),
           });
         }
-      } catch { /* handled by store */ }
+      } catch (err) {
+        console.error('[Add to Team] failed:', err);
+      }
     });
   };
 
