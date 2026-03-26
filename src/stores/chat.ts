@@ -333,7 +333,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // Only update if still on the same session
         if (get().currentSessionKey !== currentSessionKey) return;
 
-        set({ messages: finalMessages, loading: false });
+        // Merge: use history as base, but preserve any event-added messages
+        // that history doesn't have yet (by ID). Dedupe by content text
+        // to prevent the same response appearing twice with different IDs.
+        const currentMessages = get().messages;
+        const historyIds = new Set(finalMessages.filter(m => m.id).map(m => m.id));
+        const historyTexts = new Set(finalMessages.filter(m => m.role === 'assistant').map(m => getMessageText(m.content)).filter(Boolean));
+
+        // Keep event-added messages that aren't in history (by ID or content)
+        const eventOnly = currentMessages.filter(m => {
+          if (!m.id) return false;
+          if (historyIds.has(m.id)) return false; // history has this ID
+          if (m.role === 'assistant' && historyTexts.has(getMessageText(m.content))) return false; // history has same content
+          // Keep if it's a recent event-added message (has our evt- prefix)
+          return m.id.startsWith('evt-');
+        });
+
+        const merged = [...finalMessages, ...eventOnly];
+        set({ messages: merged, loading: false });
 
         // Auto-generate session label from first user message
         const isMainSession = currentSessionKey.endsWith(':main');
@@ -538,9 +555,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   // ── Handle chat events from Gateway ──
-  // Delta: updates streamingText for animation
-  // Final: clears streaming, triggers loadHistory
-  // Messages ONLY come from loadHistory — no duplicates possible
+  // Delta: updates streamingText for typing animation
+  // Final: adds message INSTANTLY + clears sending + loads history as backup
+  // Dedup: by message ID and content text so loadHistory can't re-add
 
   handleChatEvent: (event: Record<string, unknown>) => {
     const eventState = (event.state as string) || '';
@@ -560,8 +577,43 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       case 'final': {
-        // Clear streaming, fetch the real message from history
+        const finalMsg = event.message as RawMessage | undefined;
+
+        // Clear streaming state
         set({ streamingText: '', streamingMessage: null });
+
+        // Add the message INSTANTLY if it has real content
+        if (finalMsg && !isToolResultRole(finalMsg.role)) {
+          const text = getMessageText(finalMsg.content);
+          if (text) {
+            const msgId = finalMsg.id || `evt-${event.runId || ''}-${Date.now()}`;
+
+            set((s) => {
+              // Dedupe: check by ID and by exact content text
+              const isDupeById = s.messages.some((m) => m.id && m.id === msgId);
+              const isDupeByContent = s.messages.some(
+                (m) => m.role === 'assistant' && getMessageText(m.content) === text,
+              );
+              if (isDupeById || isDupeByContent) return s;
+
+              return {
+                ...s,
+                messages: [...s.messages, { ...finalMsg, id: msgId }],
+              };
+            });
+          }
+        }
+
+        // Stop polling, clear sending
+        clearPoll();
+        set({
+          sending: false,
+          activeRunId: null,
+          pendingFinal: false,
+          lastUserMessageAt: null,
+        });
+
+        // Load history as backup to sync with Gateway's authoritative state
         get().loadHistory(true);
         break;
       }

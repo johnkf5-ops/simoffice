@@ -263,3 +263,57 @@ If the rewrite breaks something critical:
 1. The old `chat.ts` is in git history
 2. `git checkout HEAD~1 -- src/stores/chat.ts` restores it instantly
 3. No other files are changed, so rollback is one file
+
+---
+
+## Phase 2: Streaming Fix (NOT YET DONE)
+
+The polling-only version works but responses take ~2s. Need to add instant display from events.
+
+### The Problem With Adding Messages From Events
+The Gateway sends events in TWO protocols simultaneously:
+1. OpenClaw format: `{ type: "event", event: "chat", payload: {...} }` → arrives as `gateway:chat-message` IPC
+2. JSON-RPC format: `{ jsonrpc: "2.0", method: "agent", params: {...} }` → arrives as `gateway:notification` IPC
+
+Both reach the renderer and both call `handleChatEvent()`. If we add the message from the event, it gets added TWICE.
+
+### Where The Dedup Happens
+- `gateway.ts` has `shouldProcessGatewayEvent()` with a Map-based dedup (30s TTL)
+- But the two handlers (`handleGatewayNotification` and `handleGatewayChatMessage`) use the SAME dedup map
+- The dedup key includes `runId|sessionKey|seq|state`
+- If both protocols carry the same key fields, the second one should be caught
+
+### What To Investigate
+1. Add console.log to BOTH handlers in gateway.ts to see if events arrive twice
+2. Log the dedup key and whether it was caught
+3. If dual events is the issue, fix gateway.ts dedup
+4. If not, the issue is elsewhere (React StrictMode, history poll race, etc.)
+
+### The Correct Fix Pattern
+```typescript
+// In handleChatEvent('final'):
+case 'final': {
+  const finalMsg = event.message as RawMessage;
+  const msgId = finalMsg?.id || `run-${event.runId}`;
+
+  // Only add if not already in messages (by ID or by content)
+  const exists = get().messages.some(m =>
+    m.id === msgId ||
+    (m.role === 'assistant' && getMessageText(m.content) === getMessageText(finalMsg.content))
+  );
+
+  if (!exists && finalMsg && getMessageText(finalMsg.content)) {
+    set(s => ({ messages: [...s.messages, { ...finalMsg, id: msgId }] }));
+  }
+
+  // Clear streaming, stop polling
+  set({ streamingText: '', streamingMessage: null, sending: false });
+  clearPoll();
+  break;
+}
+```
+
+### Testing Requirements
+- MUST test with full Electron restart (Cmd+Q → pnpm dev), not just Cmd+R
+- Check console for `[sendMessage] RPC result` to confirm new code is running
+- If no custom logs appear, the old code is cached
