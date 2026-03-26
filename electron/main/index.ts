@@ -163,7 +163,6 @@ function createWindow(): BrowserWindow {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
-      webviewTag: true, // Enable <webview> for embedding OpenClaw Control UI
     },
     titleBarStyle: isMac ? 'hiddenInset' : useCustomTitleBar ? 'hidden' : 'default',
     trafficLightPosition: isMac ? { x: 16, y: 16 } : undefined,
@@ -285,12 +284,12 @@ async function initialize(): Promise<void> {
       delete headers['x-frame-options'];
       if (headers['Content-Security-Policy']) {
         headers['Content-Security-Policy'] = headers['Content-Security-Policy'].map(
-          (csp) => csp.replace(/frame-ancestors\s+'none'/g, "frame-ancestors 'self' *")
+          (csp) => csp.replace(/frame-ancestors\s+'none'/g, "frame-ancestors 'self'")
         );
       }
       if (headers['content-security-policy']) {
         headers['content-security-policy'] = headers['content-security-policy'].map(
-          (csp) => csp.replace(/frame-ancestors\s+'none'/g, "frame-ancestors 'self' *")
+          (csp) => csp.replace(/frame-ancestors\s+'none'/g, "frame-ancestors 'self'")
         );
       }
       callback({ responseHeaders: headers });
