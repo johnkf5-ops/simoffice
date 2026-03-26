@@ -1563,6 +1563,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const trimmed = text.trim();
     if (!trimmed && (!attachments || attachments.length === 0)) return;
 
+    // Guard against double-invocation (React StrictMode calls async handlers twice)
+    if (get().sending) return;
+
     const targetSessionKey = resolveMainSessionKeyForAgent(targetAgentId) ?? get().currentSessionKey;
 
     if (targetSessionKey !== get().currentSessionKey) {
@@ -1916,7 +1919,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const clearPendingImages = { pendingToolImages: [] as AttachedFileMeta[] };
 
             // Check if message already exists (prevent duplicates)
-            const alreadyExists = s.messages.some(m => m.id === msgId);
+            // Also check for snapshot messages with different generated IDs but same content
+            const finalText = getMessageText(msgWithImages.content);
+            const alreadyExists = s.messages.some(m => m.id === msgId)
+              || (finalText && s.messages.some(m =>
+                m.role === 'assistant' && m.id?.includes('-turn-') && getMessageText(m.content) === finalText
+              ));
             if (alreadyExists) {
               return toolOnly ? {
                 streamingText: '',

@@ -101,10 +101,10 @@ export function handleRuntimeEventState(
                 if (currentStream) {
                   const streamRole = currentStream.role;
                   if (streamRole === 'assistant' || streamRole === undefined) {
-                    // Use message's own id if available, otherwise derive a stable one from runId
                     const snapId = currentStream.id
                       || `${runId || 'run'}-turn-${s.messages.length}`;
                     if (!s.messages.some(m => m.id === snapId)) {
+                      console.log('[EVENT] Snapshot added:', snapId, 'msgs:', s.messages.length);
                       snapshotMsgs.push({
                         ...(currentStream as RawMessage),
                         role: 'assistant',
@@ -146,7 +146,12 @@ export function handleRuntimeEventState(
               const clearPendingImages = { pendingToolImages: [] as AttachedFileMeta[] };
 
               // Check if message already exists (prevent duplicates)
-              const alreadyExists = s.messages.some(m => m.id === msgId);
+              const finalText = getMessageText(msgWithImages.content);
+              const alreadyExists = s.messages.some(m => m.id === msgId)
+                || (finalText && s.messages.some(m =>
+                  m.role === 'assistant' && m.id?.startsWith(`${runId || 'run'}-turn-`) && getMessageText(m.content) === finalText
+                ));
+              console.log('[EVENT] Final msg:', msgId, 'alreadyExists:', alreadyExists, 'msgs:', s.messages.length, 'text:', finalText?.slice(0, 50));
               if (alreadyExists) {
                 return toolOnly ? {
                   streamingText: '',

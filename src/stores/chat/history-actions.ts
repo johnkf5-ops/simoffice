@@ -64,6 +64,8 @@ export function createHistoryActions(
           }
         }
 
+        const assistantMsgs = finalMessages.filter(m => m.role === 'assistant');
+        console.log('[HISTORY] Loaded', finalMessages.length, 'msgs,', assistantMsgs.length, 'assistant, ids:', assistantMsgs.map(m => m.id?.slice(0, 20)).join(','));
         set({ messages: finalMessages, thinkingLevel, loading: false });
 
         // Extract first user message text as a session label for display in the toolbar.

@@ -57,11 +57,10 @@ function MessageBubble({ message, agentName, agentId }: { message: RawMessage; a
   );
 }
 
-/** Deduplicate messages + filter out injected team meeting prompts */
+/** Deduplicate by ID + filter team meeting prompts */
 function dedupeMessages(messages: RawMessage[]): RawMessage[] {
   const seenIds = new Set<string>();
   const result: RawMessage[] = [];
-  let lastAssistantText = '';
   for (const msg of messages) {
     if (msg.role === 'toolresult') continue;
     if (msg.id && seenIds.has(msg.id)) continue;
@@ -70,14 +69,6 @@ function dedupeMessages(messages: RawMessage[]): RawMessage[] {
     if (msg.role === 'user') {
       const text = extractText(msg);
       if (text && text.startsWith('[TEAM MEETING]')) continue;
-    }
-    // Skip consecutive identical assistant messages (streaming + history poll artifact)
-    if (msg.role === 'assistant') {
-      const text = extractText(msg);
-      if (text && text === lastAssistantText) continue;
-      lastAssistantText = text || '';
-    } else {
-      lastAssistantText = '';
     }
     result.push(msg);
   }
@@ -181,38 +172,33 @@ export function LobbyChat() {
   const [headerName, setHeaderName] = useState('');
   const [pendingFiles, setPendingFiles] = useState<Array<{ fileName: string; mimeType: string; fileSize: number; stagedPath: string; preview: string | null }>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
 
-  // File upload handler
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // File upload handler — uses native dialog + IPC staging
+  const handleFileSelect = async () => {
+    try {
+      const { invokeIpc } = await import('@/lib/api-client');
 
-    const staged: typeof pendingFiles = [];
-    for (const file of Array.from(files)) {
-      // Write to temp path via IPC so Gateway can access it
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve) => {
-        reader.onload = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
+      // Open native file dialog
+      const result = await invokeIpc<{ canceled: boolean; filePaths: string[] }>('dialog:open', {
+        properties: ['openFile', 'multiSelections'],
+        filters: [
+          { name: 'All Supported', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'pdf', 'doc', 'docx', 'txt', 'csv', 'json', 'md'] },
+          { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] },
+          { name: 'Documents', extensions: ['pdf', 'doc', 'docx', 'txt', 'csv', 'json', 'md'] },
+        ],
       });
 
-      // For images, use the dataUrl as preview
-      const isImage = file.type.startsWith('image/');
-      staged.push({
-        fileName: file.name,
-        mimeType: file.type,
-        fileSize: file.size,
-        stagedPath: dataUrl, // Will be resolved by the send handler
-        preview: isImage ? dataUrl : null,
-      });
+      if (result.canceled || !result.filePaths?.length) return;
+
+      // Stage files to ~/.openclaw/media/outbound/ so Gateway can access them
+      const staged = await invokeIpc<Array<{ id: string; fileName: string; mimeType: string; fileSize: number; stagedPath: string; preview: string | null }>>('file:stage', result.filePaths);
+
+      setPendingFiles(prev => [...prev, ...staged]);
+    } catch (err) {
+      console.error('File upload failed:', err);
     }
-
-    setPendingFiles(prev => [...prev, ...staged]);
-    // Reset input so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removePendingFile = (index: number) => {
@@ -228,9 +214,11 @@ export function LobbyChat() {
   }, [messages, meetingInProgress, teamMessages, teamRoundInProgress]);
 
   // ── Send handler ──
+  const sendingRef = useRef(false);
   const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed || sending || teamRoundInProgress) return;
+    if (!trimmed || sending || teamRoundInProgress || sendingRef.current) return;
+    sendingRef.current = true;
 
     setInput('');
 
@@ -274,6 +262,7 @@ export function LobbyChat() {
       );
 
       setTeamRoundStatus(false);
+      sendingRef.current = false;
       return;
     }
 
@@ -333,11 +322,13 @@ export function LobbyChat() {
       );
 
       setTeamRoundStatus(false);
+      sendingRef.current = false;
       return;
     } else {
       // DM mode
       sendMessage(trimmed, pendingFiles.length > 0 ? pendingFiles : undefined);
       setPendingFiles([]);
+      sendingRef.current = false;
     }
   };
 
@@ -538,16 +529,8 @@ export function LobbyChat() {
             )}
 
             {/* File upload button */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json,.md"
-              style={{ display: 'none' }}
-              onChange={handleFileSelect}
-            />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={handleFileSelect}
               disabled={!isOnline}
               title="Attach files"
               style={{
