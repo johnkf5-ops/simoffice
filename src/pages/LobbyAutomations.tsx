@@ -9,6 +9,7 @@ import { useAgentsStore } from '@/stores/agents';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
 import type { CronJob, CronRunEntry, CronSchedule } from '@/types/cron';
+import { AUTOMATION_TEMPLATES, type AutomationTemplate } from '@/lib/cron/templates';
 
 // ─── Schedule presets ────────────────────────────────────────────────────────
 
@@ -19,6 +20,8 @@ const SCHEDULE_PRESETS = [
   { label: 'Every hour', value: '0 * * * *' },
   { label: 'Every day at 9am', value: '0 9 * * *' },
   { label: 'Weekdays at 9am', value: '0 9 * * 1-5' },
+  { label: 'Weekdays at 5pm', value: '0 17 * * 1-5' },
+  { label: 'Every Monday at 8am', value: '0 8 * * 1' },
   { label: 'Every day at midnight', value: '0 0 * * *' },
   { label: 'Every Sunday at midnight', value: '0 0 * * 0' },
 ] as const;
@@ -130,9 +133,10 @@ function describeCron(min: string, hour: string, _dom: string, _month: string, d
     const dayNames = dow.split(',').map((d) => {
       if (d === '1-5') return 'Weekdays';
       if (d === '0,6' || d === '6,0') return 'Weekends';
-      return DAYS_OF_WEEK[Number(d)] || d;
+      const name = DAYS_OF_WEEK[Number(d)];
+      return name ? name + 's' : d;
     }).join(', ');
-    return timeStr ? `${dayNames} at ${timeStr}` : `${dayNames}`;
+    return timeStr ? `${dayNames} at ${timeStr}` : `Every ${dayNames}`;
   }
 
   if (timeStr) return `Every day at ${timeStr}`;
@@ -261,6 +265,7 @@ export function LobbyAutomations() {
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
 
   // Form state — shared between create and edit modes
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [formName, setFormName] = useState('');
@@ -343,6 +348,7 @@ export function LobbyAutomations() {
   // ─── Form actions ──────────────────────────────────────────────────────────
 
   function resetForm() {
+    setShowTemplatePicker(false);
     setShowForm(false);
     setEditingJobId(null);
     setFormName('');
@@ -356,7 +362,34 @@ export function LobbyAutomations() {
 
   function openCreate() {
     resetForm();
+    setShowTemplatePicker(true);
+  }
+
+  function selectTemplate(template: AutomationTemplate | null) {
+    setShowTemplatePicker(false);
     setShowForm(true);
+    setEditingJobId(null);
+    if (template) {
+      setFormName(template.name);
+      setFormMessage(template.prompt);
+      const isPreset = PRESET_VALUES.has(template.schedule);
+      if (isPreset) {
+        setFormSchedule(template.schedule);
+        setIsCustomSchedule(false);
+        setFormCustomCron('');
+      } else {
+        setIsCustomSchedule(true);
+        setFormCustomCron(template.schedule);
+      }
+    } else {
+      setFormName('');
+      setFormMessage('');
+      setFormSchedule('0 * * * *');
+      setIsCustomSchedule(false);
+      setFormCustomCron('');
+    }
+    setFormAgentId('');
+    setFormTz(getLocalTz());
   }
 
   function toggleHistory(jobId: string) {
@@ -441,7 +474,7 @@ export function LobbyAutomations() {
       <BuddyPanel currentPage="/automations" />
 
       {/* CONTENT AREA */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'hsl(var(--background))' }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: 'hsl(var(--background))' }}>
 
         {/* Section Header */}
         <div style={{
@@ -482,6 +515,79 @@ export function LobbyAutomations() {
               + New Automation
             </button>
           </div>
+
+          {/* ═══ TEMPLATE PICKER ═══ */}
+          {showTemplatePicker && (
+            <div style={{
+              background: 'hsl(var(--card))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: 16,
+              padding: 24,
+              marginBottom: 24,
+            }}>
+              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 4 }}>
+                Choose a template
+              </div>
+              <div style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
+                Start from a template or create a blank automation.
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: 10,
+              }}>
+                {/* Blank option */}
+                <button
+                  onClick={() => selectTemplate(null)}
+                  style={{
+                    padding: '14px 16px', borderRadius: 12, textAlign: 'left',
+                    border: '1px dashed hsl(var(--border))', background: 'transparent',
+                    cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--border))'; }}
+                >
+                  <div style={{ fontSize: 20, marginBottom: 2 }}>+</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))' }}>Blank</div>
+                  <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', lineHeight: 1.3 }}>
+                    Start from scratch
+                  </div>
+                </button>
+
+                {/* Templates */}
+                {AUTOMATION_TEMPLATES.map((tpl) => (
+                  <button
+                    key={tpl.id}
+                    onClick={() => selectTemplate(tpl)}
+                    style={{
+                      padding: '14px 16px', borderRadius: 12, textAlign: 'left',
+                      border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
+                      cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.background = 'rgba(56,189,248,0.05)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--border))'; e.currentTarget.style.background = 'hsl(var(--background))'; }}
+                  >
+                    <div style={{ fontSize: 20, marginBottom: 2 }}>{tpl.icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{tpl.name}</div>
+                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', lineHeight: 1.3 }}>
+                      {tpl.description}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <button
+                  onClick={resetForm}
+                  style={{
+                    padding: '8px 16px', borderRadius: 10,
+                    border: '1px solid hsl(var(--border))', background: 'transparent',
+                    color: 'hsl(var(--muted-foreground))', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ═══ CREATE / EDIT FORM ═══ */}
           {showForm && (
