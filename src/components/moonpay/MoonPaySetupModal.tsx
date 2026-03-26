@@ -5,14 +5,18 @@
  * Step 3: Connected
  */
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { invokeIpc } from '@/lib/api-client';
 
 interface MoonPaySetupModalProps {
   onClose: () => void;
   onConnected?: () => void;
+  /** If true, skip navigation to /trading on done (already there) */
+  alreadyOnTrading?: boolean;
 }
 
-export function MoonPaySetupModal({ onClose, onConnected }: MoonPaySetupModalProps) {
+export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: MoonPaySetupModalProps) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -96,7 +100,7 @@ export function MoonPaySetupModal({ onClose, onConnected }: MoonPaySetupModalPro
               🟣 Connect MoonPay
             </h2>
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>
-              Crypto swaps, on-ramps, and DCA for your agents
+              Trade crypto with your AI agents — just sign in with your email
             </p>
           </div>
           <button onClick={onClose} style={{
@@ -122,10 +126,10 @@ export function MoonPaySetupModal({ onClose, onConnected }: MoonPaySetupModalPro
         {step === 1 && (
           <div>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: 'hsl(var(--foreground))', marginBottom: 4 }}>
-              Sign in to MoonPay
+              Enter your email
             </h3>
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
-              We'll send a verification code to your email
+              MoonPay will send you a one-time code. No password needed — ever.
             </p>
             <input
               type="email"
@@ -155,7 +159,7 @@ export function MoonPaySetupModal({ onClose, onConnected }: MoonPaySetupModalPro
               {loading ? 'Sending code...' : 'Send Verification Code'}
             </button>
             <p style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 10, textAlign: 'center' }}>
-              Don't have an account? One will be created automatically.
+              New to MoonPay? An account is created automatically. It's free.
             </p>
           </div>
         )}
@@ -221,18 +225,22 @@ export function MoonPaySetupModal({ onClose, onConnected }: MoonPaySetupModalPro
               ✓
             </div>
             <h3 style={{ fontSize: 20, fontWeight: 800, color: 'hsl(var(--foreground))', fontFamily: 'Space Grotesk, sans-serif', marginBottom: 8 }}>
-              MoonPay Connected
+              You're connected!
             </h3>
-            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 24 }}>
-              Your agents can now execute crypto swaps, purchases, and bridges.
+            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 8, lineHeight: 1.6 }}>
+              Head to the <strong style={{ color: '#c4b5fd' }}>Trading Desk</strong> to start trading.
+              Just type what you want to do — like "buy $50 of SOL" — and your AI handles the rest.
             </p>
-            <button onClick={onClose} style={{
+            <p style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginBottom: 24, lineHeight: 1.5 }}>
+              No crypto experience needed. Your agent will walk you through everything.
+            </p>
+            <button onClick={() => { onClose(); if (!alreadyOnTrading) navigate('/trading'); }} style={{
               padding: '12px 32px', borderRadius: 10, border: 'none',
               background: 'linear-gradient(135deg, #7B3FE4, #a855f7)',
               color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer',
               fontFamily: 'Space Grotesk, sans-serif',
             }}>
-              Done
+              {alreadyOnTrading ? 'Start Trading' : 'Go to Trading Desk'}
             </button>
             <button onClick={() => { setStep(1); setEmail(''); setCode(''); setError(null); }} style={{
               padding: 8, borderRadius: 8, border: 'none',

@@ -12,16 +12,25 @@ import { Loader2, Send, Wallet, ArrowRightLeft, TrendingUp, DollarSign, Link2, H
 import { useChatStore } from '@/stores/chat';
 import { useSettingsStore } from '@/stores/settings';
 import { useGatewayStore } from '@/stores/gateway';
+import { invokeIpc } from '@/lib/api-client';
+import { MoonPaySetupModal } from '@/components/moonpay/MoonPaySetupModal';
 
 // ---------------------------------------------------------------------------
 // Suggested prompts for non-technical users
 // ---------------------------------------------------------------------------
 
-const SUGGESTIONS = [
+const BEGINNER_SUGGESTIONS = [
+  { icon: <HelpCircle style={{ width: 14, height: 14 }} />, label: 'What is crypto?', prompt: 'I\'m brand new to crypto. Can you explain what it is in simple terms?' },
+  { icon: <DollarSign style={{ width: 14, height: 14 }} />, label: 'Buy my first crypto', prompt: 'I want to buy my first crypto with my credit card. Walk me through it step by step.' },
+  { icon: <TrendingUp style={{ width: 14, height: 14 }} />, label: 'How do I get started?', prompt: 'I\'ve never traded before. How do I get started? What do I need?' },
+  { icon: <HelpCircle style={{ width: 14, height: 14 }} />, label: 'What can you do?', prompt: 'What can MoonPay help me with? Give me the full list.' },
+];
+
+const TRADER_SUGGESTIONS = [
   { icon: <Wallet style={{ width: 14, height: 14 }} />, label: 'Check my balance', prompt: 'What are my wallet balances?' },
   { icon: <TrendingUp style={{ width: 14, height: 14 }} />, label: 'Trending tokens', prompt: 'Show me trending tokens on Solana' },
   { icon: <ArrowRightLeft style={{ width: 14, height: 14 }} />, label: 'Swap tokens', prompt: 'I want to swap some tokens' },
-  { icon: <DollarSign style={{ width: 14, height: 14 }} />, label: 'Buy crypto', prompt: 'How do I buy crypto with my card?' },
+  { icon: <DollarSign style={{ width: 14, height: 14 }} />, label: 'Buy crypto', prompt: 'I want to buy crypto with my card' },
   { icon: <Link2 style={{ width: 14, height: 14 }} />, label: 'Bridge tokens', prompt: 'I want to move tokens to another chain' },
   { icon: <HelpCircle style={{ width: 14, height: 14 }} />, label: 'What can you do?', prompt: 'What can MoonPay help me with?' },
 ];
@@ -47,12 +56,21 @@ export function TradingPage() {
   const [messages, setMessages] = useState<TradingMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [moonpayConnected, setMoonpayConnected] = useState<boolean | null>(null); // null = checking
+  const [showSetupModal, setShowSetupModal] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const gatewayStatus = useGatewayStore((s) => s.status);
   const isOnline = gatewayStatus.state === 'running';
   const theme = useSettingsStore((s) => s.theme);
   const moonpayLogo = theme === 'dark' ? '/moonpay-logo-white.png' : '/moonpay-logo.png';
+
+  // Check MoonPay connection on mount
+  useEffect(() => {
+    invokeIpc<{ authenticated: boolean }>('moonpay:check-auth')
+      .then((r) => setMoonpayConnected(r.authenticated))
+      .catch(() => setMoonpayConnected(false));
+  }, []);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -147,6 +165,72 @@ export function TradingPage() {
 
   const isEmpty = messages.length === 0 && !sending;
 
+  // Still checking auth — show nothing (fast, sub-second)
+  if (moonpayConnected === null) {
+    return <div style={{ height: '100%', background: 'hsl(var(--background))' }} />;
+  }
+
+  // Not connected — show connect prompt
+  if (moonpayConnected === false) {
+    return (
+      <div style={{ height: '100%', display: 'flex', background: 'hsl(var(--background))' }}>
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{ textAlign: 'center', maxWidth: 400 }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%', margin: '0 auto 20px',
+              background: 'linear-gradient(135deg, #7B3FE4, #a855f7)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 32, boxShadow: '0 8px 32px rgba(123,63,228,0.3)',
+            }}>
+              🟣
+            </div>
+            <h2 style={{
+              fontSize: 24, fontWeight: 800, color: 'hsl(var(--foreground))',
+              fontFamily: 'Space Grotesk, sans-serif', marginBottom: 8,
+            }}>
+              Connect MoonPay
+            </h2>
+            <p style={{
+              fontSize: 14, color: 'hsl(var(--muted-foreground))',
+              lineHeight: 1.7, marginBottom: 24,
+            }}>
+              To start trading, connect your MoonPay account.
+              It takes 60 seconds and it's free.
+            </p>
+            <button
+              onClick={() => setShowSetupModal(true)}
+              style={{
+                padding: '14px 36px', borderRadius: 12, border: 'none',
+                background: 'linear-gradient(135deg, #7B3FE4, #a855f7)',
+                color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                fontFamily: 'Space Grotesk, sans-serif',
+                boxShadow: '0 4px 16px rgba(123,63,228,0.3)',
+              }}
+            >
+              Connect MoonPay
+            </button>
+            <p style={{
+              fontSize: 12, color: 'hsl(var(--muted-foreground))',
+              marginTop: 16, lineHeight: 1.5,
+            }}>
+              No crypto experience needed. Your AI agent handles everything.
+            </p>
+          </div>
+        </div>
+
+        {showSetupModal && (
+          <MoonPaySetupModal
+            onClose={() => setShowSetupModal(false)}
+            onConnected={() => setMoonpayConnected(true)}
+            alreadyOnTrading
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div style={{ height: '100%', display: 'flex', background: 'hsl(var(--background))' }}>
 
@@ -209,7 +293,7 @@ export function TradingPage() {
 
               {/* Suggestion chips */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', marginTop: 8 }}>
-                {SUGGESTIONS.map((s) => (
+                {BEGINNER_SUGGESTIONS.map((s) => (
                   <button
                     key={s.label}
                     onClick={() => handleSend(s.prompt)}
@@ -293,7 +377,7 @@ export function TradingPage() {
           {/* Quick suggestion chips when chat has messages */}
           {!isEmpty && (
             <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
-              {SUGGESTIONS.slice(0, 4).map((s) => (
+              {TRADER_SUGGESTIONS.slice(0, 4).map((s) => (
                 <button
                   key={s.label}
                   onClick={() => handleSend(s.prompt)}

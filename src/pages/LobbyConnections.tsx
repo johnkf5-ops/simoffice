@@ -233,7 +233,7 @@ export function LobbyConnections() {
               <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #7B3FE4, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🟣</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>MoonPay</div>
-                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>Crypto swaps, on-ramps, bridges, and DCA — required for Crypto Trading careers</div>
+                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>Buy, sell, and trade crypto with your AI agents. No experience needed.</div>
                 {moonPayConnected && (
                   <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />

@@ -2023,7 +2023,8 @@ function registerShellHandlers(): void {
   function getMoonPayBin(): string {
     const { join } = require('path');
     if (app.isPackaged) {
-      return join(process.resourcesPath, 'moonpay', 'dist', 'index.js');
+      // asarUnpack extracts @moonpay/cli to app.asar.unpacked/
+      return join(app.getAppPath() + '.unpacked', 'node_modules', '@moonpay', 'cli', 'dist', 'index.js');
     }
     // Dev: use node_modules
     return join(__dirname, '../../node_modules/@moonpay/cli/dist/index.js');
