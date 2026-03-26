@@ -25,7 +25,9 @@ import { TradingPage } from './pages/TradingPage';
 
 import { useSettingsStore } from './stores/settings';
 import { useGatewayStore } from './stores/gateway';
+import { useLicenseStore } from './stores/license';
 import { applyGatewayTransportPreference } from './lib/api-client';
+import { Activation } from './pages/Activation';
 
 
 class ErrorBoundary extends Component<
@@ -97,8 +99,12 @@ function App() {
   const language = useSettingsStore((state) => state.language);
   const setupComplete = useSettingsStore((state) => state.setupComplete);
   const initGateway = useGatewayStore((state) => state.init);
+  const initLicense = useLicenseStore((state) => state.init);
+  const licenseInitialized = useLicenseStore((state) => state.initialized);
+  const licenseStatus = useLicenseStore((state) => state.status);
 
   useEffect(() => { initSettings(); }, [initSettings]);
+  useEffect(() => { initLicense(); }, [initLicense]);
 
   useEffect(() => {
     if (language && language !== i18n.language) {
@@ -145,6 +151,15 @@ function App() {
   }, [theme]);
 
   useEffect(() => { applyGatewayTransportPreference(); }, []);
+
+  // License gate — show activation screen if no valid license
+  if (!licenseInitialized) {
+    // Still loading license status — show nothing (splash is handled by onboarding)
+    return null;
+  }
+  if (licenseStatus === 'invalid' || licenseStatus === 'expired') {
+    return <Activation />;
+  }
 
   return (
     <ErrorBoundary>

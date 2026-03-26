@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settings';
 import { useGatewayStore } from '@/stores/gateway';
 import { useUpdateStore } from '@/stores/update';
+import { useLicenseStore, type LicenseStatus } from '@/stores/license';
 
 export function LobbySettings() {
   const navigate = useNavigate();
@@ -42,6 +43,13 @@ export function LobbySettings() {
   const setAutoDownload = useUpdateStore((s) => s.setAutoDownload);
   const autoDownloadUpdate = useSettingsStore((s) => s.autoDownloadUpdate);
   const setAutoDownloadUpdate = useSettingsStore((s) => s.setAutoDownloadUpdate);
+
+  const licenseKey = useLicenseStore((s) => s.key);
+  const licenseStatus = useLicenseStore((s) => s.status);
+  const licenseEmail = useLicenseStore((s) => s.email);
+  const licenseValidUntil = useLicenseStore((s) => s.validUntil);
+  const openPortal = useLicenseStore((s) => s.openPortal);
+  const deactivate = useLicenseStore((s) => s.deactivate);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [restarting, setRestarting] = useState(false);
@@ -238,6 +246,81 @@ export function LobbySettings() {
             </button>
           </div>
 
+          {/* Subscription */}
+          <div style={sectionTitle}>Subscription</div>
+
+          <div style={row}>
+            <div>
+              <div style={label}>Status</div>
+              <div style={desc}>Your current subscription status</div>
+            </div>
+            <StatusBadge status={licenseStatus} />
+          </div>
+
+          {licenseEmail && (
+            <div style={row}>
+              <div>
+                <div style={label}>Email</div>
+                <div style={desc}>{licenseEmail}</div>
+              </div>
+            </div>
+          )}
+
+          {licenseValidUntil && licenseValidUntil > 0 && (
+            <div style={row}>
+              <div>
+                <div style={label}>{licenseStatus === 'trialing' ? 'Trial ends' : licenseStatus === 'canceling' ? 'Access until' : 'Next renewal'}</div>
+                <div style={desc}>{new Date(licenseValidUntil * 1000).toLocaleDateString()}</div>
+              </div>
+            </div>
+          )}
+
+          {licenseKey && (
+            <div style={row}>
+              <div>
+                <div style={label}>License Key</div>
+                <div style={desc}>
+                  <code style={{ fontSize: 12, fontFamily: 'Space Grotesk, monospace' }}>
+                    {licenseKey.slice(0, 10)}{'····'}{licenseKey.slice(-4)}
+                  </code>
+                </div>
+              </div>
+              <button
+                onClick={() => navigator.clipboard.writeText(licenseKey)}
+                style={{
+                  padding: '6px 14px', borderRadius: 6, border: '1px solid hsl(var(--border))',
+                  background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 12,
+                  cursor: 'pointer',
+                }}
+              >
+                Copy
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button
+              onClick={openPortal}
+              style={{
+                padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
+                fontSize: 13, fontWeight: 600,
+              }}
+            >
+              Manage Subscription
+            </button>
+            <button
+              onClick={deactivate}
+              style={{
+                padding: '8px 16px', borderRadius: 8, border: '1px solid hsl(var(--border))',
+                background: 'transparent', color: 'hsl(var(--muted-foreground))',
+                fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              Deactivate This Device
+            </button>
+          </div>
+
           {/* Advanced */}
           <div style={{ ...sectionTitle, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => setAdvancedOpen(!advancedOpen)}>
             Advanced {advancedOpen ? '▲' : '▼'}
@@ -299,6 +382,29 @@ export function LobbySettings() {
         </div>
       </div>
     </div>
+  );
+}
+
+/* Subscription status badge */
+function StatusBadge({ status }: { status: LicenseStatus }) {
+  const config: Record<string, { label: string; bg: string; color: string }> = {
+    active: { label: 'Active', bg: 'rgba(34,197,94,0.15)', color: '#22c55e' },
+    valid: { label: 'Active', bg: 'rgba(34,197,94,0.15)', color: '#22c55e' },
+    trialing: { label: 'Trial', bg: 'rgba(59,130,246,0.15)', color: '#3b82f6' },
+    past_due: { label: 'Past Due', bg: 'rgba(234,179,8,0.15)', color: '#eab308' },
+    canceling: { label: 'Canceling', bg: 'rgba(249,115,22,0.15)', color: '#f97316' },
+    expired: { label: 'Expired', bg: 'rgba(239,68,68,0.15)', color: '#ef4444' },
+    invalid: { label: 'Not Activated', bg: 'rgba(239,68,68,0.15)', color: '#ef4444' },
+    loading: { label: 'Checking...', bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' },
+  };
+  const c = config[status] || config.loading;
+  return (
+    <span style={{
+      padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+      background: c.bg, color: c.color,
+    }}>
+      {c.label}
+    </span>
   );
 }
 

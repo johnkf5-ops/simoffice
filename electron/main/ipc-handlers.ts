@@ -73,6 +73,7 @@ import {
 import { validateApiKeyWithProvider } from '../services/providers/provider-validation';
 import { appUpdater } from './updater';
 import { PORTS } from '../utils/config';
+import { getLicenseData, setLicenseKey, cacheLicenseValidation, clearLicenseData } from '../utils/license-store';
 
 type AppRequest = {
   id?: string;
@@ -158,6 +159,9 @@ export function registerIpcHandlers(
 
   // Device OAuth handlers (Code Plan)
   registerDeviceOAuthHandlers(mainWindow);
+
+  // License handlers
+  registerLicenseHandlers();
 
   // File staging handlers (upload/send separation)
   registerFileHandlers();
@@ -2826,6 +2830,67 @@ function registerOllamaHandlers(mainWindow: BrowserWindow): void {
     } catch (error) {
       console.error('[ollama] Disk space check error:', error);
       return { success: false, error: String(error) };
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// License handlers
+// ---------------------------------------------------------------------------
+
+const LICENSE_API_BASE = process.env.LICENSE_API_BASE || 'https://simoffice.xyz';
+
+function registerLicenseHandlers(): void {
+  // Read cached license data from electron-store (sync, no network)
+  ipcMain.handle('license:get', async () => {
+    return await getLicenseData();
+  });
+
+  // Store license key locally
+  ipcMain.handle('license:store', async (_, key: string) => {
+    await setLicenseKey(key);
+  });
+
+  // Clear all license data (deactivate)
+  ipcMain.handle('license:clear', async () => {
+    await clearLicenseData();
+  });
+
+  // Validate license key against server (HTTPS from main process — no CORS)
+  ipcMain.handle('license:validate', async (_, key: string) => {
+    try {
+      const { net } = await import('electron');
+      const resp = await net.fetch(`${LICENSE_API_BASE}/api/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+      const data = await resp.json() as { valid: boolean; status?: string; valid_until?: number; email?: string | null; reason?: string };
+
+      // Cache result locally for offline fallback
+      if (data.valid && data.status && data.valid_until) {
+        await cacheLicenseValidation(data.status, data.valid_until, data.email ?? null);
+      }
+
+      return data;
+    } catch (err) {
+      // Network error — return failure so renderer can fall back to cache
+      return { valid: false, reason: 'network_error', error: String(err) };
+    }
+  });
+
+  // Create Stripe Billing Portal session
+  ipcMain.handle('license:portal', async (_, key: string) => {
+    try {
+      const { net } = await import('electron');
+      const resp = await net.fetch(`${LICENSE_API_BASE}/api/portal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+      return await resp.json();
+    } catch (err) {
+      return { error: 'Failed to open billing portal' };
     }
   });
 }

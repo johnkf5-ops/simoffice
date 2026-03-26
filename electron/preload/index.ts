@@ -141,6 +141,12 @@ const electronAPI = {
         'openclaw:getConfigDir',
         'openclaw:getSkillsDir',
         'openclaw:getCliCommand',
+        // License
+        'license:get',
+        'license:store',
+        'license:clear',
+        'license:validate',
+        'license:portal',
         // Ollama local AI
         'ollama:detect-hardware',
         'ollama:check-status',

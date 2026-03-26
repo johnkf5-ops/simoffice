@@ -6,6 +6,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { TitleBar } from './TitleBar';
 import { Toolbar } from './Toolbar';
+import { LicenseBanner } from '../common/LicenseBanner';
 
 export function MainLayout() {
   const location = useLocation();
@@ -15,6 +16,7 @@ export function MainLayout() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       <TitleBar />
+      <LicenseBanner />
       <Toolbar />
 
       <div className="flex flex-1 overflow-hidden">
