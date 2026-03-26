@@ -182,7 +182,12 @@ export class AppUpdater extends EventEmitter {
         return null;
       }
 
-      // Safety net: if events somehow didn't fire, force a final state.
+      // Give async events time to settle before applying safety net.
+      // electron-updater emits update-available/not-available asynchronously;
+      // without this delay the safety net can stomp a valid 'available' status.
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Safety net: if events STILL didn't fire, force a final state.
       if (this.status.status === 'checking' || this.status.status === 'idle') {
         this.updateStatus({ status: 'not-available' });
       }

@@ -4,6 +4,7 @@
  */
 import { Tray, Menu, BrowserWindow, app, nativeImage } from 'electron';
 import { join } from 'path';
+import { appUpdater } from './updater';
 
 let tray: Tray | null = null;
 
@@ -115,7 +116,9 @@ export function createTray(mainWindow: BrowserWindow): Tray {
       label: 'Check for Updates...',
       click: () => {
         if (mainWindow.isDestroyed()) return;
-        mainWindow.webContents.send('update:check');
+        mainWindow.show();
+        mainWindow.focus();
+        appUpdater.checkForUpdates().catch(() => {});
       },
     },
     {
