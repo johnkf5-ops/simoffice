@@ -489,6 +489,26 @@ export async function handleCronRoutes(
     return true;
   }
 
+  // Run history for a specific job
+  const runsMatch = url.pathname.match(/^\/api\/cron\/runs\/([^/]+)$/);
+  if (runsMatch && req.method === 'GET') {
+    try {
+      const jobId = decodeURIComponent(runsMatch[1]);
+      const entries = await readCronRunLog(jobId);
+      // Sort newest first
+      entries.sort((a, b) => {
+        const ta = normalizeTimestampMs(a.ts) ?? normalizeTimestampMs(a.runAtMs) ?? 0;
+        const tb = normalizeTimestampMs(b.ts) ?? normalizeTimestampMs(b.runAtMs) ?? 0;
+        return tb - ta;
+      });
+      const limit = Math.min(Number(url.searchParams.get('limit') || '50'), 200);
+      sendJson(res, 200, { runs: entries.slice(0, limit) });
+    } catch (error) {
+      sendJson(res, 500, { success: false, error: String(error) });
+    }
+    return true;
+  }
+
   if (url.pathname === '/api/cron/trigger' && req.method === 'POST') {
     try {
       const body = await parseJsonBody<{ id: string }>(req);

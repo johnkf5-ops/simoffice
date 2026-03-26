@@ -8,7 +8,7 @@ import { useCronStore } from '@/stores/cron';
 import { useAgentsStore } from '@/stores/agents';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
-import type { CronJob, CronSchedule } from '@/types/cron';
+import type { CronJob, CronRunEntry, CronSchedule } from '@/types/cron';
 
 // ─── Schedule presets ────────────────────────────────────────────────────────
 
@@ -190,6 +190,44 @@ function extractTz(schedule: string | CronSchedule): string {
   return '';
 }
 
+// ─── Status badge ────────────────────────────────────────────────────────────
+
+function StatusDot({ job }: { job: CronJob }) {
+  let color = 'hsl(var(--muted-foreground))'; // gray — never run
+  let title = 'Never run';
+  if (job.lastRun) {
+    if (job.lastRun.success) {
+      color = '#22c55e'; title = 'Last run succeeded';
+    } else {
+      color = '#ef4444'; title = 'Last run failed';
+    }
+  }
+  return (
+    <div title={title} style={{
+      width: 8, height: 8, borderRadius: '50%', background: color,
+      flexShrink: 0,
+    }} />
+  );
+}
+
+// ─── Run history formatting ──────────────────────────────────────────────────
+
+function formatRunTimestamp(entry: CronRunEntry): string {
+  const ms = entry.ts ?? entry.runAtMs;
+  if (!ms) return 'Unknown';
+  const d = new Date(ms < 1e12 ? ms * 1000 : ms);
+  return d.toLocaleString(undefined, {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
+}
+
+function formatDurationMs(ms: number | undefined): string {
+  if (!ms || !Number.isFinite(ms)) return '';
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  if (ms < 10_000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.round(ms / 1000)}s`;
+}
+
 // ─── Shared styles ───────────────────────────────────────────────────────────
 
 const inputStyle: React.CSSProperties = {
@@ -215,6 +253,9 @@ export function LobbyAutomations() {
   const toggleJob = useCronStore((s) => s.toggleJob);
   const deleteJob = useCronStore((s) => s.deleteJob);
   const triggerJob = useCronStore((s) => s.triggerJob);
+  const runHistory = useCronStore((s) => s.runHistory);
+  const runHistoryLoading = useCronStore((s) => s.runHistoryLoading);
+  const fetchRunHistory = useCronStore((s) => s.fetchRunHistory);
 
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
@@ -230,6 +271,7 @@ export function LobbyAutomations() {
   const [formAgentId, setFormAgentId] = useState('');
   const [formTz, setFormTz] = useState(getLocalTz());
   const [saving, setSaving] = useState(false);
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
 
   useEffect(() => { void fetchJobs(); }, [fetchJobs]);
   useEffect(() => { void fetchAgents(); }, [fetchAgents]);
@@ -280,6 +322,15 @@ export function LobbyAutomations() {
   function openCreate() {
     resetForm();
     setShowForm(true);
+  }
+
+  function toggleHistory(jobId: string) {
+    if (expandedHistoryId === jobId) {
+      setExpandedHistoryId(null);
+    } else {
+      setExpandedHistoryId(jobId);
+      void fetchRunHistory(jobId);
+    }
   }
 
   function openEdit(job: CronJob) {
@@ -584,126 +635,241 @@ export function LobbyAutomations() {
               const agent = job.agentId ? agentMap.get(job.agentId) : undefined;
               const tz = extractTz(job.schedule);
               const isEditing = editingJobId === job.id;
+              const historyExpanded = expandedHistoryId === job.id;
+              const runs = runHistory[job.id] ?? [];
+              const historyLoading = runHistoryLoading[job.id] ?? false;
 
               return (
-                <div key={job.id}
-                  onClick={() => { if (!isEditing && !showForm) openEdit(job); }}
-                  style={{
-                    background: isEditing ? 'hsl(var(--accent))' : 'hsl(var(--card))',
-                    border: `1px solid ${isEditing ? '#38bdf8' : job.enabled ? 'rgba(2,132,199,0.25)' : 'hsl(var(--border))'}`,
-                    borderRadius: 14,
-                    padding: 20,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    transition: 'all 0.2s',
-                    opacity: job.enabled ? 1 : 0.6,
-                    cursor: (!isEditing && !showForm) ? 'pointer' : 'default',
-                  }}
-                  onMouseEnter={(e) => { if (!isEditing) e.currentTarget.style.boxShadow = '0 3px 16px rgba(2,132,199,0.1)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
-                >
-                  {/* Agent avatar or generic icon */}
-                  {agent ? (
-                    <AgentAvatar agentId={agent.id} name={agent.name} size={48} />
-                  ) : (
+                <div key={job.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                  {/* Card row */}
+                  <div
+                    onClick={() => { if (!isEditing && !showForm) openEdit(job); }}
+                    style={{
+                      background: isEditing ? 'hsl(var(--accent))' : 'hsl(var(--card))',
+                      border: `1px solid ${isEditing ? '#38bdf8' : job.enabled ? 'rgba(2,132,199,0.25)' : 'hsl(var(--border))'}`,
+                      borderRadius: historyExpanded ? '14px 14px 0 0' : 14,
+                      padding: 20,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 16,
+                      transition: 'all 0.2s',
+                      opacity: job.enabled ? 1 : 0.6,
+                      cursor: (!isEditing && !showForm) ? 'pointer' : 'default',
+                    }}
+                    onMouseEnter={(e) => { if (!isEditing) e.currentTarget.style.boxShadow = '0 3px 16px rgba(2,132,199,0.1)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    {/* Status dot + Agent avatar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      {agent ? (
+                        <AgentAvatar agentId={agent.id} name={agent.name} size={48} />
+                      ) : (
+                        <div style={{
+                          width: 48, height: 48, borderRadius: 12,
+                          background: job.enabled
+                            ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
+                            : 'hsl(var(--muted))',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 22, flexShrink: 0,
+                        }}>
+                          🔄
+                        </div>
+                      )}
+                      <StatusDot job={job} />
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
+                        color: 'hsl(var(--foreground))',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {job.name}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {agent ? <span style={{ fontWeight: 600 }}>{agent.name}</span> : null}
+                        {agent ? ' — ' : ''}{job.message}
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>
+                          {formatSchedule(job.schedule)}
+                          {tz && tz !== 'UTC' ? ` (${tz.split('/').pop()?.replace(/_/g, ' ')})` : ''}
+                        </span>
+                        {job.lastRun && (
+                          <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+                            Last: {formatDate(job.lastRun.time)}
+                            {job.lastRun.success === false && (
+                              <span style={{ color: '#f87171', marginLeft: 4 }}>failed</span>
+                            )}
+                          </span>
+                        )}
+                        {job.nextRun && (
+                          <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+                            Next: {formatDate(job.nextRun)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => toggleHistory(job.id)}
+                        title="Run history"
+                        style={{
+                          width: 36, height: 36, borderRadius: 10,
+                          border: `1px solid ${historyExpanded ? '#38bdf8' : 'hsl(var(--border))'}`,
+                          background: historyExpanded ? 'rgba(56,189,248,0.1)' : 'transparent',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 13, color: historyExpanded ? '#38bdf8' : 'hsl(var(--foreground))',
+                        }}>
+                        {historyExpanded ? '▾' : '▸'}
+                      </button>
+                      <button
+                        onClick={() => triggerJob(job.id)}
+                        title="Run now"
+                        style={{
+                          width: 36, height: 36, borderRadius: 10,
+                          border: '1px solid hsl(var(--border))', background: 'transparent',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 14,
+                        }}>
+                        ▶
+                      </button>
+                      {/* Toggle */}
+                      <button
+                        onClick={() => toggleJob(job.id, !job.enabled)}
+                        style={{
+                          width: 44, height: 24, borderRadius: 12, border: 'none',
+                          cursor: 'pointer',
+                          background: job.enabled
+                            ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
+                            : 'hsl(var(--muted))',
+                          position: 'relative',
+                          transition: 'background 0.2s',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <div style={{
+                          width: 18, height: 18, borderRadius: '50%',
+                          background: 'white',
+                          position: 'absolute',
+                          top: 3,
+                          left: job.enabled ? 23 : 3,
+                          transition: 'left 0.2s',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                        }} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(job.id)}
+                        title="Remove"
+                        style={{
+                          width: 36, height: 36, borderRadius: 10,
+                          border: '1px solid hsl(var(--border))', background: 'transparent',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 14, color: '#ef4444',
+                        }}>
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ═══ RUN HISTORY PANEL ═══ */}
+                  {historyExpanded && (
                     <div style={{
-                      width: 48, height: 48, borderRadius: 12,
-                      background: job.enabled
-                        ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
-                        : 'hsl(var(--muted))',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 22, flexShrink: 0,
+                      background: 'hsl(var(--card))',
+                      borderLeft: '1px solid rgba(2,132,199,0.25)',
+                      borderRight: '1px solid rgba(2,132,199,0.25)',
+                      borderBottom: '1px solid rgba(2,132,199,0.25)',
+                      borderRadius: '0 0 14px 14px',
+                      padding: '12px 20px 16px 20px',
                     }}>
-                      🔄
+                      <div style={{
+                        fontSize: 12, fontWeight: 700, color: 'hsl(var(--muted-foreground))',
+                        marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px',
+                      }}>
+                        Run History
+                      </div>
+
+                      {historyLoading && (
+                        <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', padding: '8px 0' }}>
+                          Loading...
+                        </div>
+                      )}
+
+                      {!historyLoading && runs.length === 0 && (
+                        <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', padding: '8px 0' }}>
+                          No runs yet. Trigger manually or wait for the next scheduled run.
+                        </div>
+                      )}
+
+                      {!historyLoading && runs.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {runs.slice(0, 20).map((run, i) => {
+                            const isError = run.status === 'error';
+                            const ts = formatRunTimestamp(run);
+                            const duration = formatDurationMs(run.durationMs);
+                            const model = run.provider && run.model
+                              ? `${run.provider}/${run.model}`
+                              : run.model || '';
+
+                            return (
+                              <div key={run.sessionId ?? run.ts ?? i} style={{
+                                display: 'flex', alignItems: 'flex-start', gap: 10,
+                                padding: '8px 10px', borderRadius: 8,
+                                background: isError ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.04)',
+                                border: `1px solid ${isError ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)'}`,
+                              }}>
+                                {/* Status indicator */}
+                                <div style={{
+                                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 5,
+                                  background: isError ? '#ef4444' : '#22c55e',
+                                }} />
+
+                                {/* Run details */}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                                      {ts}
+                                    </span>
+                                    {duration && (
+                                      <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+                                        {duration}
+                                      </span>
+                                    )}
+                                    {model && (
+                                      <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', fontFamily: 'monospace' }}>
+                                        {model}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {/* Summary or error */}
+                                  {(run.summary || run.error) && (
+                                    <div style={{
+                                      fontSize: 12, marginTop: 3,
+                                      color: isError ? '#f87171' : 'hsl(var(--muted-foreground))',
+                                      whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                                      maxHeight: 80, overflow: 'hidden',
+                                    }}>
+                                      {isError ? run.error : run.summary}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {runs.length > 20 && (
+                            <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', textAlign: 'center', padding: 4 }}>
+                              Showing 20 of {runs.length} runs
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
-
-                  {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
-                      color: 'hsl(var(--foreground))',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {job.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {agent ? <span style={{ fontWeight: 600 }}>{agent.name}</span> : null}
-                      {agent ? ' — ' : ''}{job.message}
-                    </div>
-                    <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>
-                        {formatSchedule(job.schedule)}
-                        {tz && tz !== 'UTC' ? ` (${tz.split('/').pop()?.replace(/_/g, ' ')})` : ''}
-                      </span>
-                      {job.lastRun && (
-                        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-                          Last: {formatDate(job.lastRun.time)}
-                          {job.lastRun.success === false && (
-                            <span style={{ color: '#f87171', marginLeft: 4 }}>failed</span>
-                          )}
-                        </span>
-                      )}
-                      {job.nextRun && (
-                        <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-                          Next: {formatDate(job.nextRun)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={() => triggerJob(job.id)}
-                      title="Run now"
-                      style={{
-                        width: 36, height: 36, borderRadius: 10,
-                        border: '1px solid hsl(var(--border))', background: 'transparent',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 14,
-                      }}>
-                      ▶
-                    </button>
-                    {/* Toggle */}
-                    <button
-                      onClick={() => toggleJob(job.id, !job.enabled)}
-                      style={{
-                        width: 44, height: 24, borderRadius: 12, border: 'none',
-                        cursor: 'pointer',
-                        background: job.enabled
-                          ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
-                          : 'hsl(var(--muted))',
-                        position: 'relative',
-                        transition: 'background 0.2s',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <div style={{
-                        width: 18, height: 18, borderRadius: '50%',
-                        background: 'white',
-                        position: 'absolute',
-                        top: 3,
-                        left: job.enabled ? 23 : 3,
-                        transition: 'left 0.2s',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                      }} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(job.id)}
-                      title="Remove"
-                      style={{
-                        width: 36, height: 36, borderRadius: 10,
-                        border: '1px solid hsl(var(--border))', background: 'transparent',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 14, color: '#ef4444',
-                      }}>
-                      ✕
-                    </button>
-                  </div>
                 </div>
               );
             })}

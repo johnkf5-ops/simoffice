@@ -77,6 +77,24 @@ export interface CronJobUpdateInput {
 }
 
 /**
+ * A single cron run log entry (from ~/.openclaw/cron/runs/{jobId}.jsonl)
+ */
+export interface CronRunEntry {
+  jobId?: string;
+  action?: string;
+  status?: string;
+  error?: string;
+  summary?: string;
+  sessionId?: string;
+  sessionKey?: string;
+  ts?: number;
+  runAtMs?: number;
+  durationMs?: number;
+  model?: string;
+  provider?: string;
+}
+
+/**
  * Schedule type for UI picker
  */
 export type ScheduleType = 'daily' | 'weekly' | 'monthly' | 'interval' | 'custom';
