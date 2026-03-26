@@ -167,7 +167,10 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
         });
       }
 
-      set({ skills: combinedSkills, loading: false });
+      // Preserve disabled skills that the gateway no longer reports
+      const combinedIds = new Set(combinedSkills.map(s => s.id));
+      const preservedDisabled = currentSkills.filter(s => !s.enabled && !combinedIds.has(s.id));
+      set({ skills: [...combinedSkills, ...preservedDisabled], loading: false });
     } catch (error) {
       console.error('Failed to fetch skills:', error);
       const appError = normalizeAppError(error, { module: 'skills', operation: 'fetch' });

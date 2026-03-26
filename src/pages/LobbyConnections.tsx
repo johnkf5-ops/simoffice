@@ -14,7 +14,6 @@ import { BuddyPanel } from '@/components/common/BuddyPanel';
 const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
   { type: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'CRM — contacts, deals, companies' },
   { type: 'pandadoc', name: 'PandaDoc', icon: '🐼', description: 'Proposals, contracts, e-signatures' },
-  { type: 'slack', name: 'Slack', icon: '💬', description: 'Post updates, respond in channels' },
   { type: 'google_workspace', name: 'Google Workspace', icon: '📧', description: 'Gmail, Calendar, Drive' },
   { type: 'notion', name: 'Notion', icon: '📝', description: 'Pages, databases, project boards' },
   { type: 'github', name: 'GitHub', icon: '🐙', description: 'Repos, PRs, issues, deploys' },
@@ -43,21 +42,22 @@ const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; descri
   { type: 'zendesk', name: 'Zendesk', icon: '🎧', description: 'Support tickets, users, orgs' },
 ];
 
-const ALL_CHANNEL_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
-  { type: 'whatsapp', name: 'WhatsApp', icon: '\uD83D\uDCF1', description: 'Connect via QR code scan' },
-  { type: 'telegram', name: 'Telegram', icon: '\u2708\uFE0F', description: 'Bot token connection' },
-  { type: 'discord', name: 'Discord', icon: '\uD83C\uDFAE', description: 'Bot token connection' },
-  { type: 'signal', name: 'Signal', icon: '\uD83D\uDD12', description: 'Private messaging' },
-  { type: 'imessage', name: 'iMessage', icon: '\uD83D\uDCAC', description: 'Apple Messages' },
-  { type: 'msteams', name: 'Microsoft Teams', icon: '\uD83D\uDC54', description: 'Workplace messaging' },
-  { type: 'googlechat', name: 'Google Chat', icon: '\uD83D\uDCAD', description: 'Google workspace' },
-  { type: 'matrix', name: 'Matrix', icon: '\uD83D\uDD17', description: 'Open protocol messaging' },
-  { type: 'line', name: 'LINE', icon: '\uD83D\uDFE2', description: 'LINE messaging' },
-  { type: 'mattermost', name: 'Mattermost', icon: '\uD83D\uDCA0', description: 'Open-source chat' },
-  { type: 'dingtalk', name: 'DingTalk', icon: '\uD83D\uDCAC', description: 'Business messaging' },
-  { type: 'feishu', name: 'Feishu / Lark', icon: '\uD83D\uDC26', description: 'Lark messaging' },
-  { type: 'wecom', name: 'WeCom', icon: '\uD83D\uDCBC', description: 'Enterprise WeChat' },
-  { type: 'qqbot', name: 'QQ Bot', icon: '\uD83D\uDC27', description: 'QQ messaging' },
+const ALL_CHANNEL_TYPES: { type: ChannelType; name: string; icon: string; description: string; popular?: boolean }[] = [
+  { type: 'telegram', name: 'Telegram', icon: '✈️', description: 'Bot token connection', popular: true },
+  { type: 'imessage', name: 'iMessage', icon: '💬', description: 'Apple Messages', popular: true },
+  { type: 'discord', name: 'Discord', icon: '🎮', description: 'Bot token connection', popular: true },
+  { type: 'slack', name: 'Slack', icon: '💬', description: 'Post updates, respond in channels', popular: true },
+  { type: 'whatsapp', name: 'WhatsApp', icon: '📱', description: 'Linked Devices connection' },
+  { type: 'signal', name: 'Signal', icon: '🔒', description: 'Private messaging' },
+  { type: 'msteams', name: 'Microsoft Teams', icon: '👔', description: 'Workplace messaging' },
+  { type: 'googlechat', name: 'Google Chat', icon: '💭', description: 'Google workspace' },
+  { type: 'matrix', name: 'Matrix', icon: '🔗', description: 'Open protocol messaging' },
+  { type: 'line', name: 'LINE', icon: '🟢', description: 'LINE messaging' },
+  { type: 'mattermost', name: 'Mattermost', icon: '💠', description: 'Open-source chat' },
+  { type: 'dingtalk', name: 'DingTalk', icon: '💬', description: 'Business messaging' },
+  { type: 'feishu', name: 'Feishu / Lark', icon: '🐦', description: 'Lark messaging' },
+  { type: 'wecom', name: 'WeCom', icon: '💼', description: 'Enterprise WeChat' },
+  { type: 'qqbot', name: 'QQ Bot', icon: '🐧', description: 'QQ messaging' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -208,7 +208,7 @@ export function LobbyConnections() {
             </div>
           )}
 
-          {/* Partners */}
+          {/* Partners — MoonPay at the very top */}
           <div style={{ marginBottom: 32 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
               Partners
@@ -227,30 +227,13 @@ export function LobbyConnections() {
                 boxShadow: '0 0 20px rgba(123,63,228,0.08)',
                 maxWidth: 480,
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(123,63,228,0.6)';
-                e.currentTarget.style.boxShadow = '0 0 28px rgba(123,63,228,0.18)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = moonPayConnected ? 'rgba(123,63,228,0.4)' : 'rgba(123,63,228,0.2)';
-                e.currentTarget.style.boxShadow = '0 0 20px rgba(123,63,228,0.08)';
-              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(123,63,228,0.6)'; e.currentTarget.style.boxShadow = '0 0 28px rgba(123,63,228,0.18)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = moonPayConnected ? 'rgba(123,63,228,0.4)' : 'rgba(123,63,228,0.2)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(123,63,228,0.08)'; }}
             >
-              <div style={{
-                width: 48, height: 48, borderRadius: 12,
-                background: 'linear-gradient(135deg, #7B3FE4, #a855f7)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 24, flexShrink: 0,
-              }}>
-                🟣
-              </div>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #7B3FE4, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🟣</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
-                  MoonPay
-                </div>
-                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>
-                  Crypto swaps, on-ramps, bridges, and DCA — required for Crypto Trading careers
-                </div>
+                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>MoonPay</div>
+                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>Crypto swaps, on-ramps, bridges, and DCA — required for Crypto Trading careers</div>
                 {moonPayConnected && (
                   <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
@@ -258,15 +241,67 @@ export function LobbyConnections() {
                   </div>
                 )}
               </div>
-              <div style={{
-                padding: '8px 16px', borderRadius: 8,
-                background: moonPayConnected ? 'rgba(34,211,153,0.1)' : 'linear-gradient(135deg, #7B3FE4, #a855f7)',
-                color: moonPayConnected ? '#34d399' : 'white',
-                fontSize: 13, fontWeight: 700, flexShrink: 0,
-                fontFamily: 'Space Grotesk, sans-serif',
-              }}>
+              <div style={{ padding: '8px 16px', borderRadius: 8, background: moonPayConnected ? 'rgba(34,211,153,0.1)' : 'linear-gradient(135deg, #7B3FE4, #a855f7)', color: moonPayConnected ? '#34d399' : 'white', fontSize: 13, fontWeight: 700, flexShrink: 0, fontFamily: 'Space Grotesk, sans-serif' }}>
                 {moonPayConnected ? 'Connected' : 'Connect →'}
               </div>
+            </div>
+          </div>
+
+          {/* Messaging Apps */}
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
+              Messaging Apps
+            </h2>
+            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
+              Connect messaging apps so your agents can chat with people
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+              {ALL_CHANNEL_TYPES.map((ch) => {
+                const isConnected = connectedTypes.has(ch.type);
+                return (
+                  <div key={ch.type}
+                    onClick={() => handleChannelClick(ch.type)}
+                    style={{
+                      background: isConnected ? 'rgba(13,148,136,0.06)' : 'hsl(var(--card))',
+                      border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : ch.popular ? 'rgba(124,58,237,0.2)' : 'hsl(var(--border))'}`,
+                      borderRadius: 12,
+                      padding: 16,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(124,58,237,0.15)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : ch.popular ? 'rgba(124,58,237,0.2)' : 'hsl(var(--border))'; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    {ch.popular && !isConnected && (
+                      <div style={{
+                        position: 'absolute', top: -6, right: 12,
+                        background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                        color: 'white', fontSize: 8, fontWeight: 800,
+                        padding: '2px 8px', borderRadius: 4,
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>
+                        Popular
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                      <span style={{ fontSize: 24 }}>{ch.icon}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
+                        {ch.name}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.4 }}>
+                      {isConnected ? 'Already connected' : ch.description}
+                    </div>
+                    {isConnected && (
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
+                        <span style={{ fontSize: 10, fontWeight: 600, color: '#34d399' }}>CONNECTED</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -306,62 +341,6 @@ export function LobbyConnections() {
             </div>
           </div>
 
-          {/* Messaging Apps */}
-          <div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
-              Messaging Apps
-            </h2>
-            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
-              Connect messaging apps so your agents can chat with people
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-              {ALL_CHANNEL_TYPES.map((ch) => {
-                const isConnected = connectedTypes.has(ch.type);
-                return (
-                  <div key={ch.type}
-                    onClick={() => handleChannelClick(ch.type)}
-                    style={{
-                      background: isConnected ? 'rgba(13,148,136,0.06)' : 'hsl(var(--card))',
-                      border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'}`,
-                      borderRadius: 12,
-                      padding: 16,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      opacity: isConnected ? 0.7 : 1,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isConnected) {
-                        e.currentTarget.style.borderColor = '#0d9488';
-                        e.currentTarget.style.boxShadow = '0 2px 12px rgba(13,148,136,0.15)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isConnected) {
-                        e.currentTarget.style.borderColor = 'hsl(var(--border))';
-                        e.currentTarget.style.boxShadow = 'none';
-                      }
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                      <span style={{ fontSize: 24 }}>{ch.icon}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
-                        {ch.name}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', lineHeight: 1.4 }}>
-                      {isConnected ? 'Already connected' : ch.description}
-                    </div>
-                    {isConnected && (
-                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
-                        <span style={{ fontSize: 10, fontWeight: 600, color: '#34d399' }}>CONNECTED</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </div>
 

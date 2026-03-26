@@ -128,22 +128,13 @@ const TELEGRAM_STEPS: WizardStep[] = [
 
 const WHATSAPP_STEPS: WizardStep[] = [
   {
-    title: 'Open WhatsApp on your Phone',
+    title: 'Connect WhatsApp',
     instructions: (
       <>
         <p>Open <b>WhatsApp</b> on your phone.</p>
         <p><b>iPhone:</b> Tap <b>Settings</b> (bottom right) → <b>Linked Devices</b></p>
         <p><b>Android:</b> Tap the <b>three dots ⋮</b> (top right) → <b>Linked Devices</b></p>
-        <p>Then tap <b>"Link a Device"</b>.</p>
-      </>
-    ),
-  },
-  {
-    title: 'Scan the QR Code',
-    instructions: (
-      <>
-        <p>Point your phone's camera at the QR code below.</p>
-        <p>WhatsApp will automatically detect it and connect.</p>
+        <p>Then tap <b>"Link a Device"</b> and follow the prompts.</p>
         <p style={{ marginTop: 8, fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>
           No phone number sharing required. This uses WhatsApp's Linked Devices feature.
         </p>

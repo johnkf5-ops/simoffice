@@ -29,17 +29,14 @@ export function LobbyPowers() {
 
   const enabledCount = skills.filter((s) => s.enabled).length;
 
-  // Sort: English skills first, then non-English
+  // Sort: English skills first, then non-English. No reorder on toggle.
   const isEnglish = (text: string) => /^[\x00-\x7F]*$/.test(text);
   const sortedSkills = [...skills].sort((a, b) => {
     const aEng = isEnglish(a.description || '');
     const bEng = isEnglish(b.description || '');
     if (aEng && !bEng) return -1;
     if (!aEng && bEng) return 1;
-    // Then enabled first
-    if (a.enabled && !b.enabled) return -1;
-    if (!a.enabled && b.enabled) return 1;
-    return (a.name || '').localeCompare(b.name || '');
+    return 0;
   });
 
   return (

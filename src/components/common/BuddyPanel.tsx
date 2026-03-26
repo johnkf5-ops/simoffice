@@ -305,7 +305,7 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
                       style={{ flex: 1, fontSize: 10, fontWeight: 600, color: 'hsl(var(--foreground))', background: 'hsl(var(--input))', border: '1px solid rgba(139,92,246,0.5)', borderRadius: 4, padding: '1px 4px', outline: 'none', minWidth: 0 }}
                     />
                   ) : (
-                    <span style={{ fontSize: 10, color: isActive ? 'white' : 'rgba(191,219,254,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 600 : 400, flex: 1 }}>{label}</span>
+                    <span style={{ fontSize: 10, color: isActive ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 600 : 400, flex: 1 }}>{label}</span>
                   )}
                   <span
                     onClick={(e) => { e.stopPropagation(); if (confirm('Delete this conversation?')) deleteSession(s.key); }}

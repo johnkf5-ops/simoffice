@@ -4,7 +4,7 @@
  * Rooms sidebar | Chat feed | Who's Here panel
  */
 import { useEffect, useRef, useState } from 'react';
-import { Send, Loader2, Users } from 'lucide-react';
+import { Send, Loader2, Users, Paperclip, X } from 'lucide-react';
 import { useChatStore, type RawMessage } from '@/stores/chat';
 import { useGatewayStore } from '@/stores/gateway';
 import { useAgentsStore } from '@/stores/agents';
@@ -179,9 +179,45 @@ export function LobbyChat() {
   const [input, setInput] = useState('');
   const [editingHeader, setEditingHeader] = useState(false);
   const [headerName, setHeaderName] = useState('');
+  const [pendingFiles, setPendingFiles] = useState<Array<{ fileName: string; mimeType: string; fileSize: number; stagedPath: string; preview: string | null }>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
+
+  // File upload handler
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const staged: typeof pendingFiles = [];
+    for (const file of Array.from(files)) {
+      // Write to temp path via IPC so Gateway can access it
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      // For images, use the dataUrl as preview
+      const isImage = file.type.startsWith('image/');
+      staged.push({
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size,
+        stagedPath: dataUrl, // Will be resolved by the send handler
+        preview: isImage ? dataUrl : null,
+      });
+    }
+
+    setPendingFiles(prev => [...prev, ...staged]);
+    // Reset input so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   // Room auto-creation removed — users create their own rooms via "+ Create Room" button
 
@@ -300,7 +336,8 @@ export function LobbyChat() {
       return;
     } else {
       // DM mode
-      sendMessage(trimmed);
+      sendMessage(trimmed, pendingFiles.length > 0 ? pendingFiles : undefined);
+      setPendingFiles([]);
     }
   };
 
@@ -500,19 +537,70 @@ export function LobbyChat() {
               </div>
             )}
 
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholderText}
-              disabled={!isOnline || teamRoundInProgress}
-              rows={1}
-              style={{
-                flex: 1, resize: 'none', border: 'none', outline: 'none', background: 'transparent',
-                fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'hsl(var(--foreground))',
-                maxHeight: 120, lineHeight: '1.5',
-              }}
+            {/* File upload button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json,.md"
+              style={{ display: 'none' }}
+              onChange={handleFileSelect}
             />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!isOnline}
+              title="Attach files"
+              style={{
+                width: 32, height: 32, borderRadius: 8, border: 'none',
+                background: 'transparent', cursor: isOnline ? 'pointer' : 'default',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: pendingFiles.length > 0 ? '#7c3aed' : 'hsl(var(--muted-foreground))',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => { if (isOnline) e.currentTarget.style.color = '#7c3aed'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = pendingFiles.length > 0 ? '#7c3aed' : 'hsl(var(--muted-foreground))'; }}
+            >
+              <Paperclip style={{ width: 16, height: 16 }} />
+            </button>
+
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {/* Pending file previews */}
+              {pendingFiles.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 4 }}>
+                  {pendingFiles.map((f, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
+                      background: 'hsl(var(--muted))', color: 'hsl(var(--foreground))',
+                    }}>
+                      {f.preview ? (
+                        <img src={f.preview} alt="" style={{ width: 16, height: 16, borderRadius: 3, objectFit: 'cover' }} />
+                      ) : (
+                        <span>📎</span>
+                      )}
+                      <span style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.fileName}</span>
+                      <button onClick={() => removePendingFile(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'hsl(var(--muted-foreground))' }}>
+                        <X style={{ width: 10, height: 10 }} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={placeholderText}
+                disabled={!isOnline || teamRoundInProgress}
+                rows={1}
+                style={{
+                  flex: 1, resize: 'none', border: 'none', outline: 'none', background: 'transparent',
+                  fontSize: 14, fontFamily: 'Inter, sans-serif', color: 'hsl(var(--foreground))',
+                  maxHeight: 120, lineHeight: '1.5',
+                }}
+              />
+            </div>
 
             {/* Send / Stop */}
             {teamRoundInProgress ? (
@@ -526,13 +614,13 @@ export function LobbyChat() {
                 <div style={{ width: 12, height: 12, background: 'white', borderRadius: 2 }} />
               </button>
             ) : (
-              <button onClick={handleSend} disabled={!input.trim() || !isOnline}
+              <button onClick={handleSend} disabled={(!input.trim() && pendingFiles.length === 0) || !isOnline}
                 style={{
                   width: 36, height: 36, borderRadius: 12, border: 'none',
-                  cursor: input.trim() && isOnline ? 'pointer' : 'default',
-                  background: input.trim() && isOnline ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'hsl(var(--muted))',
+                  cursor: (input.trim() || pendingFiles.length > 0) && isOnline ? 'pointer' : 'default',
+                  background: (input.trim() || pendingFiles.length > 0) && isOnline ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : 'hsl(var(--muted))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: input.trim() && isOnline ? 1 : 0.4,
+                  opacity: (input.trim() || pendingFiles.length > 0) && isOnline ? 1 : 0.4,
                 }}>
                 <Send style={{ width: 16, height: 16, color: 'white' }} />
               </button>
