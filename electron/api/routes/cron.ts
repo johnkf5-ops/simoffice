@@ -1,9 +1,33 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { join } from 'node:path';
 import type { HostApiContext } from '../context';
 import { parseJsonBody, sendJson } from '../route-utils';
 import { getOpenClawConfigDir } from '../../utils/paths';
+
+// ─── Local agent mapping ─────────────────────────────────────────────────────
+// The gateway doesn't support per-job agentId, so we store it locally.
+
+type AgentMap = Record<string, string>; // jobId → agentId
+
+function agentMapPath(): string {
+  return join(getOpenClawConfigDir(), 'cron', 'agent-map.json');
+}
+
+async function readAgentMap(): Promise<AgentMap> {
+  try {
+    const raw = await readFile(agentMapPath(), 'utf8');
+    return JSON.parse(raw) as AgentMap;
+  } catch {
+    return {};
+  }
+}
+
+async function writeAgentMap(map: AgentMap): Promise<void> {
+  const dir = join(getOpenClawConfigDir(), 'cron');
+  await mkdir(dir, { recursive: true });
+  await writeFile(agentMapPath(), JSON.stringify(map, null, 2), 'utf8');
+}
 
 interface GatewayCronJob {
   id: string;
@@ -261,7 +285,7 @@ export function buildCronSessionFallbackMessages(params: {
   return messages.slice(-limit);
 }
 
-function transformCronJob(job: GatewayCronJob) {
+function transformCronJob(job: GatewayCronJob, agentId?: string) {
   const message = job.payload?.message || job.payload?.text || '';
   const channelType = job.delivery?.channel;
   const target = channelType
@@ -286,6 +310,7 @@ function transformCronJob(job: GatewayCronJob) {
     schedule: job.schedule,
     target,
     enabled: job.enabled,
+    agentId,
     createdAt: new Date(job.createdAtMs).toISOString(),
     updatedAt: new Date(job.updatedAtMs).toISOString(),
     lastRun,
@@ -342,7 +367,10 @@ export async function handleCronRoutes(
 
   if (url.pathname === '/api/cron/jobs' && req.method === 'GET') {
     try {
-      const result = await ctx.gatewayManager.rpc('cron.list', { includeDisabled: true });
+      const [result, agentMap] = await Promise.all([
+        ctx.gatewayManager.rpc('cron.list', { includeDisabled: true }),
+        readAgentMap(),
+      ]);
       const data = result as { jobs?: GatewayCronJob[] };
       const jobs = data?.jobs ?? [];
       for (const job of jobs) {
@@ -369,7 +397,7 @@ export async function handleCronRoutes(
           }
         }
       }
-      sendJson(res, 200, jobs.map(transformCronJob));
+      sendJson(res, 200, jobs.map((j) => transformCronJob(j, agentMap[j.id])));
     } catch (error) {
       sendJson(res, 500, { success: false, error: String(error) });
     }
@@ -378,17 +406,26 @@ export async function handleCronRoutes(
 
   if (url.pathname === '/api/cron/jobs' && req.method === 'POST') {
     try {
-      const input = await parseJsonBody<{ name: string; message: string; schedule: string; enabled?: boolean }>(req);
+      const input = await parseJsonBody<{ name: string; message: string; schedule: string; enabled?: boolean; agentId?: string; tz?: string }>(req);
+      const schedule: { kind: string; expr: string; tz?: string } = { kind: 'cron', expr: input.schedule };
+      if (input.tz) schedule.tz = input.tz;
       const result = await ctx.gatewayManager.rpc('cron.add', {
         name: input.name,
-        schedule: { kind: 'cron', expr: input.schedule },
+        schedule,
         payload: { kind: 'agentTurn', message: input.message },
         enabled: input.enabled ?? true,
         wakeMode: 'next-heartbeat',
         sessionTarget: 'isolated',
         delivery: { mode: 'none' },
       });
-      sendJson(res, 200, result && typeof result === 'object' ? transformCronJob(result as GatewayCronJob) : result);
+      // Store agentId locally (gateway doesn't support per-job agent targeting)
+      const job = result && typeof result === 'object' ? result as GatewayCronJob : null;
+      if (job?.id && input.agentId) {
+        const map = await readAgentMap();
+        map[job.id] = input.agentId;
+        await writeAgentMap(map);
+      }
+      sendJson(res, 200, job ? transformCronJob(job, input.agentId) : result);
     } catch (error) {
       sendJson(res, 500, { success: false, error: String(error) });
     }
@@ -399,13 +436,25 @@ export async function handleCronRoutes(
     try {
       const id = decodeURIComponent(url.pathname.slice('/api/cron/jobs/'.length));
       const input = await parseJsonBody<Record<string, unknown>>(req);
-      const patch = { ...input };
+      const patch: Record<string, unknown> = { ...input };
       if (typeof patch.schedule === 'string') {
-        patch.schedule = { kind: 'cron', expr: patch.schedule };
+        const schedObj: { kind: string; expr: string; tz?: string } = { kind: 'cron', expr: patch.schedule as string };
+        if (typeof patch.tz === 'string' && patch.tz) schedObj.tz = patch.tz as string;
+        patch.schedule = schedObj;
       }
+      delete patch.tz;
       if (typeof patch.message === 'string') {
         patch.payload = { kind: 'agentTurn', message: patch.message };
         delete patch.message;
+      }
+      // Store agentId locally, don't send to gateway
+      const newAgentId = typeof patch.agentId === 'string' ? patch.agentId : undefined;
+      delete patch.agentId;
+      if (newAgentId !== undefined) {
+        const map = await readAgentMap();
+        if (newAgentId) map[id] = newAgentId;
+        else delete map[id];
+        await writeAgentMap(map);
       }
       sendJson(res, 200, await ctx.gatewayManager.rpc('cron.update', { id, patch }));
     } catch (error) {
@@ -417,7 +466,13 @@ export async function handleCronRoutes(
   if (url.pathname.startsWith('/api/cron/jobs/') && req.method === 'DELETE') {
     try {
       const id = decodeURIComponent(url.pathname.slice('/api/cron/jobs/'.length));
-      sendJson(res, 200, await ctx.gatewayManager.rpc('cron.remove', { id }));
+      const result = await ctx.gatewayManager.rpc('cron.remove', { id });
+      // Clean up local agent mapping
+      try {
+        const map = await readAgentMap();
+        if (map[id]) { delete map[id]; await writeAgentMap(map); }
+      } catch { /* ignore cleanup failure */ }
+      sendJson(res, 200, result);
     } catch (error) {
       sendJson(res, 500, { success: false, error: String(error) });
     }

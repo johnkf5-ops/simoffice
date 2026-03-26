@@ -43,6 +43,7 @@ export interface CronJob {
   schedule: string | CronSchedule;
   target?: CronJobTarget;
   enabled: boolean;
+  agentId?: string;
   createdAt: string;
   updatedAt: string;
   lastRun?: CronJobLastRun;
@@ -59,6 +60,8 @@ export interface CronJobCreateInput {
   message: string;
   schedule: string;
   enabled?: boolean;
+  agentId?: string;
+  tz?: string;
 }
 
 /**
@@ -69,6 +72,8 @@ export interface CronJobUpdateInput {
   message?: string;
   schedule?: string;
   enabled?: boolean;
+  agentId?: string;
+  tz?: string;
 }
 
 /**

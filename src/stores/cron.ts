@@ -57,11 +57,18 @@ export const useCronStore = create<CronState>((set) => ({
         method: 'PUT',
         body: JSON.stringify(input),
       });
-      set((state) => ({
-        jobs: state.jobs.map((job) =>
-          job.id === id ? { ...job, ...input, updatedAt: new Date().toISOString() } : job
-        ),
-      }));
+      // Refresh from server to get properly-transformed schedule/sessionTarget
+      try {
+        const jobs = await hostApiFetch<CronJob[]>('/api/cron/jobs');
+        set({ jobs });
+      } catch {
+        // Fallback: optimistic update
+        set((state) => ({
+          jobs: state.jobs.map((job) =>
+            job.id === id ? { ...job, name: input.name ?? job.name, message: input.message ?? job.message, agentId: input.agentId ?? job.agentId, updatedAt: new Date().toISOString() } : job
+          ),
+        }));
+      }
     } catch (error) {
       console.error('Failed to update cron job:', error);
       throw error;
