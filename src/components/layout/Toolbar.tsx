@@ -3,8 +3,6 @@
  * Matches the toolbar mockup design.
  */
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useGatewayStore } from '@/stores/gateway';
-import { StatusDot } from '@/components/common/StatusDot';
 
 const TOOLBAR_ITEMS = [
   { icon: '/toolbar/office.png', label: 'Office', path: '/' },
@@ -21,8 +19,6 @@ const TOOLBAR_ITEMS = [
 export function Toolbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const gatewayStatus = useGatewayStore((s) => s.status);
-  const isOnline = gatewayStatus.state === 'running';
 
   return (
     <div style={{
@@ -81,10 +77,6 @@ export function Toolbar() {
         );
       })}
 
-      {/* Status indicator on far right */}
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
-        <StatusDot status={isOnline ? 'online' : 'error'} size="sm" />
-      </div>
     </div>
   );
 }

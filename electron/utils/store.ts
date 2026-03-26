@@ -52,6 +52,9 @@ export interface AppSettings {
   sidebarCollapsed: boolean;
   devModeUnlocked: boolean;
 
+  // User
+  displayName: string;
+
   // Presets
   selectedBundles: string[];
   enabledSkills: string[];
@@ -98,6 +101,9 @@ function createDefaultSettings(): AppSettings {
     autoCheckUpdate: true,
     autoDownloadUpdate: false,
     skippedVersions: [],
+
+    // User
+    displayName: '',
 
     // UI State
     sidebarCollapsed: false,

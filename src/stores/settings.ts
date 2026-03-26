@@ -41,11 +41,13 @@ interface SettingsState {
   // Setup
   setupComplete: boolean;
   businessName: string;
+  displayName: string;
 
   // Actions
   init: () => Promise<void>;
   setTheme: (theme: Theme) => void;
   setBusinessName: (name: string) => void;
+  setDisplayName: (name: string) => void;
   setLanguage: (language: string) => void;
   setStartMinimized: (value: boolean) => void;
   setLaunchAtStartup: (value: boolean) => void;
@@ -88,6 +90,7 @@ const defaultSettings = {
   devModeUnlocked: false,
   setupComplete: false,
   businessName: 'My Headquarters',
+  displayName: '',
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -172,6 +175,13 @@ export const useSettingsStore = create<SettingsState>()(
         }).catch(() => { });
       },
       setBusinessName: (businessName) => set({ businessName }),
+      setDisplayName: (displayName) => {
+        set({ displayName });
+        void hostApiFetch('/api/settings/displayName', {
+          method: 'PUT',
+          body: JSON.stringify({ value: displayName }),
+        }).catch(() => { });
+      },
       markSetupComplete: () => set({ setupComplete: true }),
       resetSettings: () => set(defaultSettings),
     }),

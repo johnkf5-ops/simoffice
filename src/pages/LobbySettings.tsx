@@ -11,6 +11,8 @@ import { useLicenseStore, type LicenseStatus } from '@/stores/license';
 export function LobbySettings() {
   const navigate = useNavigate();
 
+  const displayName = useSettingsStore((s) => s.displayName);
+  const setDisplayName = useSettingsStore((s) => s.setDisplayName);
   const businessName = useSettingsStore((s) => s.businessName);
   const setBusinessName = useSettingsStore((s) => s.setBusinessName);
   const theme = useSettingsStore((s) => s.theme);
@@ -79,8 +81,25 @@ export function LobbySettings() {
         {/* Settings list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 40px 40px' }}>
 
-          {/* Office */}
-          <div style={sectionTitle}>Office</div>
+          {/* Profile */}
+          <div style={sectionTitle}>Profile</div>
+
+          <div style={row}>
+            <div>
+              <div style={label}>Your Name</div>
+              <div style={desc}>How your AI agents address you. Restart the app for changes to take effect.</div>
+            </div>
+            <input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="e.g. John"
+              style={{
+                padding: '8px 12px', borderRadius: 8, border: '1px solid hsl(var(--border))',
+                background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 13,
+                width: 200, outline: 'none',
+              }}
+            />
+          </div>
 
           <div style={row}>
             <div>

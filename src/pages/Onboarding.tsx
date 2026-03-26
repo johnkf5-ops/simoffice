@@ -29,6 +29,8 @@ export function Onboarding() {
   const navigate = useNavigate();
   const markSetupComplete = useSettingsStore((s) => s.markSetupComplete);
   const setupComplete = useSettingsStore((s) => s.setupComplete);
+  const displayName = useSettingsStore((s) => s.displayName);
+  const setDisplayName = useSettingsStore((s) => s.setDisplayName);
   const businessName = useSettingsStore((s) => s.businessName);
   const setBusinessName = useSettingsStore((s) => s.setBusinessName);
   const theme = useSettingsStore((s) => s.theme);
@@ -126,8 +128,12 @@ export function Onboarding() {
   };
 
 
+  const restartGateway = useGatewayStore((s) => s.restart);
+
   const handleFinish = () => {
     markSetupComplete();
+    // Restart gateway so it reconnects with the user's display name
+    restartGateway().catch(() => {});
     navigate('/');
   };
 
@@ -213,6 +219,24 @@ export function Onboarding() {
             <p style={{ fontSize: 14, color: 'rgba(191,219,254,0.5)', marginBottom: 24 }}>
               Name your office and choose an AI service
             </p>
+
+            {/* Your name */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 6 }}>
+                Your name
+              </label>
+              <input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="e.g. John"
+                autoFocus
+                style={{
+                  width: '100%', padding: '12px 14px', borderRadius: 10,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: 14, outline: 'none',
+                }}
+              />
+            </div>
 
             {/* Business name */}
             <div style={{ marginBottom: 20 }}>

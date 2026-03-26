@@ -121,25 +121,32 @@ export function TradingPage() {
         });
 
         const msgs = history.messages ?? [];
-        // Find the last assistant message that is a final response (not mid-tool-call)
+        // Check if the turn is complete (last assistant message has stopReason !== "toolUse")
+        let turnComplete = false;
         for (let i = msgs.length - 1; i >= 0; i--) {
-          const msg = msgs[i];
-          if (msg.role !== 'assistant') continue;
-          // Skip tool-use intermediate responses — we want the final answer
-          if ((msg as any).stopReason === 'toolUse') continue;
-          const ts = msg.timestamp ? (msg.timestamp > 1e12 ? msg.timestamp : msg.timestamp * 1000) : 0;
-          if (ts >= userMsg.timestamp - 5000) {
-            const content = msg.content;
-            // Collect ALL text blocks from the content array
-            if (typeof content === 'string' && content.length > 0) {
-              responseText = content;
-            } else if (Array.isArray(content)) {
-              const texts = content.filter((b: any) => b.type === 'text' && b.text).map((b: any) => b.text);
-              if (texts.length > 0) responseText = texts.join('\n\n');
-            }
-            if (responseText) break;
+          if (msgs[i].role === 'assistant') {
+            turnComplete = (msgs[i] as any).stopReason !== 'toolUse';
+            break;
           }
         }
+        if (!turnComplete) continue; // Still processing tool calls — keep polling
+
+        // Turn is complete. Collect text from ALL assistant messages in this turn
+        // (intermediate messages have steps 1-2, final has step 3+, etc.)
+        const allTexts: string[] = [];
+        for (const msg of msgs) {
+          if (msg.role !== 'assistant') continue;
+          const ts = msg.timestamp ? (msg.timestamp > 1e12 ? msg.timestamp : msg.timestamp * 1000) : 0;
+          if (ts < userMsg.timestamp - 5000) continue;
+          const content = msg.content;
+          if (typeof content === 'string' && content.length > 0) {
+            allTexts.push(content);
+          } else if (Array.isArray(content)) {
+            const texts = content.filter((b: any) => b.type === 'text' && b.text).map((b: any) => b.text);
+            if (texts.length > 0) allTexts.push(texts.join('\n\n'));
+          }
+        }
+        if (allTexts.length > 0) responseText = allTexts.join('\n\n');
         if (responseText) break;
       }
 
@@ -450,10 +457,10 @@ export function TradingPage() {
       }}>
         {/* MoonPay branding */}
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <img src={moonpayLogo} alt="MoonPay" style={{ height: 28, objectFit: 'contain' }} />
-          <div style={{ fontSize: 9, color: 'hsl(var(--muted-foreground))', marginTop: 6, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-            Trading Partner
+          <div style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
+            Powered by
           </div>
+          <img src={moonpayLogo} alt="MoonPay" style={{ height: 28, objectFit: 'contain' }} />
         </div>
 
         <div style={{ width: '100%', height: 1, background: 'hsl(var(--border))', marginBottom: 16 }} />

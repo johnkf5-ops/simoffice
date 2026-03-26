@@ -101,6 +101,7 @@ export function buildGatewayConnectFrame(options: {
   token: string;
   deviceIdentity: DeviceIdentity | null;
   platform: string;
+  displayName?: string;
 }): { connectId: string; frame: Record<string, unknown> } {
   const connectId = `connect-${Date.now()}`;
   const role = 'operator';
@@ -143,7 +144,7 @@ export function buildGatewayConnectFrame(options: {
         maxProtocol: 3,
         client: {
           id: clientId,
-          displayName: 'SimOffice',
+          displayName: options.displayName || 'SimOffice',
           version: '0.1.0',
           platform: options.platform,
           mode: clientMode,
@@ -166,6 +167,7 @@ export async function connectGatewaySocket(options: {
   platform: string;
   pendingRequests: Map<string, PendingGatewayRequest>;
   getToken: () => Promise<string>;
+  getDisplayName?: () => Promise<string>;
   onHandshakeComplete: (ws: WebSocket) => void;
   onMessage: (message: unknown) => void;
   onCloseAfterHandshake: () => void;
@@ -218,11 +220,13 @@ export async function connectGatewaySocket(options: {
       logger.debug('Sending connect handshake with challenge nonce');
 
       const currentToken = await options.getToken();
+      const currentDisplayName = options.getDisplayName ? await options.getDisplayName() : undefined;
       const connectPayload = buildGatewayConnectFrame({
         challengeNonce,
         token: currentToken,
         deviceIdentity: options.deviceIdentity,
         platform: options.platform,
+        displayName: currentDisplayName,
       });
       connectId = connectPayload.connectId;
 

@@ -759,6 +759,7 @@ export class GatewayManager extends EventEmitter {
       platform: process.platform,
       pendingRequests: this.pendingRequests,
       getToken: async () => await import('../utils/store').then(({ getSetting }) => getSetting('gatewayToken')),
+      getDisplayName: async () => await import('../utils/store').then(({ getSetting }) => getSetting('displayName') || 'SimOffice'),
       onHandshakeComplete: (ws) => {
         this.ws = ws;
         ws.on('pong', () => {

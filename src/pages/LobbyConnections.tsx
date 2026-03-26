@@ -9,6 +9,7 @@ import { ChannelConfigModal } from '@/components/channels/ChannelConfigModal';
 import { ChannelSetupWizard, hasSetupWizard } from '@/components/channels/ChannelSetupWizard';
 import { CHANNEL_NAMES, CHANNEL_ICONS, type ChannelType } from '@/types/channel';
 import { MoonPaySetupModal } from '@/components/moonpay/MoonPaySetupModal';
+import { invokeIpc } from '@/lib/api-client';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
 
 const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
@@ -87,6 +88,13 @@ export function LobbyConnections() {
   const [moonPayConnected, setMoonPayConnected] = useState(false);
 
   useEffect(() => { void fetchChannels(); }, [fetchChannels]);
+
+  // Check MoonPay connection on mount
+  useEffect(() => {
+    invokeIpc<{ authenticated: boolean }>('moonpay:check-auth')
+      .then((r) => setMoonPayConnected(r.authenticated))
+      .catch(() => {});
+  }, []);
 
   // Which channel types are already connected
   const connectedTypes = new Set(channels.map((c) => c.type));
@@ -234,12 +242,6 @@ export function LobbyConnections() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>MoonPay</div>
                 <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 2 }}>Buy, sell, and trade crypto with your AI agents. No experience needed.</div>
-                {moonPayConnected && (
-                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
-                    <span style={{ fontSize: 10, fontWeight: 600, color: '#34d399' }}>CONNECTED</span>
-                  </div>
-                )}
               </div>
               <div style={{ padding: '8px 16px', borderRadius: 8, background: moonPayConnected ? 'rgba(34,211,153,0.1)' : 'linear-gradient(135deg, #7B3FE4, #a855f7)', color: moonPayConnected ? '#34d399' : 'white', fontSize: 13, fontWeight: 700, flexShrink: 0, fontFamily: 'Space Grotesk, sans-serif' }}>
                 {moonPayConnected ? 'Connected' : 'Connect →'}
