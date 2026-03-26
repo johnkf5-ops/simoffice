@@ -64,3 +64,6 @@ docs/pr-session-notes-*.md
 
 .cursor/
 .pnpm-store/
+
+# Keep docs local only
+docs/

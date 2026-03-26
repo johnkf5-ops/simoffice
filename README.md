@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.3.0-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.0-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -25,13 +25,17 @@
 
 - **Free Local AI** — Run AI on your own Mac with Ollama. No account, no fees, fully private. Auto-installs and configures everything.
 - **3D Virtual Office** — Watch your AI agents work in a retro-style 3D office powered by Three.js/WebGL
-- **211 Agent Templates** — Browse agents across 28 categories: sales, marketing, finance, crypto trading, legal, healthcare, insurance, restaurant, real estate, therapy, and more
+- **211+ Agent Templates** — Browse agents across 28+ categories: sales, marketing, finance, crypto trading, legal, healthcare, insurance, restaurant, real estate, therapy, and more
 - **19 Career Templates** — Pick your career (Crypto Trader, Loan Officer, Therapist, Restaurant Owner, Contractor, etc.) and get a pre-built team instantly
+- **Instant Streaming Chat** — Rewritten chat engine with instant streaming responses and zero duplicate messages
+- **Team Chat Rooms** — Create rooms with multiple agents using Team mode (all agents respond) or @Mention mode (tag specific agents)
+- **Agent Customization** — Rename agents, change their avatar and accent color to make your team your own
+- **File Upload** — Send files directly in chat for agents to analyze and respond to
 - **Crypto Trading with MoonPay** — Trade crypto, DCA, scan markets, and research tokens. Powered by MoonPay with in-app setup, no terminal required.
 - **Multi-Provider AI** — Connect Claude, ChatGPT, Grok, Gemini, or run locally with Ollama
-- **Chat with Agents** — Talk to your team through an inline buddy-list chat
 - **Messaging Integrations** — Connect Discord, Telegram, WhatsApp, and iMessage with step-by-step wizards
 - **SOUL.md Personalities** — Each agent gets a unique personality file that shapes how they respond
+- **Dark & Light Themes** — Full theme support with CSS variable-driven styling
 - **Auto-Updates** — App updates automatically via GitHub Releases
 
 ## System Requirements
@@ -61,50 +65,40 @@ pnpm test         # run tests
 pnpm run package:mac  # build DMG
 ```
 
-## Changelog
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
+
+## What's New in v2.0
+
+- **Rewritten chat engine** — Instant streaming responses with zero duplicate messages. Chat store reduced from 2,078 to 610 lines.
+- **Team chat rooms** — Create rooms with multiple agents. Team mode (all respond) and @Mention mode (tag specific agents). Unified message feed with anti-loop protection.
+- **Agent customization** — Rename agents, change avatars and accent colors
+- **File upload in chat** — Send files directly to agents for analysis
+- **Dark & light themes** — Full theme overhaul with CSS variable-driven styling
+- **New home page and splash screen** — Redesigned landing experience
+- **Custom toolbar** — Streamlined navigation
+
+<details>
+<summary>Previous versions</summary>
 
 ### v1.3.0
-- **MoonPay integration** — Crypto Trader and Crypto Trading Team career templates, powered by MoonPay
+- MoonPay integration — Crypto Trader and Crypto Trading Team career templates
 - 4 new crypto agents: MoonPay Trader, Crypto Researcher, DCA Agent, Market Scanner
-- New Crypto Trading category with 7 agents
 - In-app MoonPay setup wizard — email + OTP, no terminal needed
-- MoonPay partner branding on career cards
-- Partners section in Connections page
-- 211 agents across 28 categories (was 207 across 27)
-- 19 career templates (was 17)
-- Dynamic agent count in catalog (was hardcoded)
+- 211 agents across 28 categories, 19 career templates
 
-### v1.2.3
-- 207 agents across 27 categories (was 174 across 24)
-- 17 career templates (was 9) — new: Loan Officer, Insurance Agent, Restaurant Owner, Contractor, Therapist, Nonprofit, Property Management, Logistics
-- New categories: Insurance, Restaurant, Nonprofit, Therapy
-- New agents: mortgage rate watcher, loan pipeline, doc chaser, claims intake, menu manager, reservation agent, food cost tracker, therapy notes, superbill generator, client check-in, grant writer, donor manager, and more
-- All agent SOUL.md files trimmed 50% — faster loading, same quality
-- Fixed all broken career template references
-
-### v1.2.2
-- Fixed update flow — Settings now shows Download/Install buttons (was broken since v1.0)
-- Auto-update toggle in Settings — automatically download and install updates
-
-### v1.2.1
-- Shared provider setup modal — consistent wizard across Brain page and Onboarding
-- Gateway sync fixes, provider validation improvements
-- Removed low-quality 8GB models, 16 GB minimum for local AI
-- Intel Macs get "use cloud" messaging instead of broken local AI
-
-### v1.2.0
+### v1.2.0 – v1.2.3
 - Local AI via Ollama — full setup wizard, auto-download, headless, 17 curated models
 - Hardware detection + model recommendation engine
-- Onboarding redesign with FREE local AI hero card
-- Brain page redesign — local AI hero at top, cloud grid below
-- Toolbar/sidebar show active LLM (Local vs API indicator)
-- 46 unit tests for hardware detection, model recommender, Ollama services
+- Shared provider setup modal, gateway sync fixes
+- 207 agents across 27 categories, 17 career templates
 
 ### v1.1.2
 - 3D office with GPU acceleration
 - 174 agent catalog with SOUL.md personalities
 - Career-based team builder
 - Messaging integrations (Discord, Telegram, WhatsApp, iMessage)
+
+</details>
 
 ## License
 

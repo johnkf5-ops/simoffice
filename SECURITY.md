@@ -2,20 +2,23 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
-
 | Version | Supported          |
 | ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| 2.0.x   | :white_check_mark: |
+| 1.3.x   | :white_check_mark: |
+| < 1.3   | :x:                |
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+If you discover a security vulnerability in SimOffice, please report it responsibly.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+**Email:** public@valuecell.ai
+
+Please include:
+- A description of the vulnerability
+- Steps to reproduce the issue
+- Any relevant logs or screenshots
+
+We will acknowledge your report within 48 hours and provide an update within 7 days. If the vulnerability is accepted, we will work on a fix and credit you in the release notes (unless you prefer to remain anonymous).
+
+Please do not open a public GitHub issue for security vulnerabilities.
