@@ -286,7 +286,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   // ── Cleanup empty session (no-op for compatibility) ──
   cleanupEmptySession: () => {},
 
-  // ── Load history — THE ONLY SOURCE OF MESSAGES ──
+  // ── Load history — authoritative source, dedupes by ID ──
 
   loadHistory: async (quiet = false) => {
     const { currentSessionKey } = get();
@@ -538,18 +538,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   // ── Handle chat events from Gateway ──
-  // ONLY updates streaming state for animation. NEVER touches messages[].
+  // Delta: updates streamingText for animation
+  // Final: clears streaming, triggers loadHistory
+  // Messages ONLY come from loadHistory — no duplicates possible
 
   handleChatEvent: (event: Record<string, unknown>) => {
-    const state = (event.state as string) || '';
+    const eventState = (event.state as string) || '';
     const sessionKey = event.sessionKey as string | undefined;
 
     // Ignore events for other sessions
     if (sessionKey && sessionKey !== get().currentSessionKey) return;
 
-    switch (state) {
+    switch (eventState) {
       case 'delta': {
-        // Update streaming text for typing animation
         const msg = event.message as RawMessage | undefined;
         if (msg) {
           const text = getMessageText(msg.content);
@@ -559,7 +560,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       case 'final': {
-        // Clear streaming, trigger history load to get the real message
+        // Clear streaming, fetch the real message from history
         set({ streamingText: '', streamingMessage: null });
         get().loadHistory(true);
         break;
