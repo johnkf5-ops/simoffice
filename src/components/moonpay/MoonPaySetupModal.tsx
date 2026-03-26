@@ -234,6 +234,13 @@ export function MoonPaySetupModal({ onClose, onConnected }: MoonPaySetupModalPro
             }}>
               Done
             </button>
+            <button onClick={() => { setStep(1); setEmail(''); setCode(''); setError(null); }} style={{
+              padding: 8, borderRadius: 8, border: 'none',
+              background: 'none', color: 'hsl(var(--muted-foreground))',
+              fontSize: 12, cursor: 'pointer', marginTop: 8,
+            }}>
+              Reconnect with a different account
+            </button>
           </div>
         )}
       </div>

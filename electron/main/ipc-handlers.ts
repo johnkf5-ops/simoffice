@@ -2055,8 +2055,15 @@ function registerShellHandlers(): void {
 
   // MoonPay: check if authenticated
   ipcMain.handle('moonpay:check-auth', async () => {
+    // First check if the MoonPay binary actually exists
+    const mpBin = getMoonPayBin();
+    if (!existsSync(mpBin)) {
+      return { authenticated: false, error: 'MoonPay CLI not found' };
+    }
     const result = await runMoonPay(['user', 'retrieve']);
-    return { authenticated: result.success };
+    // Require both success AND non-empty stdout with actual user data
+    const hasUserData = result.success && result.stdout.length > 2 && !result.stdout.includes('Token refresh failed');
+    return { authenticated: hasUserData };
   });
 }
 
