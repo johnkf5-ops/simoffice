@@ -65,6 +65,7 @@ const electronAPI = {
         'update:setChannel',
         'update:setAutoDownload',
         'update:cancelAutoInstall',
+        'update:downloadDmg',
         // Env
         'env:getConfig',
         'env:setApiKey',

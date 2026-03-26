@@ -3,7 +3,7 @@
  * Displays update status and allows manual update checking/installation
  */
 import { useEffect, useCallback } from 'react';
-import { Download, RefreshCw, Loader2, Rocket, XCircle } from 'lucide-react';
+import { Download, RefreshCw, Loader2, Rocket, XCircle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useUpdateStore } from '@/stores/update';
@@ -15,6 +15,15 @@ function formatBytes(bytes: number): string {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatEta(remainingBytes: number, bytesPerSecond: number): string {
+  if (bytesPerSecond <= 0) return '...';
+  const seconds = Math.ceil(remainingBytes / bytesPerSecond);
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 }
 
 export function UpdateSettings() {
@@ -31,6 +40,7 @@ export function UpdateSettings() {
     checkForUpdates,
     downloadUpdate,
     installUpdate,
+    downloadDmg,
     cancelAutoInstall,
     clearError,
   } = useUpdateStore();
@@ -49,6 +59,7 @@ export function UpdateSettings() {
     switch (status) {
       case 'checking':
       case 'downloading':
+      case 'extracting':
         return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
       case 'available':
         return <Download className="h-4 w-4 text-primary" />;
@@ -70,6 +81,8 @@ export function UpdateSettings() {
         return t('updates.status.checking');
       case 'downloading':
         return t('updates.status.downloading');
+      case 'extracting':
+        return 'Verifying update...';
       case 'available':
         return t('updates.status.available', { version: updateInfo?.version });
       case 'downloaded':
@@ -97,6 +110,13 @@ export function UpdateSettings() {
           <Button disabled variant="outline" size="sm">
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             {t('updates.action.downloading')}
+          </Button>
+        );
+      case 'extracting':
+        return (
+          <Button disabled variant="outline" size="sm">
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Verifying...
           </Button>
         );
       case 'available':
@@ -165,17 +185,24 @@ export function UpdateSettings() {
       </div>
 
       {/* Download Progress */}
-      {status === 'downloading' && progress && (
+      {(status === 'downloading' || status === 'extracting') && progress && (
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span>
               {formatBytes(progress.transferred)} / {formatBytes(progress.total)}
             </span>
-            <span>{formatBytes(progress.bytesPerSecond)}/s</span>
+            <span>
+              {status === 'extracting'
+                ? 'Verifying...'
+                : progress.bytesPerSecond > 0
+                  ? `${formatBytes(progress.bytesPerSecond)}/s — ~${formatEta(progress.total - progress.transferred, progress.bytesPerSecond)} left`
+                  : `${formatBytes(progress.bytesPerSecond)}/s`
+              }
+            </span>
           </div>
           <Progress value={progress.percent} className="h-2" />
           <p className="text-xs text-muted-foreground text-center">
-            {Math.round(progress.percent)}% complete
+            {status === 'extracting' ? 'Download complete — verifying update...' : `${Math.round(progress.percent)}% complete`}
           </p>
         </div>
       )}
@@ -205,7 +232,20 @@ export function UpdateSettings() {
         <div className="rounded-lg bg-red-50 dark:bg-red-900/10 p-4 text-red-600 dark:text-red-400 text-sm">
           <p className="font-medium mb-1">{t('updates.errorDetails')}</p>
           <p>{error}</p>
+          {updateInfo?.version && (
+            <Button onClick={downloadDmg} variant="outline" size="sm" className="mt-3">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Download DMG Instead
+            </Button>
+          )}
         </div>
+      )}
+
+      {/* DMG fallback — always available during download/extracting */}
+      {(status === 'downloading' || status === 'extracting') && (
+        <button onClick={downloadDmg} className="text-xs text-muted-foreground hover:text-foreground underline">
+          Stuck? Download DMG manually
+        </button>
       )}
 
       {/* Help Text */}

@@ -20,12 +20,13 @@ export interface ProgressInfo {
   bytesPerSecond: number;
 }
 
-export type UpdateStatus = 
+export type UpdateStatus =
   | 'idle'
   | 'checking'
   | 'available'
   | 'not-available'
   | 'downloading'
+  | 'extracting'
   | 'downloaded'
   | 'error';
 
@@ -44,6 +45,7 @@ interface UpdateState {
   checkForUpdates: () => Promise<void>;
   downloadUpdate: () => Promise<void>;
   installUpdate: () => void;
+  downloadDmg: () => Promise<void>;
   cancelAutoInstall: () => Promise<void>;
   setChannel: (channel: 'stable' | 'beta' | 'dev') => Promise<void>;
   setAutoDownload: (enable: boolean) => Promise<void>;
@@ -188,6 +190,14 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
 
   installUpdate: () => {
     void invokeIpc('update:install');
+  },
+
+  downloadDmg: async () => {
+    try {
+      await invokeIpc('update:downloadDmg');
+    } catch (error) {
+      console.error('Failed to open DMG download:', error);
+    }
   },
 
   cancelAutoInstall: async () => {

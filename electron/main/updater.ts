@@ -7,14 +7,14 @@
  * to point at the channel-specific OSS directory (e.g. /alpha/, /beta/).
  */
 import { autoUpdater, UpdateInfo, ProgressInfo, UpdateDownloadedEvent } from 'electron-updater';
-import { BrowserWindow, app, ipcMain } from 'electron';
+import { BrowserWindow, app, ipcMain, shell } from 'electron';
 import { logger } from '../utils/logger';
 import { EventEmitter } from 'events';
 import { setQuitting } from './app-state';
 
 
 export interface UpdateStatus {
-  status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+  status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'extracting' | 'downloaded' | 'error';
   info?: UpdateInfo;
   progress?: ProgressInfo;
   error?: string;
@@ -118,7 +118,13 @@ export class AppUpdater extends EventEmitter {
     });
 
     autoUpdater.on('download-progress', (progress: ProgressInfo) => {
-      this.updateStatus({ status: 'downloading', progress });
+      // When download reaches 100%, Squirrel.Mac starts extracting/verifying.
+      // Show 'extracting' so the user knows the app isn't stuck.
+      if (progress.percent >= 99.5) {
+        this.updateStatus({ status: 'extracting', progress });
+      } else {
+        this.updateStatus({ status: 'downloading', progress });
+      }
       this.emit('download-progress', progress);
     });
 
@@ -201,15 +207,65 @@ export class AppUpdater extends EventEmitter {
   }
 
   /**
-   * Download available update
+   * Download available update.
+   *
+   * Strategy: Try Squirrel.Mac first (seamless auto-update). If Squirrel hangs
+   * (common on macOS due to App Translocation, code signing, ShipIt crashes),
+   * automatically fall back to downloading the DMG and opening it for the user.
+   *
+   * The user never gets stuck — worst case they drag-and-drop from the DMG.
    */
   async downloadUpdate(): Promise<void> {
     try {
-      await autoUpdater.downloadUpdate();
+      const downloadPromise = autoUpdater.downloadUpdate();
+
+      // Give Squirrel 3 minutes for download + extraction.
+      // If it hangs (like it did in v2.0.1→v2.0.2), auto-fallback to DMG.
+      const SQUIRREL_TIMEOUT_MS = 3 * 60 * 1000;
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('SQUIRREL_TIMEOUT')), SQUIRREL_TIMEOUT_MS)
+      );
+
+      await Promise.race([downloadPromise, timeoutPromise]);
     } catch (error) {
+      const msg = (error as Error).message || String(error);
+
+      if (msg === 'SQUIRREL_TIMEOUT') {
+        // Squirrel hung — auto-fallback to DMG
+        logger.warn('[Updater] Squirrel.Mac timed out during extraction — falling back to DMG download');
+        this.updateStatus({
+          status: 'error',
+          error: 'Auto-update timed out. Downloading DMG instead...',
+        });
+        await this.openDmgDownload();
+        return;
+      }
+
       logger.error('[Updater] Download update failed:', error);
       throw error;
     }
+  }
+
+  /**
+   * Build the DMG download URL for the current platform + version.
+   */
+  private getDmgUrl(): string {
+    const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+    const version = this.status.info?.version;
+    if (version) {
+      return `https://github.com/johnkf5-ops/simoffice/releases/download/v${version}/SimOffice-${version}-mac-${arch}.dmg`;
+    }
+    return 'https://github.com/johnkf5-ops/simoffice/releases/latest';
+  }
+
+  /**
+   * Download the DMG and open it — bypasses Squirrel entirely.
+   * Used as automatic fallback when Squirrel fails, and as manual escape hatch.
+   */
+  async openDmgDownload(): Promise<void> {
+    const url = this.getDmgUrl();
+    logger.info(`[Updater] Opening DMG download: ${url}`);
+    shell.openExternal(url);
   }
 
   /**
@@ -345,6 +401,16 @@ export function registerUpdateHandlers(
   ipcMain.handle('update:cancelAutoInstall', () => {
     updater.cancelAutoInstall();
     return { success: true };
+  });
+
+  // Fallback: open DMG download in browser when auto-update fails
+  ipcMain.handle('update:downloadDmg', async () => {
+    try {
+      await updater.openDmgDownload();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
   });
 
 }
