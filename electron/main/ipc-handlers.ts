@@ -2034,7 +2034,9 @@ function registerShellHandlers(): void {
     const { execFile } = require('child_process');
     const mpBin = getMoonPayBin();
     return new Promise((resolve) => {
-      execFile(process.execPath, [mpBin, ...args], {
+      // Execute the mp CLI directly — it has #!/usr/bin/env node shebang
+      // and is +x. The OS resolves the shebang. Avoids all Electron argv issues.
+      execFile(mpBin, args, {
         timeout: 30000,
         env: { ...process.env },
       }, (err: Error | null, stdout: string, stderr: string) => {
@@ -2044,14 +2046,42 @@ function registerShellHandlers(): void {
     });
   }
 
-  // MoonPay: send login OTP to email
+  // MoonPay: send login — opens verification page in a popup so user can complete captcha
   ipcMain.handle('moonpay:login', async (_, { email }: { email: string }) => {
-    return await runMoonPay(['login', '--email', email]);
+    const result = await runMoonPay(['login', '--email', email]);
+    if (result.success) {
+      // Parse the verification URL and open in a popup BrowserWindow for captcha
+      const urlMatch = result.stdout.match(/https:\/\/agents\.moonpay\.com\/login\S+/);
+      if (urlMatch) {
+        const popup = new BrowserWindow({
+          width: 500, height: 650,
+          title: 'MoonPay Verification',
+          autoHideMenuBar: true,
+          resizable: false,
+        });
+        popup.loadURL(urlMatch[0]);
+      }
+    }
+    return result;
   });
 
   // MoonPay: verify OTP code
   ipcMain.handle('moonpay:verify', async (_, { email, code }: { email: string; code: string }) => {
     return await runMoonPay(['verify', '--email', email, '--code', code]);
+  });
+
+  // MoonPay: open a URL in an in-app popup (checkout, block explorer, etc.)
+  ipcMain.handle('moonpay:open-url', async (_, url: string) => {
+    if (!url || (!url.startsWith('https://buy.moonpay.com') && !url.startsWith('https://agents.moonpay.com'))) {
+      return { success: false, error: 'Invalid URL' };
+    }
+    const popup = new BrowserWindow({
+      width: 520, height: 720,
+      title: 'MoonPay',
+      autoHideMenuBar: true,
+    });
+    popup.loadURL(url);
+    return { success: true };
   });
 
   // MoonPay: check if authenticated
@@ -2065,6 +2095,94 @@ function registerShellHandlers(): void {
     // Require both success AND non-empty stdout with actual user data
     const hasUserData = result.success && result.stdout.length > 2 && !result.stdout.includes('Token refresh failed');
     return { authenticated: hasUserData };
+  });
+
+  // MoonPay: list wallets
+  ipcMain.handle('moonpay:wallet-list', async () => {
+    return await runMoonPay(['wallet', 'list']);
+  });
+
+  // MoonPay: create wallet
+  ipcMain.handle('moonpay:wallet-create', async (_, name: string) => {
+    return await runMoonPay(['wallet', 'create', '--name', name || 'default']);
+  });
+
+  // MoonPay: configure MCP server in openclaw.json + install skills + restart gateway
+  ipcMain.handle('moonpay:configure-mcp', async () => {
+    const fs = require('fs');
+    const path = require('path');
+
+    // 1. Compute paths
+    const mpBin = getMoonPayBin();
+    if (!existsSync(mpBin)) {
+      return { success: false, error: 'MoonPay CLI not found' };
+    }
+
+    // Ensure mp CLI is executable (shebanged script, kernel handles #!/usr/bin/env node)
+    try { require('fs').chmodSync(mpBin, 0o755); } catch { /* ok */ }
+
+    // 2. Read existing openclaw.json
+    const configPath = path.join(homedir(), '.openclaw', 'openclaw.json');
+    let config: Record<string, unknown> = {};
+    try {
+      const raw = fs.readFileSync(configPath, 'utf8');
+      config = JSON.parse(raw);
+    } catch {
+      return { success: false, error: 'Could not read openclaw.json' };
+    }
+
+    // 3. Merge mcpServers into plugins.entries.acpx.config
+    if (!config.plugins) config.plugins = {};
+    const plugins = config.plugins as Record<string, unknown>;
+    if (!plugins.entries) plugins.entries = {};
+    const entries = plugins.entries as Record<string, unknown>;
+    if (!entries.acpx) entries.acpx = {};
+    const acpx = entries.acpx as Record<string, unknown>;
+    acpx.enabled = true;  // acpx is bundled but disabled by default
+    if (!acpx.config) acpx.config = {};
+    const acpxConfig = acpx.config as Record<string, unknown>;
+    if (!acpxConfig.mcpServers) acpxConfig.mcpServers = {};
+    const mcpServers = acpxConfig.mcpServers as Record<string, unknown>;
+
+    // Use the mp CLI directly as the command — it has #!/usr/bin/env node shebang.
+    // The OS kernel handles the shebang via execvp(). Avoids Electron argv corruption.
+    mcpServers.moonpay = {
+      command: mpBin,
+      args: ['mcp'],
+    };
+
+    // 3b. Ensure acpx is in plugins.allow so the gateway enables the plugin
+    if (!plugins.allow) plugins.allow = [];
+    const allow = plugins.allow as string[];
+    if (!allow.includes('acpx')) allow.push('acpx');
+
+    // 4. Write back
+    try {
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+    } catch (err) {
+      return { success: false, error: `Could not write openclaw.json: ${err}` };
+    }
+
+    // 5. Install MoonPay skills (copy from bundled CLI)
+    const skillsDir = path.join(homedir(), '.openclaw', 'skills');
+    const mpSkillsSource = path.join(
+      path.dirname(mpBin), // .../dist/
+      '..', 'skills'       // .../skills/
+    );
+    if (existsSync(mpSkillsSource)) {
+      const skillDirs = fs.readdirSync(mpSkillsSource).filter((d: string) => d.startsWith('moonpay-'));
+      for (const skillDir of skillDirs) {
+        const srcSkill = path.join(mpSkillsSource, skillDir, 'SKILL.md');
+        const destDir = path.join(skillsDir, skillDir);
+        if (existsSync(srcSkill)) {
+          if (!existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+          fs.copyFileSync(srcSkill, path.join(destDir, 'SKILL.md'));
+        }
+      }
+    }
+
+    // 6. Gateway picks up config on restart — caller should restart gateway
+    return { success: true };
   });
 }
 

@@ -1,34 +1,37 @@
 /**
  * MoonPay Setup Wizard — fully in-app, no terminal needed.
- * Step 1: Enter email → sends OTP via mp login
- * Step 2: Enter OTP code → verifies via mp verify
- * Step 3: Connected
+ * Step 1: Enter email → sends OTP
+ * Step 2: Enter OTP code → verify
+ * Step 3: Setting up (wallet + MCP config — automatic)
+ * Step 4: Connected
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { invokeIpc } from '@/lib/api-client';
+import { useGatewayStore } from '@/stores/gateway';
 
 interface MoonPaySetupModalProps {
   onClose: () => void;
   onConnected?: () => void;
-  /** If true, skip navigation to /trading on done (already there) */
   alreadyOnTrading?: boolean;
 }
 
 export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: MoonPaySetupModalProps) {
   const navigate = useNavigate();
+  const restartGateway = useGatewayStore((s) => s.restart);
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [setupStatus, setSetupStatus] = useState('');
 
   // Check if already authenticated on mount
   const checkAuth = useCallback(async () => {
     try {
       const result = await invokeIpc<{ authenticated: boolean }>('moonpay:check-auth');
       if (result.authenticated) {
-        setStep(3);
+        setStep(4); // skip to connected
         onConnected?.();
       }
     } catch { /* not authenticated */ }
@@ -66,8 +69,9 @@ export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: Mo
     try {
       const result = await invokeIpc<{ success: boolean; error?: string }>('moonpay:verify', { email: email.trim(), code: code.trim() });
       if (result.success) {
+        // Auth succeeded — now auto-setup wallet + MCP
         setStep(3);
-        onConnected?.();
+        await runAutoSetup();
       } else {
         setError(result.error || 'Invalid code. Check your email and try again.');
       }
@@ -76,6 +80,46 @@ export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: Mo
     }
     setLoading(false);
   };
+
+  const runAutoSetup = async () => {
+    try {
+      // Step 3a: Check/create wallet
+      setSetupStatus('Checking wallet...');
+      const wallets = await invokeIpc<{ success: boolean; stdout: string }>('moonpay:wallet-list');
+      if (!wallets.success || !wallets.stdout || wallets.stdout.includes('No wallets')) {
+        setSetupStatus('Creating your crypto wallet...');
+        const created = await invokeIpc<{ success: boolean; error?: string }>('moonpay:wallet-create', 'default');
+        if (!created.success) {
+          setError(created.error || 'Failed to create wallet');
+          return;
+        }
+      }
+
+      // Step 3b: Configure MCP server in openclaw.json
+      setSetupStatus('Connecting to your AI...');
+      const mcpResult = await invokeIpc<{ success: boolean; error?: string }>('moonpay:configure-mcp');
+      if (!mcpResult.success) {
+        setError(mcpResult.error || 'Failed to configure MoonPay');
+        return;
+      }
+
+      // Step 3c: Restart gateway to pick up new MCP config
+      setSetupStatus('Starting MoonPay tools...');
+      try {
+        await restartGateway();
+      } catch {
+        // Gateway restart can fail transiently — not fatal
+      }
+
+      // Done!
+      setStep(4);
+      onConnected?.();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const TOTAL_STEPS = 4;
 
   return (
     <div style={{
@@ -97,7 +141,7 @@ export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: Mo
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
             <h2 style={{ fontSize: 22, fontWeight: 800, color: 'hsl(var(--foreground))', fontFamily: 'Space Grotesk, sans-serif', margin: 0 }}>
-              🟣 Connect MoonPay
+              Connect MoonPay
             </h2>
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>
               Trade crypto with your AI agents — just sign in with your email
@@ -106,12 +150,12 @@ export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: Mo
           <button onClick={onClose} style={{
             background: 'none', border: 'none', color: 'hsl(var(--muted-foreground))',
             fontSize: 20, cursor: 'pointer', padding: 4,
-          }}>✕</button>
+          }}>&#x2715;</button>
         </div>
 
         {/* Step indicator */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-          {[1, 2, 3].map(i => (
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map(i => (
             <div key={i} style={{
               flex: 1, height: 4, borderRadius: 2,
               background: i <= step
@@ -131,30 +175,23 @@ export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: Mo
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
               MoonPay will send you a one-time code. No password needed — ever.
             </p>
-            <input
-              type="email"
-              value={email}
+            <input type="email" value={email}
               onChange={(e) => { setEmail(e.target.value); setError(null); }}
               onKeyDown={(e) => e.key === 'Enter' && handleSendCode()}
-              placeholder="you@example.com"
-              autoFocus
+              placeholder="you@example.com" autoFocus
               style={{
                 width: '100%', padding: '12px 14px', borderRadius: 10,
                 border: error ? '1px solid #f87171' : '1px solid rgba(123,63,228,0.3)',
                 background: 'rgba(0,0,0,0.2)', color: 'hsl(var(--foreground))',
-                fontSize: 14, outline: 'none', marginBottom: 12,
-                boxSizing: 'border-box',
+                fontSize: 14, outline: 'none', marginBottom: 12, boxSizing: 'border-box',
               }}
             />
-            {error && (
-              <p style={{ fontSize: 12, color: '#f87171', marginBottom: 8 }}>{error}</p>
-            )}
+            {error && <p style={{ fontSize: 12, color: '#f87171', marginBottom: 8 }}>{error}</p>}
             <button onClick={handleSendCode} disabled={loading} style={{
               width: '100%', padding: 12, borderRadius: 10, border: 'none',
               background: loading ? 'rgba(123,63,228,0.3)' : 'linear-gradient(135deg, #7B3FE4, #a855f7)',
               color: 'white', fontSize: 14, fontWeight: 700,
-              cursor: loading ? 'default' : 'pointer',
-              fontFamily: 'Space Grotesk, sans-serif',
+              cursor: loading ? 'default' : 'pointer', fontFamily: 'Space Grotesk, sans-serif',
             }}>
               {loading ? 'Sending code...' : 'Send Verification Code'}
             </button>
@@ -173,48 +210,57 @@ export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: Mo
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
               Enter the code we sent to <strong style={{ color: '#c4b5fd' }}>{email}</strong>
             </p>
-            <input
-              type="text"
-              value={code}
+            <input type="text" value={code}
               onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setError(null); }}
               onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-              placeholder="123456"
-              autoFocus
-              maxLength={8}
+              placeholder="123456" autoFocus maxLength={8}
               style={{
                 width: '100%', padding: '12px 14px', borderRadius: 10,
                 border: error ? '1px solid #f87171' : '1px solid rgba(123,63,228,0.3)',
                 background: 'rgba(0,0,0,0.2)', color: 'hsl(var(--foreground))',
                 fontSize: 20, fontWeight: 700, letterSpacing: '0.2em', textAlign: 'center',
-                outline: 'none', marginBottom: 12,
-                fontFamily: 'monospace',
-                boxSizing: 'border-box',
+                outline: 'none', marginBottom: 12, fontFamily: 'monospace', boxSizing: 'border-box',
               }}
             />
-            {error && (
-              <p style={{ fontSize: 12, color: '#f87171', marginBottom: 8 }}>{error}</p>
-            )}
+            {error && <p style={{ fontSize: 12, color: '#f87171', marginBottom: 8 }}>{error}</p>}
             <button onClick={handleVerify} disabled={loading} style={{
               width: '100%', padding: 12, borderRadius: 10, border: 'none',
               background: loading ? 'rgba(123,63,228,0.3)' : 'linear-gradient(135deg, #7B3FE4, #a855f7)',
               color: 'white', fontSize: 14, fontWeight: 700,
-              cursor: loading ? 'default' : 'pointer',
-              fontFamily: 'Space Grotesk, sans-serif',
+              cursor: loading ? 'default' : 'pointer', fontFamily: 'Space Grotesk, sans-serif',
             }}>
               {loading ? 'Verifying...' : 'Verify'}
             </button>
             <button onClick={() => { setStep(1); setCode(''); setError(null); }} style={{
-              width: '100%', padding: 8, borderRadius: 8, border: 'none',
-              background: 'none', color: 'hsl(var(--muted-foreground))',
-              fontSize: 12, cursor: 'pointer', marginTop: 8,
+              width: '100%', padding: 8, border: 'none', background: 'none',
+              color: 'hsl(var(--muted-foreground))', fontSize: 12, cursor: 'pointer', marginTop: 8,
             }}>
-              ← Use a different email
+              &larr; Use a different email
             </button>
           </div>
         )}
 
-        {/* Step 3: Done */}
+        {/* Step 3: Auto-setup (wallet + MCP) */}
         {step === 3 && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              width: 48, height: 48, margin: '0 auto 16px',
+              border: '3px solid rgba(123,63,228,0.3)', borderTop: '3px solid #7B3FE4',
+              borderRadius: '50%', animation: 'spin 1s linear infinite',
+            }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'hsl(var(--foreground))', marginBottom: 8 }}>
+              Setting things up...
+            </h3>
+            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))' }}>
+              {setupStatus || 'Preparing your trading environment...'}
+            </p>
+            {error && <p style={{ fontSize: 12, color: '#f87171', marginTop: 8 }}>{error}</p>}
+          </div>
+        )}
+
+        {/* Step 4: Done */}
+        {step === 4 && (
           <div style={{ textAlign: 'center' }}>
             <div style={{
               width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
@@ -222,7 +268,7 @@ export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: Mo
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 28, boxShadow: '0 8px 24px rgba(34,197,94,0.3)',
             }}>
-              ✓
+              &#x2713;
             </div>
             <h3 style={{ fontSize: 20, fontWeight: 800, color: 'hsl(var(--foreground))', fontFamily: 'Space Grotesk, sans-serif', marginBottom: 8 }}>
               You're connected!
@@ -243,9 +289,8 @@ export function MoonPaySetupModal({ onClose, onConnected, alreadyOnTrading }: Mo
               {alreadyOnTrading ? 'Start Trading' : 'Go to Trading Desk'}
             </button>
             <button onClick={() => { setStep(1); setEmail(''); setCode(''); setError(null); }} style={{
-              padding: 8, borderRadius: 8, border: 'none',
-              background: 'none', color: 'hsl(var(--muted-foreground))',
-              fontSize: 12, cursor: 'pointer', marginTop: 8,
+              padding: 8, border: 'none', background: 'none',
+              color: 'hsl(var(--muted-foreground))', fontSize: 12, cursor: 'pointer', marginTop: 8,
             }}>
               Reconnect with a different account
             </button>

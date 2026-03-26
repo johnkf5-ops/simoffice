@@ -103,32 +103,39 @@ export function TradingPage() {
         sessionKey: 'agent:moonpay-trader:main',
         message: trimmed,
         deliver: false,
+        idempotencyKey: crypto.randomUUID(),
       }, 120_000);
 
-      // Poll for response
-      const deadline = Date.now() + 90_000;
+      // Poll for the FINAL assistant response (after all tool calls complete).
+      // The LLM may do: text → toolCall → toolResult → text → toolCall → ... → final text (stopReason: "stop")
+      // We want the last assistant message with stopReason !== "toolUse".
+      const deadline = Date.now() + 120_000;
       let responseText: string | null = null;
 
       while (Date.now() < deadline) {
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 2500));
 
-        const history = await rpc<{ messages?: Array<{ role: string; content: unknown; timestamp?: number }> }>('chat.history', {
+        const history = await rpc<{ messages?: Array<{ role: string; content: unknown; timestamp?: number; stopReason?: string }> }>('chat.history', {
           sessionKey: 'agent:moonpay-trader:main',
-          limit: 5,
+          limit: 20,
         });
 
         const msgs = history.messages ?? [];
+        // Find the last assistant message that is a final response (not mid-tool-call)
         for (let i = msgs.length - 1; i >= 0; i--) {
           const msg = msgs[i];
           if (msg.role !== 'assistant') continue;
+          // Skip tool-use intermediate responses — we want the final answer
+          if ((msg as any).stopReason === 'toolUse') continue;
           const ts = msg.timestamp ? (msg.timestamp > 1e12 ? msg.timestamp : msg.timestamp * 1000) : 0;
           if (ts >= userMsg.timestamp - 5000) {
             const content = msg.content;
+            // Collect ALL text blocks from the content array
             if (typeof content === 'string' && content.length > 0) {
               responseText = content;
             } else if (Array.isArray(content)) {
-              const textBlock = content.find((b: any) => b.type === 'text' && b.text);
-              if (textBlock) responseText = textBlock.text;
+              const texts = content.filter((b: any) => b.type === 'text' && b.text).map((b: any) => b.text);
+              if (texts.length > 0) responseText = texts.join('\n\n');
             }
             if (responseText) break;
           }
@@ -137,6 +144,11 @@ export function TradingPage() {
       }
 
       if (responseText) {
+        // Auto-open MoonPay checkout URLs in an in-app popup
+        const checkoutMatch = responseText.match(/https:\/\/buy\.moonpay\.com[^\s)]+/);
+        if (checkoutMatch) {
+          invokeIpc('moonpay:open-url', checkoutMatch[0]).catch(() => {});
+        }
         setMessages(prev => [...prev, {
           id: `mp-${Date.now()}`,
           role: 'assistant',

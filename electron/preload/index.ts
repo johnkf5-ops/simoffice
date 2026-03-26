@@ -108,6 +108,10 @@ const electronAPI = {
         'moonpay:login',
         'moonpay:verify',
         'moonpay:check-auth',
+        'moonpay:open-url',
+        'moonpay:wallet-list',
+        'moonpay:wallet-create',
+        'moonpay:configure-mcp',
         // ClawHub
         'clawhub:search',
         'clawhub:install',
