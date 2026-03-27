@@ -2023,8 +2023,10 @@ function registerShellHandlers(): void {
   function getMoonPayBin(): string {
     const { join } = require('path');
     if (app.isPackaged) {
-      // asarUnpack extracts @moonpay/cli to app.asar.unpacked/
-      return join(app.getAppPath() + '.unpacked', 'node_modules', '@moonpay', 'cli', 'dist', 'index.js');
+      // Keep @moonpay/cli inside the asar (not unpacked) so ESM resolution
+      // finds its deps (zod, commander, etc.) in the same asar node_modules.
+      // ELECTRON_RUN_AS_NODE=1 gives the child process asar support.
+      return join(app.getAppPath(), 'node_modules', '@moonpay', 'cli', 'dist', 'index.js');
     }
     // Dev: use node_modules
     return join(__dirname, '../../node_modules/@moonpay/cli/dist/index.js');
