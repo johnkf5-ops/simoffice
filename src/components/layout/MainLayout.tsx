@@ -10,7 +10,7 @@ import { LicenseBanner } from '../common/LicenseBanner';
 
 export function MainLayout() {
   const location = useLocation();
-  const lobbyPages = ['/', '/chat', '/assistants', '/connections', '/powers', '/automations', '/ai-setup', '/settings', '/trading'];
+  const lobbyPages = ['/', '/chat', '/assistants', '/connections', '/powers', '/automations', '/ai-setup', '/settings', '/trading', '/analytics'];
   const isFullScreen = lobbyPages.includes(location.pathname);
 
   return (
