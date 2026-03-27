@@ -395,7 +395,12 @@ export function LobbySettings() {
           <div style={{ padding: '14px 0', fontSize: 13, color: 'hsl(var(--muted-foreground))', lineHeight: 1.8 }}>
             <strong style={{ color: 'hsl(var(--foreground))', fontSize: 15 }}>SimOffice</strong> · v{currentVersion}<br />
             Copyright © 2026 CrashOverride LLC. All rights reserved.<br />
-            <span style={{ fontSize: 11, opacity: 0.6 }}>This software is proprietary. Unauthorized use, reproduction, or distribution is prohibited.</span>
+            <span style={{ fontSize: 11, opacity: 0.6 }}>This software is proprietary. Unauthorized use, reproduction, or distribution is prohibited.</span><br />
+            <a href="#" onClick={(e) => { e.preventDefault(); window.electron?.ipcRenderer.invoke('shell:openExternal', 'https://simoffice.xyz/notices.html'); }} style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', textDecoration: 'underline', opacity: 0.7 }}>Open Source Notices</a>
+            {' · '}
+            <a href="#" onClick={(e) => { e.preventDefault(); window.electron?.ipcRenderer.invoke('shell:openExternal', 'https://simoffice.xyz/terms.html'); }} style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', textDecoration: 'underline', opacity: 0.7 }}>Terms</a>
+            {' · '}
+            <a href="#" onClick={(e) => { e.preventDefault(); window.electron?.ipcRenderer.invoke('shell:openExternal', 'https://simoffice.xyz/privacy.html'); }} style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', textDecoration: 'underline', opacity: 0.7 }}>Privacy</a>
           </div>
 
         </div>
