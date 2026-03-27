@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.4-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.5-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -67,7 +67,7 @@ pnpm run package:mac  # build DMG
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-## What's New in v2.0.4
+## What's New in v2.0.5
 
 - **MoonPay Trading Integration** — Full end-to-end crypto trading: auth, wallet creation, MCP config, exec tools, checkout popups. 4-step setup wizard, 19 MoonPay skills auto-installed.
 - **Subscription System** — $29.99/mo Stripe subscription with 3-day free trial (no CC required). License key activation, billing portal, email recovery.

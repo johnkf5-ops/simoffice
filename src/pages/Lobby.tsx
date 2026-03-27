@@ -11,7 +11,7 @@ import { OfficeAdapter } from '@/components/lobby/OfficeAdapter';
 
 const WHATS_NEW = [
   {
-    version: 'v2.0.4',
+    version: 'v2.0.5',
     title: 'Agentic Trading — Powered by MoonPay',
     description: 'Buy, sell, swap, and bridge crypto just by talking. Your AI agent handles the MoonPay CLI so you don\'t have to. No commands, no complexity.',
     icon: '🟣',
@@ -19,35 +19,35 @@ const WHATS_NEW = [
     featured: true,
   },
   {
-    version: 'v2.0.4',
+    version: 'v2.0.5',
     title: 'Team Chat Rooms',
     description: 'Create rooms with multiple agents. Team mode lets all agents respond in sequence. @Mention mode targets one agent. Same feed, no switching.',
     icon: '💬',
     link: '/chat',
   },
   {
-    version: 'v2.0.4',
+    version: 'v2.0.5',
     title: 'Agent Customization',
     description: 'Upload custom avatars, pick colors, and rename your agents. Make your team yours.',
     icon: '🎨',
     link: '/assistants',
   },
   {
-    version: 'v2.0.4',
+    version: 'v2.0.5',
     title: 'Dark & Light Mode',
     description: 'Full theme support across the entire app. Custom toolbar icons with glow effects. Switch in Settings.',
     icon: '🌗',
     link: '/settings',
   },
   {
-    version: 'v2.0.4',
+    version: 'v2.0.5',
     title: '211 Pre-Built Agents',
     description: 'Browse the agent catalog — 28 categories from crypto trading to content creation. One click to add to your team.',
     icon: '🤖',
     link: '/assistants',
   },
   {
-    version: 'v2.0.4',
+    version: 'v2.0.5',
     title: 'Redesigned Interface',
     description: 'New toolbar with custom icons, buddy list sidebar, inline rename for rooms and conversations, delete buttons everywhere.',
     icon: '✨',

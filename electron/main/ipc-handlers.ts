@@ -2034,11 +2034,18 @@ function registerShellHandlers(): void {
     const { execFile } = require('child_process');
     const mpBin = getMoonPayBin();
     return new Promise((resolve) => {
-      // Execute the mp CLI directly — it has #!/usr/bin/env node shebang
-      // and is +x. The OS resolves the shebang. Avoids all Electron argv issues.
-      execFile(mpBin, args, {
+      // Use Electron's bundled node via ELECTRON_RUN_AS_NODE=1.
+      // Commander.js detects process.versions.electron and process.execArgv
+      // containing -e, both causing wrong argv parsing. The inline wrapper
+      // clears both before requiring the CLI.
+      execFile(process.execPath, [
+        '-e',
+        'delete process.versions.electron;process.execArgv=[];require(process.argv[1]);',
+        mpBin,
+        ...args,
+      ], {
         timeout: 30000,
-        env: { ...process.env },
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
       }, (err: Error | null, stdout: string, stderr: string) => {
         if (err) return resolve({ success: false, stdout: stdout || '', error: stderr || String(err) });
         resolve({ success: true, stdout: stdout.trim() });
@@ -2144,11 +2151,13 @@ function registerShellHandlers(): void {
     if (!acpxConfig.mcpServers) acpxConfig.mcpServers = {};
     const mcpServers = acpxConfig.mcpServers as Record<string, unknown>;
 
-    // Use the mp CLI directly as the command — it has #!/usr/bin/env node shebang.
-    // The OS kernel handles the shebang via execvp(). Avoids Electron argv corruption.
+    // Use Electron binary with ELECTRON_RUN_AS_NODE=1 to run the mp CLI.
+    // The -e wrapper clears Commander.js detection traps (process.versions.electron
+    // and process.execArgv) so argv parsing works correctly. Same approach as runMoonPay().
     mcpServers.moonpay = {
-      command: mpBin,
-      args: ['mcp'],
+      command: process.execPath,
+      args: ['-e', 'delete process.versions.electron;process.execArgv=[];require(process.argv[1]);', mpBin, 'mcp'],
+      env: { ELECTRON_RUN_AS_NODE: '1' },
     };
 
     // 3b. Ensure acpx is in plugins.allow so the gateway enables the plugin
