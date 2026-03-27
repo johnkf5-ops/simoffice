@@ -1100,11 +1100,16 @@ export async function sanitizeOpenClawConfig(): Promise<void> {
       const normalizedAllow = allowArr.filter(
         (id) => id !== 'feishu' && !FEISHU_PLUGIN_ID_CANDIDATES.includes(id as typeof FEISHU_PLUGIN_ID_CANDIDATES[number]),
       );
-      normalizedAllow.push(canonicalFeishuId);
+      // Only re-add the feishu plugin ID if it's actually installed.
+      // If installedFeishuId is null, the plugin isn't present — don't add
+      // a ghost entry that causes the gateway to exit with "plugin not found".
+      if (installedFeishuId) {
+        normalizedAllow.push(canonicalFeishuId);
+      }
       if (JSON.stringify(normalizedAllow) !== JSON.stringify(allowArr)) {
         pluginsObj.allow = normalizedAllow;
         modified = true;
-        console.log(`[sanitize] Normalized plugins.allow for feishu -> ${canonicalFeishuId}`);
+        console.log(`[sanitize] Normalized plugins.allow for feishu -> ${installedFeishuId ?? 'removed (not installed)'}`);
       }
 
       if (existingFeishuEntry || !pEntries[canonicalFeishuId]) {

@@ -2023,9 +2023,10 @@ function registerShellHandlers(): void {
   function getMoonPayBin(): string {
     const { join } = require('path');
     if (app.isPackaged) {
-      // All node_modules are in asarUnpack so ESM resolution works.
-      // ELECTRON_RUN_AS_NODE=1 can't resolve ESM deps inside asar.
-      return join(app.getAppPath() + '.unpacked', 'node_modules', '@moonpay', 'cli', 'dist', 'index.js');
+      // @moonpay/cli is bundled flat by the afterPack hook into resources/moonpay-cli/
+      // alongside its full transitive dep tree. ESM resolution walks up from there
+      // and finds all deps in moonpay-cli/node_modules/ — no asar boundary crossing.
+      return join(process.resourcesPath, 'moonpay-cli', 'node_modules', '@moonpay', 'cli', 'dist', 'index.js');
     }
     // Dev: use node_modules
     return join(__dirname, '../../node_modules/@moonpay/cli/dist/index.js');
@@ -2161,10 +2162,14 @@ function registerShellHandlers(): void {
       env: { ELECTRON_RUN_AS_NODE: '1' },
     };
 
-    // 3b. Ensure acpx is in plugins.allow so the gateway enables the plugin
+    // 3b. Ensure acpx is in plugins.allow and strip any unknown plugins.
+    // Unknown plugins (e.g. 'openclaw-lark' from a prior dev config) cause the
+    // gateway to exit with code 1 even when --allow-unconfigured is passed.
     if (!plugins.allow) plugins.allow = [];
     const allow = plugins.allow as string[];
-    if (!allow.includes('acpx')) allow.push('acpx');
+    const KNOWN_BUNDLED_PLUGINS = new Set(['acpx', 'dingtalk', 'wecom', 'qqbot', 'feishu-openclaw-plugin']);
+    plugins.allow = allow.filter((p: string) => KNOWN_BUNDLED_PLUGINS.has(p));
+    if (!(plugins.allow as string[]).includes('acpx')) (plugins.allow as string[]).push('acpx');
 
     // 4. Write back
     try {

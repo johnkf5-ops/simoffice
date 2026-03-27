@@ -428,7 +428,24 @@ exports.default = async function afterPack(context) {
   // causing TypeError in Node.js 22+ ESM interop.
   patchBrokenModules(dest);
 
-  // 1.1 Bundle OpenClaw plugins directly from node_modules into packaged resources.
+  // 1.1 Copy @moonpay/cli bundle (npm-installed in build/moonpay-cli/) into resources.
+  //     We use npm (not pnpm) to install @moonpay/cli into a staging dir during the
+  //     package step. npm's flat dedup resolves version conflicts in the deep crypto
+  //     dep tree (@noble/hashes, @scure/bip32, viem) correctly. pnpm's virtual store
+  //     + manual BFS flat copy causes ERR_MODULE_NOT_FOUND when two packages need
+  //     different versions of the same dep.
+  const moonpaySrc = join(__dirname, '..', 'build', 'moonpay-cli', 'node_modules');
+  const moonpayDestDir = join(resourcesDir, 'moonpay-cli');
+  const moonpayDest = join(moonpayDestDir, 'node_modules');
+  if (!existsSync(moonpaySrc)) {
+    console.warn('[after-pack] ⚠️  build/moonpay-cli/node_modules not found. Run bundle-moonpay.mjs first.');
+  } else {
+    mkdirSync(moonpayDest, { recursive: true });
+    cpSync(moonpaySrc, moonpayDest, { recursive: true, dereference: true });
+    console.log('[after-pack] ✅ moonpay-cli node_modules copied.');
+  }
+
+  // 1.2 Bundle OpenClaw plugins directly from node_modules into packaged resources.
   //     This is intentionally done in afterPack (not extraResources) because:
   //     - electron-builder silently skips extraResources entries whose source
   //       directory doesn't exist (build/openclaw-plugins/ may not be pre-generated)
