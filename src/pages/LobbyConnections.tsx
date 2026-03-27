@@ -43,6 +43,14 @@ const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; descri
   { type: 'zendesk', name: 'Zendesk', icon: '🎧', description: 'Support tickets, users, orgs' },
 ];
 
+// Channels that OpenClaw v2026.3.13 actually supports
+const SUPPORTED_MESSAGING_CHANNELS = new Set<ChannelType>([
+  // Built-in (bundled in OpenClaw extensions/)
+  'telegram', 'discord', 'slack', 'googlechat', 'imessage',
+  // Plugin-based with auto-install (bundled in SimOffice build)
+  'whatsapp', 'dingtalk', 'feishu', 'wecom', 'qqbot',
+]);
+
 const ALL_CHANNEL_TYPES: { type: ChannelType; name: string; icon: string; description: string; popular?: boolean }[] = [
   { type: 'telegram', name: 'Telegram', icon: '✈️', description: 'Bot token connection', popular: true },
   { type: 'imessage', name: 'iMessage', icon: '💬', description: 'Apple Messages', popular: true },
@@ -114,7 +122,8 @@ export function LobbyConnections() {
 
   const handleChannelSaved = async () => {
     await fetchChannels();
-    setConfigModalType(null);
+    // Don't close the modal here — the modal manages its own close
+    // after waiting for connection status (Phase 3 feedback flow).
   };
 
   return (
@@ -260,22 +269,24 @@ export function LobbyConnections() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
               {ALL_CHANNEL_TYPES.map((ch) => {
                 const isConnected = connectedTypes.has(ch.type);
+                const isSupported = SUPPORTED_MESSAGING_CHANNELS.has(ch.type);
                 return (
                   <div key={ch.type}
-                    onClick={() => handleChannelClick(ch.type)}
+                    onClick={isSupported ? () => handleChannelClick(ch.type) : undefined}
                     style={{
                       background: isConnected ? 'rgba(13,148,136,0.06)' : 'hsl(var(--card))',
-                      border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : ch.popular ? 'rgba(124,58,237,0.2)' : 'hsl(var(--border))'}`,
+                      border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : ch.popular && isSupported ? 'rgba(124,58,237,0.2)' : 'hsl(var(--border))'}`,
                       borderRadius: 12,
                       padding: 16,
-                      cursor: 'pointer',
+                      cursor: isSupported ? 'pointer' : 'default',
                       transition: 'all 0.2s',
                       position: 'relative',
+                      opacity: isSupported ? 1 : 0.5,
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(124,58,237,0.15)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : ch.popular ? 'rgba(124,58,237,0.2)' : 'hsl(var(--border))'; e.currentTarget.style.boxShadow = 'none'; }}
+                    onMouseEnter={isSupported ? (e) => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(124,58,237,0.15)'; } : undefined}
+                    onMouseLeave={isSupported ? (e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : ch.popular ? 'rgba(124,58,237,0.2)' : 'hsl(var(--border))'; e.currentTarget.style.boxShadow = 'none'; } : undefined}
                   >
-                    {ch.popular && !isConnected && (
+                    {ch.popular && isSupported && !isConnected && (
                       <div style={{
                         position: 'absolute', top: -6, right: 12,
                         background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
@@ -284,6 +295,17 @@ export function LobbyConnections() {
                         textTransform: 'uppercase', letterSpacing: '0.05em',
                       }}>
                         Popular
+                      </div>
+                    )}
+                    {!isSupported && (
+                      <div style={{
+                        position: 'absolute', top: -6, right: 12,
+                        background: 'hsl(var(--muted))',
+                        color: 'hsl(var(--muted-foreground))', fontSize: 8, fontWeight: 800,
+                        padding: '2px 8px', borderRadius: 4,
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>
+                        Coming Soon
                       </div>
                     )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -307,39 +329,41 @@ export function LobbyConnections() {
             </div>
           </div>
 
-          {/* Business Integrations */}
+          {/* Business Integrations — Coming Soon */}
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
-              Business Integrations
+              Business Integrations — Coming Soon
             </h2>
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
-              Connect business tools so your agents can manage CRM, docs, and more
+              These integrations are on our roadmap. Agents can already access some of these tools through Skills.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 32 }}>
-              {INTEGRATION_TYPES.map((ch) => {
-                const isConnected = connectedTypes.has(ch.type);
-                return (
-                  <div key={ch.type}
-                    onClick={() => handleChannelClick(ch.type)}
-                    style={{
-                      background: isConnected ? 'rgba(13,148,136,0.06)' : 'hsl(var(--card))',
-                      border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'}`,
-                      borderRadius: 12,
-                      padding: '16px', cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--primary))'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'; }}
-                  >
-                    <div style={{ fontSize: 28, marginBottom: 8 }}>{ch.icon}</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{ch.name}</div>
-                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>{ch.description}</div>
-                    {isConnected && (
-                      <div style={{ marginTop: 8, fontSize: 11, color: '#0d9488', fontWeight: 600 }}>● Connected</div>
-                    )}
+              {INTEGRATION_TYPES.map((ch) => (
+                <div key={ch.type}
+                  style={{
+                    background: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: 12,
+                    padding: '16px',
+                    cursor: 'default',
+                    opacity: 0.45,
+                    position: 'relative',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: -6, right: 12,
+                    background: 'hsl(var(--muted))',
+                    color: 'hsl(var(--muted-foreground))', fontSize: 8, fontWeight: 800,
+                    padding: '2px 8px', borderRadius: 4,
+                    textTransform: 'uppercase', letterSpacing: '0.05em',
+                  }}>
+                    Coming Soon
                   </div>
-                );
-              })}
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>{ch.icon}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{ch.name}</div>
+                  <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>{ch.description}</div>
+                </div>
+              ))}
             </div>
           </div>
 

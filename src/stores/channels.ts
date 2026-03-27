@@ -12,6 +12,12 @@ import {
 import { useGatewayStore } from './gateway';
 import { CHANNEL_NAMES, type Channel, type ChannelType } from '../types/channel';
 
+// Channel alias: translate between UI types (e.g. 'imessage') and Gateway types (e.g. 'bluebubbles')
+const UI_TO_GATEWAY: Record<string, string> = { imessage: 'bluebubbles' };
+const GATEWAY_TO_UI: Record<string, string> = { bluebubbles: 'imessage' };
+const toGatewayType = (t: string): string => UI_TO_GATEWAY[t] || t;
+const toUiChannelType = (t: string): string => GATEWAY_TO_UI[t] || t;
+
 interface AddChannelParams {
   type: ChannelType;
   name: string;
@@ -100,10 +106,11 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
                 ? summarySignal.lastError
                 : undefined;
 
+          const uiType = toUiChannelType(channelId) as ChannelType;
           channels.push({
-            id: `${channelId}-${primaryAccount?.accountId || 'default'}`,
-            type: channelId as ChannelType,
-            name: primaryAccount?.name || CHANNEL_NAMES[channelId as ChannelType] || channelId,
+            id: `${uiType}-${primaryAccount?.accountId || 'default'}`,
+            type: uiType,
+            name: primaryAccount?.name || CHANNEL_NAMES[uiType] || channelId,
             status,
             accountId: primaryAccount?.accountId,
             error:
@@ -162,7 +169,9 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
 
   deleteChannel: async (channelId) => {
     // Extract channel type from the channelId (format: "channelType-accountId")
-    const channelType = channelId.split('-')[0];
+    const idx = channelId.indexOf('-');
+    const channelType = idx === -1 ? channelId : channelId.slice(0, idx);
+    const gatewayType = toGatewayType(channelType);
 
     try {
       // Delete the channel configuration from openclaw.json
@@ -174,7 +183,7 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
     }
 
     try {
-      await useGatewayStore.getState().rpc('channels.delete', { channelId: channelType });
+      await useGatewayStore.getState().rpc('channels.delete', { channelId: gatewayType });
     } catch (error) {
       // Continue with local deletion even if gateway fails
       console.error('Failed to delete channel from gateway:', error);
@@ -190,8 +199,13 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
     const { updateChannel } = get();
     updateChannel(channelId, { status: 'connecting', error: undefined });
 
+    // Translate UI channel ID to Gateway format (e.g. 'imessage-default' → 'bluebubbles-default')
+    const sepIdx = channelId.indexOf('-');
+    const uiType = sepIdx === -1 ? channelId : channelId.slice(0, sepIdx);
+    const gwChannelId = sepIdx === -1 ? toGatewayType(uiType) : `${toGatewayType(uiType)}${channelId.slice(sepIdx)}`;
+
     try {
-      await useGatewayStore.getState().rpc('channels.connect', { channelId });
+      await useGatewayStore.getState().rpc('channels.connect', { channelId: gwChannelId });
       updateChannel(channelId, { status: 'connected' });
     } catch (error) {
       updateChannel(channelId, { status: 'error', error: String(error) });
@@ -202,8 +216,12 @@ export const useChannelsStore = create<ChannelsState>((set, get) => ({
     const { updateChannel, clearAutoReconnect } = get();
     clearAutoReconnect(channelId);
 
+    const sepIdx = channelId.indexOf('-');
+    const uiType = sepIdx === -1 ? channelId : channelId.slice(0, sepIdx);
+    const gwChannelId = sepIdx === -1 ? toGatewayType(uiType) : `${toGatewayType(uiType)}${channelId.slice(sepIdx)}`;
+
     try {
-      await useGatewayStore.getState().rpc('channels.disconnect', { channelId });
+      await useGatewayStore.getState().rpc('channels.disconnect', { channelId: gwChannelId });
     } catch (error) {
       console.error('Failed to disconnect channel:', error);
     }

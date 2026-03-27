@@ -92,6 +92,8 @@ export function ChannelConfigModal({
     errors: string[];
     warnings: string[];
   } | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'waiting' | 'connected' | 'error' | 'timeout'>('idle');
+  const [connectionError, setConnectionError] = useState<string | undefined>();
 
   const meta: ChannelMeta | null = selectedType ? CHANNEL_META[selectedType] : null;
   const shouldUseCredentialValidation = selectedType !== 'feishu';
@@ -386,12 +388,49 @@ export function ChannelConfigModal({
       }
 
       toast.success(t('toast.channelSaved', { name: meta.name }));
-      toast.success(t('toast.channelConnecting', { name: meta.name }));
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      onClose();
+
+      // Wait for actual connection status from the Gateway (event-driven via channels store)
+      setConnectionStatus('waiting');
+      const timeoutMs = 30_000;
+      const pollMs = 1_500;
+      const start = Date.now();
+      const savedType = selectedType;
+      let resolved = false;
+
+      while (Date.now() - start < timeoutMs && !resolved) {
+        await new Promise((r) => setTimeout(r, pollMs));
+        // Re-fetch to pick up status events that arrived via gateway:channel-status
+        try { await fetchChannels(); } catch { /* ignore */ }
+        const { channels: latest } = useChannelsStore.getState();
+        const ch = latest.find((c) => c.type === savedType);
+        if (ch) {
+          if (ch.status === 'connected') {
+            setConnectionStatus('connected');
+            resolved = true;
+          } else if (ch.status === 'error') {
+            setConnectionStatus('error');
+            setConnectionError(ch.error);
+            resolved = true;
+          }
+        }
+      }
+
+      if (!resolved) {
+        setConnectionStatus('timeout');
+      }
+
+      setConnecting(false);
+
+      // Auto-close on success or timeout (keep open on error so user can see it)
+      const finalStatus = useChannelsStore.getState().channels.find((c) => c.type === savedType)?.status;
+      if (finalStatus !== 'error') {
+        await new Promise((r) => setTimeout(r, finalStatus === 'connected' ? 1500 : 800));
+        onClose();
+      }
     } catch (error) {
       toast.error(t('toast.configFailed', { error: String(error) }));
       setConnecting(false);
+      setConnectionStatus('idle');
     }
   };
 
@@ -665,6 +704,34 @@ export function ChannelConfigModal({
                 </div>
               )}
 
+              {connectionStatus !== 'idle' && (
+                <div
+                  className={cn(
+                    'p-4 rounded-2xl text-sm border',
+                    connectionStatus === 'connected'
+                      ? 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20'
+                      : connectionStatus === 'error'
+                        ? 'bg-destructive/10 text-destructive border-destructive/20'
+                        : connectionStatus === 'timeout'
+                          ? 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20'
+                          : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {connectionStatus === 'waiting' && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
+                    {connectionStatus === 'connected' && <CheckCircle className="h-4 w-4 shrink-0" />}
+                    {connectionStatus === 'error' && <AlertCircle className="h-4 w-4 shrink-0" />}
+                    {connectionStatus === 'timeout' && <AlertCircle className="h-4 w-4 shrink-0" />}
+                    <span className="font-medium">
+                      {connectionStatus === 'waiting' && 'Connecting to service...'}
+                      {connectionStatus === 'connected' && 'Connected successfully!'}
+                      {connectionStatus === 'error' && (connectionError || 'Connection failed')}
+                      {connectionStatus === 'timeout' && 'Config saved. Connection may still be in progress — check the Connections page shortly.'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <Separator className="bg-black/10 dark:bg-white/10" />
 
               <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-2">
@@ -699,7 +766,11 @@ export function ChannelConfigModal({
                     {connecting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {meta?.connectionType === 'qr' ? t('dialog.generatingQR') : t('dialog.validatingAndSaving')}
+                        {meta?.connectionType === 'qr'
+                          ? t('dialog.generatingQR')
+                          : connectionStatus === 'waiting'
+                            ? 'Connecting...'
+                            : t('dialog.validatingAndSaving')}
                       </>
                     ) : meta?.connectionType === 'qr' ? (
                       t('dialog.generateQRCode')

@@ -12,6 +12,7 @@ import { getOpenClawResolvedDir } from './paths';
 import * as logger from './logger';
 import { proxyAwareFetch } from './proxy-fetch';
 import { withConfigLock } from './config-mutex';
+import { toGatewayChannelType } from './channel-alias';
 
 const OPENCLAW_DIR = join(homedir(), '.openclaw');
 const CONFIG_FILE = join(OPENCLAW_DIR, 'openclaw.json');
@@ -32,9 +33,11 @@ const CHANNEL_UNIQUE_CREDENTIAL_KEY: Record<string, string> = {
     dingtalk: 'clientId',
     telegram: 'botToken',
     discord: 'token',
+    slack: 'botToken',
     qqbot: 'appId',
     signal: 'phoneNumber',
     imessage: 'serverUrl',
+    bluebubbles: 'serverUrl',
     matrix: 'accessToken',
     line: 'channelAccessToken',
     msteams: 'appId',
@@ -283,6 +286,10 @@ function transformChannelConfig(
         }
     }
 
+    if (channelType === 'slack') {
+        transformedConfig.mode = 'socket';
+    }
+
     if (channelType === 'telegram') {
         const { allowedUsers, ...restConfig } = config;
         transformedConfig = { ...restConfig };
@@ -426,6 +433,8 @@ export async function saveChannelConfig(
     accountId?: string,
 ): Promise<void> {
     return withConfigLock(async () => {
+        // Translate UI channel type to Gateway config key (e.g. 'imessage' → 'bluebubbles')
+        channelType = toGatewayChannelType(channelType);
         const currentConfig = await readOpenClawConfig();
         const resolvedAccountId = accountId || DEFAULT_ACCOUNT_ID;
 
@@ -526,6 +535,7 @@ export async function saveChannelConfig(
 }
 
 export async function getChannelConfig(channelType: string, accountId?: string): Promise<ChannelConfigData | undefined> {
+    channelType = toGatewayChannelType(channelType);
     const config = await readOpenClawConfig();
     const channelSection = config.channels?.[channelType];
     if (!channelSection) return undefined;
@@ -596,6 +606,7 @@ export async function getChannelFormValues(channelType: string, accountId?: stri
 
 export async function deleteChannelAccountConfig(channelType: string, accountId: string): Promise<void> {
     return withConfigLock(async () => {
+        channelType = toGatewayChannelType(channelType);
         const currentConfig = await readOpenClawConfig();
         const channelSection = currentConfig.channels?.[channelType];
         if (!channelSection) return;
@@ -641,6 +652,7 @@ export async function deleteChannelAccountConfig(channelType: string, accountId:
 
 export async function deleteChannelConfig(channelType: string): Promise<void> {
     return withConfigLock(async () => {
+        channelType = toGatewayChannelType(channelType);
         const currentConfig = await readOpenClawConfig();
 
         if (currentConfig.channels?.[channelType]) {
@@ -950,15 +962,30 @@ export interface CredentialValidationResult {
     details?: Record<string, string>;
 }
 
+// Channels that OpenClaw actually supports — used to gate validation
+const SUPPORTED_CHANNELS = new Set([
+    'telegram', 'discord', 'slack', 'googlechat', 'imessage',
+    'whatsapp', 'dingtalk', 'feishu', 'wecom', 'qqbot',
+]);
+
 export async function validateChannelCredentials(
     channelType: string,
     config: Record<string, string>
 ): Promise<CredentialValidationResult> {
+    if (!SUPPORTED_CHANNELS.has(channelType)) {
+        return {
+            valid: false,
+            errors: ['This channel type is not yet supported. Check back soon!'],
+            warnings: [],
+        };
+    }
     switch (channelType) {
         case 'discord':
             return validateDiscordCredentials(config);
         case 'telegram':
             return validateTelegramCredentials(config);
+        case 'slack':
+            return validateSlackCredentials(config);
         default:
             return { valid: true, errors: [], warnings: ['No online validation available for this channel type.'] };
     }
@@ -1065,6 +1092,46 @@ async function validateTelegramCredentials(
             return { valid: true, errors: [], warnings: [], details: { botUsername: data.result?.username || 'Unknown' } };
         }
         return { valid: false, errors: [data.description || 'Invalid bot token'], warnings: [] };
+    } catch (error) {
+        return { valid: false, errors: [`Connection error: ${error instanceof Error ? error.message : String(error)}`], warnings: [] };
+    }
+}
+
+async function validateSlackCredentials(
+    config: Record<string, string>
+): Promise<CredentialValidationResult> {
+    const botToken = config.botToken?.trim();
+    if (!botToken) {
+        return { valid: false, errors: ['Bot token is required'], warnings: [] };
+    }
+    if (!botToken.startsWith('xoxb-')) {
+        return { valid: false, errors: ['Bot token must start with "xoxb-"'], warnings: [] };
+    }
+
+    const appToken = config.appToken?.trim();
+    if (!appToken) {
+        return { valid: false, errors: ['App-Level Token is required for Socket Mode'], warnings: [] };
+    }
+    if (!appToken.startsWith('xapp-')) {
+        return { valid: false, errors: ['App-Level Token must start with "xapp-"'], warnings: [] };
+    }
+
+    try {
+        const response = await proxyAwareFetch('https://slack.com/api/auth.test', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${botToken}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
+        const data = (await response.json()) as { ok: boolean; error?: string; team?: string; user?: string };
+        if (!data.ok) {
+            return { valid: false, errors: [`Slack API error: ${data.error || 'unknown'}`], warnings: [] };
+        }
+        return {
+            valid: true, errors: [], warnings: [],
+            details: { team: data.team || 'Unknown', botUser: data.user || 'Unknown' },
+        };
     } catch (error) {
         return { valid: false, errors: [`Connection error: ${error instanceof Error ? error.message : String(error)}`], warnings: [] };
     }

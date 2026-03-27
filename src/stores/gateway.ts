@@ -266,8 +266,12 @@ export const useGatewayStore = create<GatewayState>((set, get) => ({
               import('./channels')
                 .then(({ useChannelsStore }) => {
                   if (!update.channelId || !update.status) return;
+                  // Gateway uses OpenClaw channel types (e.g. 'bluebubbles');
+                  // the store uses UI types (e.g. 'imessage'). Apply reverse alias.
+                  const GATEWAY_TO_UI: Record<string, string> = { bluebubbles: 'imessage' };
+                  const uiType = GATEWAY_TO_UI[update.channelId] || update.channelId;
                   const state = useChannelsStore.getState();
-                  const channel = state.channels.find((item) => item.type === update.channelId);
+                  const channel = state.channels.find((item) => item.type === uiType);
                   if (channel) {
                     const newStatus = mapChannelStatus(update.status);
                     state.updateChannel(channel.id, { status: newStatus });

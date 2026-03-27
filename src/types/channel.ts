@@ -1079,12 +1079,12 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
       },
       {
         key: 'appToken',
-        label: 'App-Level Token (for Socket Mode)',
+        label: 'App-Level Token (Socket Mode)',
         type: 'password',
         placeholder: 'xapp-1-xxxxxxxxxxxx-xxxxxxxxxxxx-xxxxxxxxxxxxxxxx',
-        required: false,
+        required: true,
         envVar: 'SLACK_APP_TOKEN',
-        description: 'Optional — needed for real-time events via Socket Mode',
+        description: 'Required for Socket Mode — generate under Basic Information → App-Level Tokens',
       },
     ],
     instructions: [
