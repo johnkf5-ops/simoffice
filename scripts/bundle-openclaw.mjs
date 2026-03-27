@@ -284,7 +284,11 @@ function cleanupBundle(outputDir) {
       for (const entry of entries) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
-          if (insideNodeModules && NM_REMOVE_DIRS.has(entry.name)) {
+          if (entry.name === '.bin') {
+            // .bin/ contains npm CLI shims (symlinks) not needed at runtime.
+            // pnpm creates absolute symlinks that break macOS code signing.
+            if (rmSafe(full)) removedCount++;
+          } else if (insideNodeModules && NM_REMOVE_DIRS.has(entry.name)) {
             if (rmSafe(full)) removedCount++;
           } else {
             walkExt(
