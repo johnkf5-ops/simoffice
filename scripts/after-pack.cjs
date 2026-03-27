@@ -443,6 +443,45 @@ exports.default = async function afterPack(context) {
     mkdirSync(moonpayDest, { recursive: true });
     cpSync(moonpaySrc, moonpayDest, { recursive: true, dereference: true });
     console.log('[after-pack] ✅ moonpay-cli node_modules copied.');
+
+    // Strip dev-only artifacts from the moonpay bundle (~70MB savings).
+    // Uses a variant of cleanupUnnecessaryFiles that intentionally SKIPS 'test/'
+    // directories — viem ships runtime ESM code under _esm/actions/test/ and
+    // removing those directories causes ERR_MODULE_NOT_FOUND at runtime.
+    let moonpayRemoved = 0;
+    const MOONPAY_REMOVE_EXTS = new Set(['.js.map', '.mjs.map', '.cjs.map', '.ts.map', '.d.ts', '.d.ts.map', '.d.mts', '.d.cts', '.markdown']);
+    const MOONPAY_REMOVE_NAMES = new Set([
+      '.DS_Store', 'README.md', 'CHANGELOG.md', 'CHANGELOG', 'LICENSE.md', 'CONTRIBUTING.md',
+      'tsconfig.json', 'tsconfig.build.json', '.npmignore', '.eslintrc', '.eslintrc.js',
+      '.eslintrc.json', '.prettierrc', '.editorconfig',
+    ]);
+    // Only remove these dirs when they are clearly dev-only (not runtime code).
+    // Notably: 'test' and 'tests' are NOT in this list — viem uses them at runtime.
+    const MOONPAY_REMOVE_DIRS = new Set(['.github', '__tests__', 'examples', 'example', 'docs', 'doc']);
+    function cleanupMoonPayBundle(dir) {
+      let entries;
+      try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+      for (const entry of entries) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (MOONPAY_REMOVE_DIRS.has(entry.name)) {
+            try { rmSync(full, { recursive: true, force: true }); moonpayRemoved++; } catch { /* */ }
+          } else {
+            cleanupMoonPayBundle(full);
+          }
+        } else if (entry.isFile()) {
+          const name = entry.name;
+          if (MOONPAY_REMOVE_NAMES.has(name) || [...MOONPAY_REMOVE_EXTS].some(e => name.endsWith(e))) {
+            try { rmSync(full, { force: true }); moonpayRemoved++; } catch { /* */ }
+          }
+        }
+      }
+    }
+    cleanupMoonPayBundle(moonpayDest);
+    console.log(`[after-pack] ✅ moonpay-cli: removed ${moonpayRemoved} dev-only files (~70MB).`);
+
+    // Strip wrong-platform native packages from the moonpay bundle.
+    cleanupNativePlatformPackages(moonpayDest, platform, arch);
   }
 
   // 1.2 Bundle OpenClaw plugins directly from node_modules into packaged resources.
