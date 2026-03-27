@@ -156,8 +156,7 @@
       "checking": "Checking for updates...",
       "downloading": "Downloading update...",
       "available": "Update available: v{{version}}",
-      "downloaded": "Ready to install: v{{version}}",
-      "autoInstalling": "Restarting to install update in {{seconds}}s...",
+      "downloaded": "Update downloaded — open to install: v{{version}}",
       "failed": "Update check failed",
       "latest": "You have the latest version",
       "check": "Check for updates to get the latest features"
@@ -166,15 +165,14 @@
       "checking": "Checking...",
       "downloading": "Downloading...",
       "download": "Download Update",
-      "install": "Install & Restart",
-      "cancelAutoInstall": "Cancel",
+      "install": "Open Update",
       "retry": "Retry",
       "check": "Check for Updates"
     },
     "currentVersion": "Current Version",
     "whatsNew": "What's New:",
     "errorDetails": "Error Details:",
-    "help": "When auto-update is enabled, updates are downloaded and installed automatically."
+    "help": "Updates are downloaded and verified. Open the update to install."
   },
   "advanced": {
     "title": "Advanced",

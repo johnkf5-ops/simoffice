@@ -74,7 +74,6 @@ const UNIFIED_CHANNELS = new Set<string>([
   'update:install',
   'update:setChannel',
   'update:setAutoDownload',
-  'update:cancelAutoInstall',
   'cron:list',
   'cron:create',
   'cron:update',

@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.7-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.8-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -67,17 +67,20 @@ pnpm run package:mac  # build DMG
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-## What's New in v2.0.7
+## What's New in v2.0.8
 
-- **Analytics Dashboard** — See agent spending, token usage, model breakdown, and budget alerts. Available as a toolbar tab and inside the 3D office ATM.
-- **Connector System Fix** — Fixed iMessage config saving under wrong key, channel status events for aliased channels, and broken channel ID parser.
-- **Slack Validation** — Live credential validation via Slack API. App token now required for Socket Mode.
-- **Channel Gating** — Unsupported channels show "Coming Soon" instead of silently failing. Business integrations clearly labeled as roadmap items.
-- **Post-Save Feedback** — Channel config modal now shows real-time connection status instead of closing blindly.
-- **Dead Code Cleanup** — Removed unused navigation sidebar from MainLayout.
+- **Reliable Auto-Updater** — Replaced Squirrel.Mac with direct DMG download. Downloads with progress bar and ETA, verifies SHA512 hash, opens DMG for drag-and-drop install. No more silent hangs.
+- **OpenClaw 2026.3.24** — Updated bundled gateway with OpenAI-compatible `/v1/models` and `/v1/embeddings` endpoints, Microsoft Teams SDK migration, improved tool visibility, and channel boot isolation.
 
 <details>
 <summary>Previous versions</summary>
+
+### v2.0.7
+- Analytics Dashboard — Agent spending, token usage, model breakdown, and budget alerts.
+- Connector System Fix — Fixed iMessage config, channel status events, channel ID parser.
+- Slack Validation — Live credential validation via Slack API.
+- Channel Gating — Unsupported channels show "Coming Soon" instead of silently failing.
+- Post-Save Feedback — Real-time connection status in config modal.
 
 ### v2.0.5
 - MoonPay Trading Integration — Full end-to-end crypto trading: auth, wallet creation, MCP config, exec tools, checkout popups. 4-step setup wizard, 19 MoonPay skills auto-installed.

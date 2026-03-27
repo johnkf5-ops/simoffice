@@ -3,7 +3,7 @@
  * Displays update status and allows manual update checking/installation
  */
 import { useEffect, useCallback } from 'react';
-import { Download, RefreshCw, Loader2, Rocket, XCircle, ExternalLink } from 'lucide-react';
+import { Download, RefreshCw, Loader2, Rocket, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useUpdateStore } from '@/stores/update';
@@ -35,13 +35,10 @@ export function UpdateSettings() {
     progress,
     error,
     isInitialized,
-    autoInstallCountdown,
     init,
     checkForUpdates,
     downloadUpdate,
     installUpdate,
-    downloadDmg,
-    cancelAutoInstall,
     clearError,
   } = useUpdateStore();
 
@@ -73,16 +70,13 @@ export function UpdateSettings() {
   };
 
   const renderStatusText = () => {
-    if (status === 'downloaded' && autoInstallCountdown != null && autoInstallCountdown >= 0) {
-      return t('updates.status.autoInstalling', { seconds: autoInstallCountdown });
-    }
     switch (status) {
       case 'checking':
         return t('updates.status.checking');
       case 'downloading':
         return t('updates.status.downloading');
       case 'extracting':
-        return 'Verifying update...';
+        return 'Verifying download...';
       case 'available':
         return t('updates.status.available', { version: updateInfo?.version });
       case 'downloaded':
@@ -127,17 +121,9 @@ export function UpdateSettings() {
           </Button>
         );
       case 'downloaded':
-        if (autoInstallCountdown != null && autoInstallCountdown >= 0) {
-          return (
-            <Button onClick={cancelAutoInstall} size="sm" variant="outline">
-              <XCircle className="h-4 w-4 mr-2" />
-              {t('updates.action.cancelAutoInstall')}
-            </Button>
-          );
-        }
         return (
           <Button onClick={installUpdate} size="sm" variant="default">
-            <Rocket className="h-4 w-4 mr-2" />
+            <ExternalLink className="h-4 w-4 mr-2" />
             {t('updates.action.install')}
           </Button>
         );
@@ -202,7 +188,7 @@ export function UpdateSettings() {
           </div>
           <Progress value={progress.percent} className="h-2" />
           <p className="text-xs text-muted-foreground text-center">
-            {status === 'extracting' ? 'Download complete — verifying update...' : `${Math.round(progress.percent)}% complete`}
+            {status === 'extracting' ? 'Verifying download integrity...' : `${Math.round(progress.percent)}% complete`}
           </p>
         </div>
       )}
@@ -232,20 +218,7 @@ export function UpdateSettings() {
         <div className="rounded-lg bg-red-50 dark:bg-red-900/10 p-4 text-red-600 dark:text-red-400 text-sm">
           <p className="font-medium mb-1">{t('updates.errorDetails')}</p>
           <p>{error}</p>
-          {updateInfo?.version && (
-            <Button onClick={downloadDmg} variant="outline" size="sm" className="mt-3">
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Download DMG Instead
-            </Button>
-          )}
         </div>
-      )}
-
-      {/* DMG fallback — always available during download/extracting */}
-      {(status === 'downloading' || status === 'extracting') && (
-        <button onClick={downloadDmg} className="text-xs text-muted-foreground hover:text-foreground underline">
-          Stuck? Download DMG manually
-        </button>
       )}
 
       {/* Help Text */}

@@ -569,8 +569,12 @@ function registerUnifiedRequestHandlers(gatewayManager: GatewayManager): void {
             break;
           }
           if (request.action === 'install') {
-            appUpdater.quitAndInstall();
-            data = { success: true };
+            try {
+              await appUpdater.installUpdate();
+              data = { success: true };
+            } catch (error) {
+              data = { success: false, error: String(error) };
+            }
             break;
           }
           if (request.action === 'setChannel') {
@@ -586,11 +590,6 @@ function registerUnifiedRequestHandlers(gatewayManager: GatewayManager): void {
             const enable = typeof payload === 'boolean' ? payload : payload?.enable;
             if (typeof enable !== 'boolean') throw new Error('Invalid update.setAutoDownload payload');
             appUpdater.setAutoDownload(enable);
-            data = { success: true };
-            break;
-          }
-          if (request.action === 'cancelAutoInstall') {
-            appUpdater.cancelAutoInstall();
             data = { success: true };
             break;
           }

@@ -205,7 +205,7 @@ export function LobbySettings() {
               <div style={desc}>
                 {updateStatus === 'checking' ? 'Checking...' :
                  updateStatus === 'available' ? 'Update available!' :
-                 updateStatus === 'downloaded' ? 'Ready to install' :
+                 updateStatus === 'downloaded' ? 'Update ready' :
                  updateStatus === 'not-available' ? 'Up to date' :
                  updateStatus === 'error' ? 'Check failed' : ''}
               </div>
@@ -224,7 +224,7 @@ export function LobbySettings() {
                 background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white',
                 fontSize: 13, fontWeight: 700, cursor: 'pointer',
               }}>
-                Install & Restart
+                Open Update
               </button>
             ) : (
               <button onClick={() => checkForUpdates()} disabled={updateStatus === 'checking' || updateStatus === 'downloading'} style={{

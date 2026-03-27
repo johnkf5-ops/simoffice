@@ -37,16 +37,12 @@ interface UpdateState {
   progress: ProgressInfo | null;
   error: string | null;
   isInitialized: boolean;
-  /** Seconds remaining before auto-install, or null if inactive. */
-  autoInstallCountdown: number | null;
 
   // Actions
   init: () => Promise<void>;
   checkForUpdates: () => Promise<void>;
   downloadUpdate: () => Promise<void>;
   installUpdate: () => void;
-  downloadDmg: () => Promise<void>;
-  cancelAutoInstall: () => Promise<void>;
   setChannel: (channel: 'stable' | 'beta' | 'dev') => Promise<void>;
   setAutoDownload: (enable: boolean) => Promise<void>;
   clearError: () => void;
@@ -59,7 +55,6 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
   progress: null,
   error: null,
   isInitialized: false,
-  autoInstallCountdown: null,
 
   init: async () => {
     if (get().isInitialized) return;
@@ -108,22 +103,10 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
       });
     });
 
-    window.electron.ipcRenderer.on('update:auto-install-countdown', (data) => {
-      const { seconds, cancelled } = data as { seconds: number; cancelled?: boolean };
-      set({ autoInstallCountdown: cancelled ? null : seconds });
-    });
-
     set({ isInitialized: true });
 
-    // Apply persisted settings from the settings store
-    const { autoCheckUpdate, autoDownloadUpdate } = useSettingsStore.getState();
-
-    // Sync auto-download preference to the main process
-    if (autoDownloadUpdate) {
-      invokeIpc('update:setAutoDownload', true).catch(() => {});
-    }
-
     // Auto-check for updates on startup (respects user toggle)
+    const { autoCheckUpdate } = useSettingsStore.getState();
     if (autoCheckUpdate) {
       setTimeout(() => {
         get().checkForUpdates().catch(() => {});
@@ -133,7 +116,7 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
 
   checkForUpdates: async () => {
     set({ status: 'checking', error: null });
-    
+
     try {
       const result = await Promise.race([
         invokeIpc('update:check'),
@@ -148,7 +131,7 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
           error?: string;
         };
       };
-      
+
       if (result.status) {
         set({
           status: result.status.status,
@@ -173,13 +156,13 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
 
   downloadUpdate: async () => {
     set({ status: 'downloading', error: null });
-    
+
     try {
       const result = await invokeIpc<{
         success: boolean;
         error?: string;
       }>('update:download');
-      
+
       if (!result.success) {
         set({ status: 'error', error: result.error || 'Failed to download update' });
       }
@@ -190,22 +173,6 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
 
   installUpdate: () => {
     void invokeIpc('update:install');
-  },
-
-  downloadDmg: async () => {
-    try {
-      await invokeIpc('update:downloadDmg');
-    } catch (error) {
-      console.error('Failed to open DMG download:', error);
-    }
-  },
-
-  cancelAutoInstall: async () => {
-    try {
-      await invokeIpc('update:cancelAutoInstall');
-    } catch (error) {
-      console.error('Failed to cancel auto-install:', error);
-    }
   },
 
   setChannel: async (channel) => {
