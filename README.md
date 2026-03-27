@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.5-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.7-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -67,15 +67,23 @@ pnpm run package:mac  # build DMG
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-## What's New in v2.0.5
+## What's New in v2.0.7
 
-- **MoonPay Trading Integration** — Full end-to-end crypto trading: auth, wallet creation, MCP config, exec tools, checkout popups. 4-step setup wizard, 19 MoonPay skills auto-installed.
-- **Subscription System** — $29.99/mo Stripe subscription with 3-day free trial (no CC required). License key activation, billing portal, email recovery.
-- **Auto-Updater Fix** — Fixed Squirrel.Mac hang with progress bar, ETA, and automatic DMG fallback.
-- **Display Name** — Onboarding asks your name, AI agents address you personally. Editable in Settings.
+- **Analytics Dashboard** — See agent spending, token usage, model breakdown, and budget alerts. Available as a toolbar tab and inside the 3D office ATM.
+- **Connector System Fix** — Fixed iMessage config saving under wrong key, channel status events for aliased channels, and broken channel ID parser.
+- **Slack Validation** — Live credential validation via Slack API. App token now required for Socket Mode.
+- **Channel Gating** — Unsupported channels show "Coming Soon" instead of silently failing. Business integrations clearly labeled as roadmap items.
+- **Post-Save Feedback** — Channel config modal now shows real-time connection status instead of closing blindly.
+- **Dead Code Cleanup** — Removed unused navigation sidebar from MainLayout.
 
 <details>
 <summary>Previous versions</summary>
+
+### v2.0.5
+- MoonPay Trading Integration — Full end-to-end crypto trading: auth, wallet creation, MCP config, exec tools, checkout popups. 4-step setup wizard, 19 MoonPay skills auto-installed.
+- Subscription System — $29.99/mo Stripe subscription with 3-day free trial (no CC required). License key activation, billing portal, email recovery.
+- Auto-Updater Fix — Fixed Squirrel.Mac hang with progress bar, ETA, and automatic DMG fallback.
+- Display Name — Onboarding asks your name, AI agents address you personally. Editable in Settings.
 
 ### v2.0.0
 - Rewritten chat engine — instant streaming, zero duplicate messages
