@@ -1,7 +1,20 @@
 /**
  * Gateway Client types — adapted from Claw3D for SimOffice
- * Only the types and helpers that eventTriggers.ts needs
+ * Types, helpers, and a client factory that wraps useGatewayStore.rpc()
  */
+
+export interface GatewayClient {
+  call<T = unknown>(method: string, params?: unknown): Promise<T>;
+}
+
+export function createGatewayClient(): GatewayClient {
+  return {
+    async call<T = unknown>(method: string, params?: unknown): Promise<T> {
+      const { useGatewayStore } = await import('@/stores/gateway');
+      return useGatewayStore.getState().rpc<T>(method, params);
+    },
+  };
+}
 
 export type GatewayStateVersion = number;
 

@@ -11,7 +11,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RetroOffice3D } from '@/features/retro-office/RetroOffice3D';
 import type { OfficeAgent } from '@/features/retro-office/core/types';
 import type { AgentState } from '@/features/agents/state/store';
-import type { EventFrame } from '@/lib/gateway/GatewayClient';
+import { createGatewayClient, type EventFrame } from '@/lib/gateway/GatewayClient';
+import { createStudioSettingsCoordinator } from '@/lib/studio/coordinator';
+import type { OfficeUsageAnalyticsParams } from '@/features/office/hooks/useOfficeUsageAnalyticsViewModel';
 import {
   createOfficeAnimationTriggerState,
   reduceOfficeAnimationTriggerEvent,
@@ -129,6 +131,10 @@ export function OfficeAdapter() {
   const currentAgentId = useChatStore((s) => s.currentAgentId);
   const currentSessionKey = useChatStore((s) => s.currentSessionKey);
   const isOnline = gatewayStatus.state === 'running';
+
+  // Analytics: GatewayClient wrapper + budget settings coordinator
+  const [gatewayClient] = useState(() => createGatewayClient());
+  const [settingsCoordinator] = useState(() => createStudioSettingsCoordinator());
 
   // Trigger state machine
   const [triggerState, setTriggerState] = useState<OfficeAnimationTriggerState>(
@@ -377,12 +383,25 @@ export function OfficeAdapter() {
     setTriggerState(prev => clearOfficeAnimationTriggerHold({ state: prev, hold: 'text', agentId }));
   }, []);
 
+  // Build analytics params for the ATM in the 3D office
+  const atmAnalytics = useMemo((): OfficeUsageAnalyticsParams | null => {
+    if (!isOnline) return null;
+    return {
+      client: gatewayClient,
+      status: 'connected',
+      agents: agentStates,
+      gatewayUrl: '',
+      settingsCoordinator,
+    };
+  }, [isOnline, gatewayClient, agentStates, settingsCoordinator]);
+
   return (
     <RetroOffice3D
       agents={officeAgents}
       animationState={animationState}
       deskAssignmentByDeskUid={deskAssignments}
       gatewayStatus={isOnline ? 'connected' : 'disconnected'}
+      atmAnalytics={atmAnalytics}
       onDeskAssignmentChange={handleDeskAssignmentChange}
       onDeskAssignmentsReset={handleDeskAssignmentsReset}
       onGithubReviewDismiss={handleGithubReviewDismiss}
