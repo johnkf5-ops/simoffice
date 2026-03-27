@@ -22,6 +22,7 @@ import { Onboarding } from './pages/Onboarding';
 import { WebGLTest } from './pages/WebGLTest';
 import { Office3D } from './pages/Office3D';
 import { TradingPage } from './pages/TradingPage';
+import { LobbyAnalytics } from './pages/LobbyAnalytics';
 
 import { useSettingsStore } from './stores/settings';
 import { useGatewayStore } from './stores/gateway';
@@ -184,6 +185,7 @@ function App() {
             <Route path="/webgl-test" element={<WebGLTest />} />
             <Route path="/office" element={<Office3D />} />
             <Route path="/trading" element={<TradingPage />} />
+            <Route path="/analytics" element={<LobbyAnalytics />} />
           </Route>
         </Routes>
 

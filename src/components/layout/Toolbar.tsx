@@ -12,6 +12,7 @@ const TOOLBAR_ITEMS = [
   { icon: '/toolbar/skills.png', label: 'Skills', path: '/powers' },
   { icon: '/toolbar/automations.png', label: 'Automations', path: '/automations' },
   { icon: '/toolbar/trading.png', label: 'Trading', path: '/trading' },
+  { icon: '/toolbar/brain.png', label: 'Analytics', path: '/analytics' },
   { icon: '/toolbar/brain.png', label: 'Brain', path: '/ai-setup' },
   { icon: '/toolbar/settings.png', label: 'Settings', path: '/settings' },
 ];
