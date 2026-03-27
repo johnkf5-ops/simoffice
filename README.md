@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.0-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.4-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -67,18 +67,21 @@ pnpm run package:mac  # build DMG
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-## What's New in v2.0
+## What's New in v2.0.4
 
-- **Rewritten chat engine** — Instant streaming responses with zero duplicate messages. Chat store reduced from 2,078 to 610 lines.
-- **Team chat rooms** — Create rooms with multiple agents. Team mode (all respond) and @Mention mode (tag specific agents). Unified message feed with anti-loop protection.
-- **Agent customization** — Rename agents, change avatars and accent colors
-- **File upload in chat** — Send files directly to agents for analysis
-- **Dark & light themes** — Full theme overhaul with CSS variable-driven styling
-- **New home page and splash screen** — Redesigned landing experience
-- **Custom toolbar** — Streamlined navigation
+- **MoonPay Trading Integration** — Full end-to-end crypto trading: auth, wallet creation, MCP config, exec tools, checkout popups. 4-step setup wizard, 19 MoonPay skills auto-installed.
+- **Subscription System** — $29.99/mo Stripe subscription with 3-day free trial (no CC required). License key activation, billing portal, email recovery.
+- **Auto-Updater Fix** — Fixed Squirrel.Mac hang with progress bar, ETA, and automatic DMG fallback.
+- **Display Name** — Onboarding asks your name, AI agents address you personally. Editable in Settings.
 
 <details>
 <summary>Previous versions</summary>
+
+### v2.0.0
+- Rewritten chat engine — instant streaming, zero duplicate messages
+- Team chat rooms — Team mode and @Mention mode with anti-loop protection
+- Agent customization — rename, change avatars and accent colors
+- File upload in chat, dark & light themes, new home page
 
 ### v1.3.0
 - MoonPay integration — Crypto Trader and Crypto Trading Team career templates
