@@ -2059,7 +2059,14 @@ function registerShellHandlers(): void {
   ipcMain.handle('moonpay:login', async (_, { email }: { email: string }) => {
     const result = await runMoonPay(['login', '--email', email]);
     if (result.success) {
-      // Parse the verification URL and open in a popup BrowserWindow for captcha
+      // Parse the verification URL and open in a popup BrowserWindow for captcha.
+      // IMPORTANT: use partition 'persist:moonpay' so that session cookies set by
+      // agents.moonpay.com during the captcha/login flow are saved to disk.
+      // Electron's default session discards session cookies (no-expiry cookies) when
+      // the app closes. The persist: partition writes ALL cookies — including
+      // session cookies — to disk, so they survive app restarts.
+      // Both the login popup and the checkout popup share this same partition so
+      // .moonpay.com auth cookies from login are visible when buy.moonpay.com loads.
       const urlMatch = result.stdout.match(/https:\/\/agents\.moonpay\.com\/login\S+/);
       if (urlMatch) {
         const popup = new BrowserWindow({
@@ -2067,6 +2074,7 @@ function registerShellHandlers(): void {
           title: 'MoonPay Verification',
           autoHideMenuBar: true,
           resizable: false,
+          webPreferences: { partition: 'persist:moonpay' },
         });
         popup.loadURL(urlMatch[0]);
       }
@@ -2084,10 +2092,15 @@ function registerShellHandlers(): void {
     if (!url || (!url.startsWith('https://buy.moonpay.com') && !url.startsWith('https://agents.moonpay.com'))) {
       return { success: false, error: 'Invalid URL' };
     }
+    // Use the same 'persist:moonpay' partition as the login popup so that the
+    // .moonpay.com session cookies set during login are available here.
+    // This is what allows buy.moonpay.com to skip the sign-in screen when
+    // the user recently completed the MoonPay setup flow.
     const popup = new BrowserWindow({
       width: 520, height: 720,
       title: 'MoonPay',
       autoHideMenuBar: true,
+      webPreferences: { partition: 'persist:moonpay' },
     });
     popup.loadURL(url);
     return { success: true };
