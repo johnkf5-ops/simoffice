@@ -1,13 +1,13 @@
-# SimOffice v2.0 Security Audit
+# SimOffice Security Audit
 
-**Date:** 2026-03-25
+**Last updated:** 2026-03-27 (v2.0.8)
 **Scope:** Electron configuration, dependency vulnerabilities, credential storage, hardcoded secrets
 
 ---
 
 ## Executive Summary
 
-A full security sweep was performed on the SimOffice v2.0 codebase. Two critical Electron misconfigurations were found and one was fixed (the other is a required dependency). No hardcoded secrets were found. 66 dependency CVEs exist, mostly in transitive dependencies of upstream packages (clawdbot, openclaw, @moonpay/cli). Credential storage architecture is sound.
+A full security sweep was performed on the SimOffice codebase. Two critical Electron misconfigurations were found and one was fixed (the other is a required dependency). No hardcoded secrets were found. Dependency CVEs exist in transitive dependencies of upstream packages (openclaw, @moonpay/cli). Credential storage architecture is sound.
 
 ---
 
@@ -83,22 +83,22 @@ Almost all are in transitive dependencies of upstream packages — not in SimOff
 
 | Package | CVE | Via | Issue |
 |---------|-----|-----|-------|
-| `simple-git` | GHSA-r275-fr43-pm7q | clawdbot > node-llama-cpp | RCE via protocol.allow bypass |
+| `simple-git` | GHSA-r275-fr43-pm7q | openclaw > node-llama-cpp | RCE via protocol.allow bypass |
 | `basic-ftp` | GHSA-5rq4-664w-9x2c | openclaw > proxy-agent | Path traversal in downloadToDir() |
 
 ### High (Notable)
 
 | Package | CVE | Via | Issue |
 |---------|-----|-----|-------|
-| `tar` | GHSA-34x7-hfp2-rc4v | clawdbot | Arbitrary file overwrite via hardlink traversal |
+| `tar` | GHSA-34x7-hfp2-rc4v | openclaw | Arbitrary file overwrite via hardlink traversal |
 | `axios` | GHSA-43fc-jf86-j433 | @moonpay/cli | DoS via prototype pollution |
 | `bigint-buffer` | GHSA-3gc7-fjrx-p6mg | @moonpay/cli > @solana | Buffer overflow (no patch available) |
-| `glob` | GHSA-5j98-mcp5-4vw2 | clawdbot > google-auth-library | Command injection via -c flag |
+| `glob` | GHSA-5j98-mcp5-4vw2 | openclaw > google-auth-library | Command injection via -c flag |
 
 ### Action Required
 
 These cannot be fixed by SimOffice directly. Monitor for updates to:
-- `clawdbot` (majority of CVEs)
+- `openclaw` (majority of CVEs)
 - `openclaw` (basic-ftp)
 - `@moonpay/cli` (axios, bigint-buffer)
 

@@ -33,7 +33,8 @@
 - **File Upload** — Send files directly in chat for agents to analyze and respond to
 - **Crypto Trading with MoonPay** — Trade crypto, DCA, scan markets, and research tokens. Powered by MoonPay with in-app setup, no terminal required.
 - **Multi-Provider AI** — Connect Claude, ChatGPT, Grok, Gemini, or run locally with Ollama
-- **Messaging Integrations** — Connect Discord, Telegram, WhatsApp, and iMessage with step-by-step wizards
+- **29 Business Integrations** — HubSpot, Salesforce, GitHub, Jira, Stripe, Notion, and more with setup wizards
+- **Messaging Integrations** — Connect Discord, Telegram, WhatsApp, iMessage, Slack, Google Chat, and more with step-by-step wizards
 - **SOUL.md Personalities** — Each agent gets a unique personality file that shapes how they respond
 - **Dark & Light Themes** — Full theme support with CSS variable-driven styling
 - **Auto-Updates** — App updates automatically via GitHub Releases
@@ -60,17 +61,21 @@ Both builds are signed and notarized by Apple.
 
 ```bash
 pnpm install
-pnpm dev          # run in dev mode
-pnpm test         # run tests
-pnpm run package:mac  # build DMG
+NODE_OPTIONS="--max-old-space-size=8192" pnpm dev   # run in dev mode
+pnpm test                                           # run tests
+pnpm run package:mac                                # build DMG
 ```
+
+> **Note:** The `NODE_OPTIONS` heap bump is required since OpenClaw 2026.3.24 due to the larger dependency graph.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ## What's New in v2.0.8
 
-- **Reliable Auto-Updater** — Replaced Squirrel.Mac with direct DMG download. Downloads with progress bar and ETA, verifies SHA512 hash, opens DMG for drag-and-drop install. No more silent hangs.
-- **OpenClaw 2026.3.24** — Updated bundled gateway with OpenAI-compatible `/v1/models` and `/v1/embeddings` endpoints, Microsoft Teams SDK migration, improved tool visibility, and channel boot isolation.
+- **Reliable Auto-Updater** — Replaced Squirrel.Mac with direct DMG download. Progress bar with ETA, SHA512 verification, drag-and-drop install. No more silent hangs.
+- **OpenClaw 2026.3.24** — OpenAI-compatible `/v1/models` and `/v1/embeddings` endpoints, Teams SDK migration, channel boot isolation.
+- **29 Business Integrations** — HubSpot, Salesforce, GitHub, Jira, Stripe, Notion, and 23 more — all restored with setup wizards.
+- **Analytics Redesign** — Cleaner layout, compact KPI cards, theme-aware chart.
 
 <details>
 <summary>Previous versions</summary>
@@ -79,8 +84,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 - Analytics Dashboard — Agent spending, token usage, model breakdown, and budget alerts.
 - Connector System Fix — Fixed iMessage config, channel status events, channel ID parser.
 - Slack Validation — Live credential validation via Slack API.
-- Channel Gating — Unsupported channels show "Coming Soon" instead of silently failing.
-- Post-Save Feedback — Real-time connection status in config modal.
 
 ### v2.0.5
 - MoonPay Trading Integration — Full end-to-end crypto trading: auth, wallet creation, MCP config, exec tools, checkout popups. 4-step setup wizard, 19 MoonPay skills auto-installed.

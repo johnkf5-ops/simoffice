@@ -5,14 +5,11 @@
 | Version | Supported          |
 | ------- | ------------------ |
 | 2.0.x   | :white_check_mark: |
-| 1.3.x   | :white_check_mark: |
-| < 1.3   | :x:                |
+| < 2.0   | :x:                |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in SimOffice, please report it responsibly.
-
-**Email:** public@valuecell.ai
+If you discover a security vulnerability in SimOffice, please report it responsibly via [GitHub Security Advisories](https://github.com/johnkf5-ops/simoffice/security/advisories/new).
 
 Please include:
 - A description of the vulnerability
