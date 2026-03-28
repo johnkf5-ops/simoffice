@@ -92,6 +92,8 @@ export function LobbyAnalytics() {
     setEndDate(toDateInputValue(end));
   };
 
+  const hasSpendData = usage.totals.totalCost > 0;
+
   return (
     <div style={{ display: 'flex', height: '100%' }}>
 
@@ -99,271 +101,267 @@ export function LobbyAnalytics() {
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: 'hsl(var(--background))' }}>
 
-        {/* Section Header */}
-        <div style={{
-          padding: '32px 40px 24px 40px',
-          background: 'linear-gradient(135deg, #ea580c 0%, #fb923c 50%, #fed7aa 100%)',
-        }}>
+        {/* Header */}
+        <div style={{ padding: '24px 40px 20px 40px', borderBottom: '1px solid hsl(var(--border))' }}>
           <button onClick={() => navigate('/')}
-            style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 12, fontFamily: 'Inter, sans-serif' }}>
+            style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 8, fontFamily: 'Inter, sans-serif', padding: 0 }}>
             &larr; Back to Lobby
           </button>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: 'white', fontFamily: 'Space Grotesk, sans-serif', margin: 0 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: 'hsl(var(--foreground))', fontFamily: 'Space Grotesk, sans-serif', margin: 0 }}>
             Analytics
           </h1>
-          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.85)', marginTop: 6, fontFamily: 'Inter, sans-serif' }}>
-            Usage, spending, and agent metrics
-          </p>
         </div>
 
         {/* Scrollable Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 40px 40px 40px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 40px 40px 40px' }}>
 
           {!isOnline && (
             <div style={{
-              padding: 20, borderRadius: 12, marginBottom: 24,
+              padding: 16, borderRadius: 10, marginBottom: 20,
               background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))',
-              fontSize: 14, textAlign: 'center',
+              fontSize: 13, textAlign: 'center',
             }}>
               Start the engine to view analytics
             </div>
           )}
 
-          {/* Date Range + Quick Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+          {/* Date Range */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
             {(['7D', '30D', 'MTD'] as const).map((label) => (
               <button
                 key={label}
                 onClick={() => setQuickRange(label === '7D' ? 7 : label === '30D' ? 30 : 'mtd')}
                 style={{
-                  padding: '6px 16px', borderRadius: 8, border: '1px solid',
-                  borderColor: selectedRangeLabel === label ? 'hsl(var(--primary))' : 'hsl(var(--border))',
-                  background: selectedRangeLabel === label ? 'hsl(var(--accent))' : 'transparent',
-                  color: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  fontFamily: 'Space Grotesk, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em',
+                  padding: '5px 14px', borderRadius: 6, border: '1px solid',
+                  borderColor: selectedRangeLabel === label ? 'hsl(var(--foreground))' : 'hsl(var(--border))',
+                  background: selectedRangeLabel === label ? 'hsl(var(--foreground))' : 'transparent',
+                  color: selectedRangeLabel === label ? 'hsl(var(--background))' : 'hsl(var(--muted-foreground))',
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: 'Space Grotesk, sans-serif',
                 }}>
                 {label}
               </button>
             ))}
             <div style={{ flex: 1 }} />
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 12 }} />
-            <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 12 }}>to</span>
+              style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 11 }} />
+            <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: 11 }}>to</span>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 12 }} />
+              style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 11 }} />
             <button onClick={() => void usage.refresh()}
-              style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-              {usage.loading ? 'Loading...' : 'Refresh'}
+              style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid hsl(var(--border))', background: 'hsl(var(--card))', color: 'hsl(var(--foreground))', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
+              {usage.loading ? '...' : 'Refresh'}
             </button>
           </div>
 
           {usage.error && (
             <div style={{
-              padding: 16, borderRadius: 12, marginBottom: 24,
+              padding: 12, borderRadius: 8, marginBottom: 20,
               background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-              color: '#f87171', fontSize: 13,
+              color: '#f87171', fontSize: 12,
             }}>
               {usage.error}
             </div>
           )}
 
-          {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
+          {/* KPI Cards — 4 columns */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
             {[
-              { label: 'Total Spend', value: formatCurrency(usage.totals.totalCost) },
-              { label: 'Total Tokens', value: formatNumber(usage.totals.totalTokens) },
+              { label: 'Total Spend', value: formatCurrency(usage.totals.totalCost), accent: true },
+              { label: 'Tokens', value: formatNumber(usage.totals.totalTokens) },
               { label: 'Sessions', value: formatNumber(usage.sessions.length) },
               { label: 'Messages', value: formatNumber(usage.aggregates.messages.total) },
-              { label: 'Tool Calls', value: formatNumber(usage.aggregates.tools.totalCalls) },
-              { label: 'Errors', value: formatNumber(usage.aggregates.messages.errors) },
             ].map((card) => (
               <div key={card.label} style={{
                 background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
-                borderRadius: 12, padding: 20,
+                borderRadius: 10, padding: '16px 18px',
               }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {card.label}
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: 'hsl(var(--foreground))', fontFamily: 'Space Grotesk, sans-serif', marginTop: 8 }}>
+                <div style={{
+                  fontSize: 22, fontWeight: 800, fontFamily: 'Space Grotesk, sans-serif', marginTop: 6,
+                  color: card.accent ? 'hsl(var(--foreground))' : 'hsl(var(--foreground))',
+                }}>
                   {card.value}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Daily Cost Chart */}
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 16 }}>
-              Daily Spend
-            </h2>
-            {recentCostDaily.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>
-                {usage.loading ? 'Loading...' : 'No spend data for this date range'}
+          {/* Daily Spend Chart */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{
+              background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
+              borderRadius: 10, padding: '18px 20px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
+                  Daily Spend
+                </span>
+                <div style={{ display: 'flex', gap: 14 }}>
+                  {[
+                    { label: 'Input', value: formatCurrency(usage.totals.inputCost) },
+                    { label: 'Output', value: formatCurrency(usage.totals.outputCost) },
+                    { label: 'Cache', value: formatCurrency(usage.totals.cacheReadCost + usage.totals.cacheWriteCost) },
+                  ].map((item) => (
+                    <span key={item.label} style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+                      {item.label} <span style={{ fontWeight: 600 }}>{item.value}</span>
+                    </span>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <div style={{
-                background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
-                borderRadius: 12, padding: 24,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 140 }}>
+              {recentCostDaily.length === 0 ? (
+                <div style={{ padding: '30px 0', textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: 12 }}>
+                  {usage.loading ? 'Loading...' : 'No data for this period'}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: hasSpendData ? 120 : 60 }}>
                   {recentCostDaily.map((entry) => {
                     const heightPct = chartMax > 0 ? (entry.totalCost / chartMax) * 100 : 0;
                     return (
-                      <div key={entry.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <div style={{ fontSize: 9, color: 'hsl(var(--muted-foreground))', fontWeight: 600 }}>
-                          {formatCurrency(entry.totalCost)}
-                        </div>
+                      <div key={entry.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                        {hasSpendData && (
+                          <div style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))', fontWeight: 600 }}>
+                            {entry.totalCost > 0 ? formatCurrency(entry.totalCost) : ''}
+                          </div>
+                        )}
                         <div style={{
-                          width: '100%', maxWidth: 40, borderRadius: 4,
-                          height: `${Math.max(heightPct, 2)}%`,
-                          background: 'linear-gradient(to top, #ea580c, #fb923c)',
+                          width: '100%', maxWidth: 32, borderRadius: 3,
+                          height: hasSpendData ? `${Math.max(heightPct, 3)}%` : 3,
+                          background: hasSpendData
+                            ? 'linear-gradient(to top, hsl(var(--primary)), hsl(var(--primary) / 0.6))'
+                            : 'hsl(var(--border))',
                           transition: 'height 0.3s ease',
                         }} />
-                        <div style={{ fontSize: 9, color: 'hsl(var(--muted-foreground))' }}>
+                        <div style={{ fontSize: 8, color: 'hsl(var(--muted-foreground))' }}>
                           {entry.date.slice(5)}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                <div style={{ display: 'flex', gap: 16, marginTop: 16, flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Input', value: formatCurrency(usage.totals.inputCost) },
-                    { label: 'Output', value: formatCurrency(usage.totals.outputCost) },
-                    { label: 'Cache Read', value: formatCurrency(usage.totals.cacheReadCost) },
-                    { label: 'Cache Write', value: formatCurrency(usage.totals.cacheWriteCost) },
-                  ].map((item) => (
-                    <div key={item.label} style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))' }}>
-                      <span style={{ fontWeight: 600 }}>{item.label}:</span> {item.value}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Top Agents + Model Breakdown side by side */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginBottom: 32 }}>
+          {/* Agents + Models side by side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
 
             {/* Top Agents */}
-            <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 16 }}>
-                Top Agents by Spend
-              </h2>
-              <div style={{
-                background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
-                borderRadius: 12, overflow: 'hidden',
-              }}>
-                {usage.aggregates.byAgent.length === 0 ? (
-                  <div style={{ padding: 24, textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>No agent data</div>
-                ) : (
-                  usage.aggregates.byAgent.slice(0, 8).map((agent, i) => (
-                    <div key={agent.agentId} style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '12px 20px',
-                      borderBottom: i < Math.min(usage.aggregates.byAgent.length, 8) - 1 ? '1px solid hsl(var(--border))' : 'none',
-                    }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                        {agent.agentName || agent.agentId}
-                      </span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: '#ea580c', fontFamily: 'Space Grotesk, sans-serif' }}>
-                        {formatCurrency(agent.totals.totalCost)}
-                      </span>
-                    </div>
-                  ))
-                )}
+            <div style={{
+              background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
+              borderRadius: 10, overflow: 'hidden',
+            }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid hsl(var(--border))' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
+                  Top Agents
+                </span>
               </div>
+              {usage.aggregates.byAgent.length === 0 ? (
+                <div style={{ padding: 20, textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: 12 }}>No agent data</div>
+              ) : (
+                usage.aggregates.byAgent.slice(0, 6).map((agent, i) => (
+                  <div key={agent.agentId} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 18px',
+                    borderBottom: i < Math.min(usage.aggregates.byAgent.length, 6) - 1 ? '1px solid hsl(var(--border))' : 'none',
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'hsl(var(--foreground))' }}>
+                      {agent.agentName || agent.agentId}
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))', fontFamily: 'Space Grotesk, sans-serif' }}>
+                      {formatCurrency(agent.totals.totalCost)}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
 
-            {/* Model Breakdown */}
-            <div>
-              <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 16 }}>
-                Models Used
-              </h2>
-              <div style={{
-                background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
-                borderRadius: 12, overflow: 'hidden',
-              }}>
-                {usage.aggregates.byModel.length === 0 ? (
-                  <div style={{ padding: 24, textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>No model data</div>
-                ) : (
-                  usage.aggregates.byModel.slice(0, 8).map((model, i) => (
-                    <div key={`${model.provider}-${model.model}`} style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '12px 20px',
-                      borderBottom: i < Math.min(usage.aggregates.byModel.length, 8) - 1 ? '1px solid hsl(var(--border))' : 'none',
-                    }}>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: 'hsl(var(--foreground))' }}>
-                          {model.model || 'Unknown'}
-                        </div>
-                        {model.provider && (
-                          <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{model.provider}</div>
-                        )}
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: '#ea580c', fontFamily: 'Space Grotesk, sans-serif' }}>
-                        {formatCurrency(model.totals.totalCost)}
-                      </span>
-                    </div>
-                  ))
-                )}
+            {/* Models Used */}
+            <div style={{
+              background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
+              borderRadius: 10, overflow: 'hidden',
+            }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid hsl(var(--border))' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
+                  Models Used
+                </span>
               </div>
+              {usage.aggregates.byModel.length === 0 ? (
+                <div style={{ padding: 20, textAlign: 'center', color: 'hsl(var(--muted-foreground))', fontSize: 12 }}>No model data</div>
+              ) : (
+                usage.aggregates.byModel.slice(0, 6).map((model, i) => (
+                  <div key={`${model.provider}-${model.model}`} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 18px',
+                    borderBottom: i < Math.min(usage.aggregates.byModel.length, 6) - 1 ? '1px solid hsl(var(--border))' : 'none',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'hsl(var(--foreground))' }}>
+                        {model.model || 'Unknown'}
+                      </div>
+                      {model.provider && (
+                        <div style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))' }}>{model.provider}</div>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))', fontFamily: 'Space Grotesk, sans-serif' }}>
+                      {formatCurrency(model.totals.totalCost)}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
           {/* Budget Limits */}
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 16 }}>
+          <div style={{
+            background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
+            borderRadius: 10, padding: '18px 20px', marginBottom: 24,
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 14 }}>
               Budget Limits
-            </h2>
-            <div style={{
-              background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
-              borderRadius: 12, padding: 24,
-            }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-                {[
-                  { label: 'Daily Limit (USD)', key: 'dailySpendLimitUsd' as const, value: budgets.dailySpendLimitUsd },
-                  { label: 'Monthly Limit (USD)', key: 'monthlySpendLimitUsd' as const, value: budgets.monthlySpendLimitUsd },
-                  { label: 'Per-Agent Limit (USD)', key: 'perAgentSoftLimitUsd' as const, value: budgets.perAgentSoftLimitUsd },
-                  { label: 'Alert Threshold (%)', key: 'alertThresholdPct' as const, value: budgets.alertThresholdPct },
-                ].map((field) => (
-                  <div key={field.key}>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>
-                      {field.label}
-                    </label>
-                    <input
-                      type="number"
-                      value={field.value ?? ''}
-                      placeholder={field.key === 'alertThresholdPct' ? '80' : 'No limit'}
-                      onChange={(e) => {
-                        const v = e.target.value.trim();
-                        updateBudget(field.key, v === '' ? null : Number(v));
-                      }}
-                      style={{
-                        width: '100%', padding: '8px 12px', borderRadius: 8,
-                        border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
-                        color: 'hsl(var(--foreground))', fontSize: 14,
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <p style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 12 }}>
-                Budget limits are stored locally. Alerts appear when spending approaches the threshold.
-              </p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[
+                { label: 'Daily (USD)', key: 'dailySpendLimitUsd' as const, value: budgets.dailySpendLimitUsd },
+                { label: 'Monthly (USD)', key: 'monthlySpendLimitUsd' as const, value: budgets.monthlySpendLimitUsd },
+                { label: 'Per-Agent (USD)', key: 'perAgentSoftLimitUsd' as const, value: budgets.perAgentSoftLimitUsd },
+                { label: 'Alert at (%)', key: 'alertThresholdPct' as const, value: budgets.alertThresholdPct },
+              ].map((field) => (
+                <div key={field.key}>
+                  <label style={{ fontSize: 10, fontWeight: 600, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>
+                    {field.label}
+                  </label>
+                  <input
+                    type="number"
+                    value={field.value ?? ''}
+                    placeholder={field.key === 'alertThresholdPct' ? '80' : 'No limit'}
+                    onChange={(e) => {
+                      const v = e.target.value.trim();
+                      updateBudget(field.key, v === '' ? null : Number(v));
+                    }}
+                    style={{
+                      width: '100%', padding: '7px 10px', borderRadius: 6,
+                      border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
+                      color: 'hsl(var(--foreground))', fontSize: 13,
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Budget Alerts */}
           {usage.budgetAlerts.length > 0 && (
-            <div style={{ marginBottom: 32 }}>
+            <div style={{ marginBottom: 24 }}>
               {usage.budgetAlerts.map((alert, i) => (
                 <div key={i} style={{
-                  padding: 16, borderRadius: 12, marginBottom: 8,
+                  padding: 12, borderRadius: 8, marginBottom: 6,
                   background: alert.severity === 'danger' ? 'rgba(239,68,68,0.1)' : 'rgba(234,179,8,0.1)',
                   border: `1px solid ${alert.severity === 'danger' ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)'}`,
                   color: alert.severity === 'danger' ? '#f87171' : '#fbbf24',
-                  fontSize: 13, fontWeight: 600,
+                  fontSize: 12, fontWeight: 600,
                 }}>
                   {alert.label}: {formatCurrency(alert.currentUsd)} / {formatCurrency(alert.limitUsd)}
                 </div>

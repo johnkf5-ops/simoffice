@@ -52,21 +52,23 @@ const SUPPORTED_MESSAGING_CHANNELS = new Set<ChannelType>([
 ]);
 
 const ALL_CHANNEL_TYPES: { type: ChannelType; name: string; icon: string; description: string; popular?: boolean }[] = [
+  // Supported — live
   { type: 'telegram', name: 'Telegram', icon: '✈️', description: 'Bot token connection', popular: true },
   { type: 'imessage', name: 'iMessage', icon: '💬', description: 'Apple Messages', popular: true },
   { type: 'discord', name: 'Discord', icon: '🎮', description: 'Bot token connection', popular: true },
   { type: 'slack', name: 'Slack', icon: '💬', description: 'Post updates, respond in channels', popular: true },
   { type: 'whatsapp', name: 'WhatsApp', icon: '📱', description: 'Linked Devices connection' },
-  { type: 'signal', name: 'Signal', icon: '🔒', description: 'Private messaging' },
-  { type: 'msteams', name: 'Microsoft Teams', icon: '👔', description: 'Workplace messaging' },
   { type: 'googlechat', name: 'Google Chat', icon: '💭', description: 'Google workspace' },
-  { type: 'matrix', name: 'Matrix', icon: '🔗', description: 'Open protocol messaging' },
-  { type: 'line', name: 'LINE', icon: '🟢', description: 'LINE messaging' },
-  { type: 'mattermost', name: 'Mattermost', icon: '💠', description: 'Open-source chat' },
   { type: 'dingtalk', name: 'DingTalk', icon: '💬', description: 'Business messaging' },
   { type: 'feishu', name: 'Feishu / Lark', icon: '🐦', description: 'Lark messaging' },
   { type: 'wecom', name: 'WeCom', icon: '💼', description: 'Enterprise WeChat' },
   { type: 'qqbot', name: 'QQ Bot', icon: '🐧', description: 'QQ messaging' },
+  // Coming soon
+  { type: 'signal', name: 'Signal', icon: '🔒', description: 'Private messaging' },
+  { type: 'msteams', name: 'Microsoft Teams', icon: '👔', description: 'Workplace messaging' },
+  { type: 'matrix', name: 'Matrix', icon: '🔗', description: 'Open protocol messaging' },
+  { type: 'line', name: 'LINE', icon: '🟢', description: 'LINE messaging' },
+  { type: 'mattermost', name: 'Mattermost', icon: '💠', description: 'Open-source chat' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
@@ -234,18 +236,18 @@ export function LobbyConnections() {
               Premium integrations from our partners
             </p>
             <div
-              onClick={() => setShowMoonPaySetup(true)}
+              onClick={moonPayConnected ? undefined : () => setShowMoonPaySetup(true)}
               style={{
                 background: moonPayConnected ? 'rgba(123,63,228,0.06)' : 'hsl(var(--card))',
                 border: `2px solid ${moonPayConnected ? 'rgba(123,63,228,0.4)' : 'rgba(123,63,228,0.2)'}`,
                 borderRadius: 16, padding: 20,
                 display: 'flex', alignItems: 'center', gap: 16,
-                cursor: 'pointer', transition: 'all 0.2s',
+                cursor: moonPayConnected ? 'default' : 'pointer', transition: 'all 0.2s',
                 boxShadow: '0 0 20px rgba(123,63,228,0.08)',
                 maxWidth: 480,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(123,63,228,0.6)'; e.currentTarget.style.boxShadow = '0 0 28px rgba(123,63,228,0.18)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = moonPayConnected ? 'rgba(123,63,228,0.4)' : 'rgba(123,63,228,0.2)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(123,63,228,0.08)'; }}
+              onMouseEnter={moonPayConnected ? undefined : (e) => { e.currentTarget.style.borderColor = 'rgba(123,63,228,0.6)'; e.currentTarget.style.boxShadow = '0 0 28px rgba(123,63,228,0.18)'; }}
+              onMouseLeave={moonPayConnected ? undefined : (e) => { e.currentTarget.style.borderColor = 'rgba(123,63,228,0.2)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(123,63,228,0.08)'; }}
             >
               <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #7B3FE4, #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>🟣</div>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -329,41 +331,40 @@ export function LobbyConnections() {
             </div>
           </div>
 
-          {/* Business Integrations — Coming Soon */}
+          {/* Business Integrations */}
           <div>
             <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
-              Business Integrations — Coming Soon
+              Business Integrations
             </h2>
             <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
-              These integrations are on our roadmap. Agents can already access some of these tools through Skills.
+              Connect business tools so your agents can manage CRM, docs, and more
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 32 }}>
-              {INTEGRATION_TYPES.map((ch) => (
-                <div key={ch.type}
-                  style={{
-                    background: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: 12,
-                    padding: '16px',
-                    cursor: 'default',
-                    opacity: 0.45,
-                    position: 'relative',
-                  }}
-                >
-                  <div style={{
-                    position: 'absolute', top: -6, right: 12,
-                    background: 'hsl(var(--muted))',
-                    color: 'hsl(var(--muted-foreground))', fontSize: 8, fontWeight: 800,
-                    padding: '2px 8px', borderRadius: 4,
-                    textTransform: 'uppercase', letterSpacing: '0.05em',
-                  }}>
-                    Coming Soon
+              {INTEGRATION_TYPES.map((ch) => {
+                const isConnected = connectedTypes.has(ch.type);
+                return (
+                  <div key={ch.type}
+                    onClick={() => handleChannelClick(ch.type)}
+                    style={{
+                      background: isConnected ? 'rgba(13,148,136,0.06)' : 'hsl(var(--card))',
+                      border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'}`,
+                      borderRadius: 12,
+                      padding: '16px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--primary))'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'; }}
+                  >
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>{ch.icon}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{ch.name}</div>
+                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>{ch.description}</div>
+                    {isConnected && (
+                      <div style={{ marginTop: 8, fontSize: 11, color: '#0d9488', fontWeight: 600 }}>● Connected</div>
+                    )}
                   </div>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>{ch.icon}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{ch.name}</div>
-                  <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>{ch.description}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

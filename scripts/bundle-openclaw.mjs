@@ -130,6 +130,27 @@ if (!openclawVirtualNM) {
 echo`   Virtual store root: ${openclawVirtualNM}`;
 queue.push({ nodeModulesDir: openclawVirtualNM, skipPkg: 'openclaw' });
 
+// openclaw 2026.3.24 moved @whiskeysockets/baileys out of its dependencies
+// into pnpm.onlyBuiltDependencies, so the BFS from openclaw's virtual store
+// no longer discovers it. The Electron main process (whatsapp-login.ts) requires
+// it at runtime via createRequire from the bundled openclaw path. Seed the BFS
+// with baileys' own virtual store entry so it and its transitive deps get bundled.
+const EXTRA_BFS_SEEDS = ['@whiskeysockets/baileys'];
+for (const pkgName of EXTRA_BFS_SEEDS) {
+  const link = path.join(NODE_MODULES, ...pkgName.split('/'));
+  if (!fs.existsSync(link)) {
+    echo`   ⚠️  Extra seed ${pkgName} not found, skipping`;
+    continue;
+  }
+  const realPkg = fs.realpathSync(link);
+  const virtualNM = getVirtualStoreNodeModules(realPkg);
+  if (virtualNM) {
+    echo`   Extra BFS seed: ${pkgName} → ${virtualNM}`;
+    collected.set(realPkg, pkgName);
+    queue.push({ nodeModulesDir: virtualNM, skipPkg: pkgName });
+  }
+}
+
 const SKIP_PACKAGES = new Set([
   'typescript',
   '@playwright/test',
