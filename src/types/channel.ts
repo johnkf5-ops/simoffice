@@ -741,10 +741,11 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
       },
       {
         key: 'domain',
-        label: 'Jira Domain',
+        label: 'Atlassian Site Name',
         type: 'text',
-        placeholder: 'your-company.atlassian.net',
+        placeholder: 'your-company',
         required: true,
+        description: 'Just the site name — e.g. "your-company" from your-company.atlassian.net',
       },
     ],
     instructions: [
@@ -813,8 +814,9 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     docsUrl: 'https://docs.sendgrid.com/ui/account-and-settings/api-keys',
     configFields: [
       { key: 'apiKey', label: 'API Key', type: 'password', placeholder: 'SG.xxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', required: true, envVar: 'SENDGRID_API_KEY' },
+      { key: 'fromEmail', label: 'Verified Sender Email', type: 'text', placeholder: 'you@company.com', required: true, description: 'Must be a verified sender in your SendGrid account' },
     ],
-    instructions: ['Go to SendGrid → Settings → API Keys', 'Click "Create API Key" with Full Access or Restricted Access', 'Copy the key — you won\'t see it again'],
+    instructions: ['Go to SendGrid → Settings → API Keys', 'Click "Create API Key" with Full Access or Restricted Access', 'Copy the key — you won\'t see it again', 'Ensure you have a verified sender email under Settings → Sender Authentication'],
   },
   calendly: {
     id: 'calendly',
@@ -963,7 +965,7 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     configFields: [
       { key: 'email', label: 'Atlassian Email', type: 'text', placeholder: 'you@company.com', required: true },
       { key: 'apiToken', label: 'API Token', type: 'password', placeholder: 'Paste your Atlassian API token...', required: true, envVar: 'CONFLUENCE_API_TOKEN' },
-      { key: 'domain', label: 'Confluence Domain', type: 'text', placeholder: 'your-company.atlassian.net', required: true },
+      { key: 'domain', label: 'Atlassian Site Name', type: 'text', placeholder: 'your-company', required: true, description: 'Just the site name — e.g. "your-company" from your-company.atlassian.net' },
     ],
     instructions: ['Go to id.atlassian.com → Security → Create and manage API tokens', 'Click "Create API token" and name it "SimOffice"', 'Enter your email and Confluence domain below'],
   },
@@ -1001,13 +1003,11 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
     icon: '📗',
     description: 'Connect Xero for invoices, contacts, and bank transactions',
     connectionType: 'token',
-    docsUrl: 'https://developer.xero.com/documentation/getting-started-guide/',
+    docsUrl: 'https://developer.xero.com/documentation/guides/oauth2/custom-connections/',
     configFields: [
-      { key: 'clientId', label: 'Client ID', type: 'text' as const, placeholder: 'Paste your Xero Client ID...', required: true, envVar: 'XERO_CLIENT_ID' },
-      { key: 'clientSecret', label: 'Client Secret', type: 'password' as const, placeholder: 'Paste your Xero Client Secret...', required: true, envVar: 'XERO_CLIENT_SECRET' },
-      { key: 'tenantId', label: 'Tenant ID', type: 'text', placeholder: 'Your Xero tenant/org ID...', required: true },
+      { key: 'bearerToken', label: 'Bearer Token', type: 'password', placeholder: 'Paste your Xero Custom Connection bearer token...', required: true, envVar: 'XERO_CLIENT_BEARER_TOKEN', description: 'From a Xero Custom Connection (machine-to-machine)' },
     ],
-    instructions: ['Go to developer.xero.com and create an app', 'Set up OAuth 2.0 and generate tokens', 'Copy your access token and tenant ID'],
+    instructions: ['Go to developer.xero.com → My Apps → Create a Custom Connection', 'Select the scopes your agents need (e.g. accounting.transactions.read)', 'Authorize the connection to your Xero org', 'Copy the bearer token from the connection details'],
   },
   twilio: {
     id: 'twilio',

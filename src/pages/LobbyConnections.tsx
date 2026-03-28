@@ -9,39 +9,51 @@ import { ChannelConfigModal } from '@/components/channels/ChannelConfigModal';
 import { ChannelSetupWizard, hasSetupWizard } from '@/components/channels/ChannelSetupWizard';
 import { CHANNEL_NAMES, CHANNEL_ICONS, type ChannelType } from '@/types/channel';
 import { MoonPaySetupModal } from '@/components/moonpay/MoonPaySetupModal';
+import { IntegrationSetupModal } from '@/components/integrations/IntegrationSetupModal';
 import { invokeIpc } from '@/lib/api-client';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
 
 const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
-  { type: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'CRM — contacts, deals, companies' },
-  { type: 'pandadoc', name: 'PandaDoc', icon: '🐼', description: 'Proposals, contracts, e-signatures' },
-  { type: 'google_workspace', name: 'Google Workspace', icon: '📧', description: 'Gmail, Calendar, Drive' },
-  { type: 'notion', name: 'Notion', icon: '📝', description: 'Pages, databases, project boards' },
-  { type: 'github', name: 'GitHub', icon: '🐙', description: 'Repos, PRs, issues, deploys' },
-  { type: 'jira', name: 'Jira', icon: '📋', description: 'Tickets, sprints, project tracking' },
   { type: 'stripe_integration', name: 'Stripe', icon: '💳', description: 'Revenue, invoices, subscriptions' },
-  { type: 'zapier', name: 'Zapier', icon: '⚡', description: 'Connect 6,000+ apps via webhooks' },
-  { type: 'salesforce', name: 'Salesforce', icon: '☁️', description: 'Leads, opportunities, accounts' },
-  { type: 'mailchimp', name: 'Mailchimp', icon: '🐵', description: 'Email campaigns, audiences' },
-  { type: 'sendgrid', name: 'SendGrid', icon: '📨', description: 'Transactional email, templates' },
-  { type: 'calendly', name: 'Calendly', icon: '📅', description: 'Scheduling, events, availability' },
-  { type: 'intercom', name: 'Intercom', icon: '💬', description: 'Customer chat, conversations' },
-  { type: 'gitlab', name: 'GitLab', icon: '🦊', description: 'Repos, merge requests, CI/CD' },
+  { type: 'hubspot', name: 'HubSpot', icon: '🟠', description: 'CRM — contacts, deals, companies' },
+  { type: 'github', name: 'GitHub', icon: '🐙', description: 'Repos, PRs, issues, deploys' },
   { type: 'linear', name: 'Linear', icon: '🔷', description: 'Issue tracking, projects, cycles' },
   { type: 'sentry', name: 'Sentry', icon: '🛡️', description: 'Error tracking, alerts, releases' },
-  { type: 'datadog', name: 'Datadog', icon: '🐕', description: 'Metrics, monitors, dashboards' },
-  { type: 'vercel', name: 'Vercel', icon: '▲', description: 'Deployments, domains, projects' },
+  { type: 'notion', name: 'Notion', icon: '📝', description: 'Pages, databases, project boards' },
+  { type: 'jira', name: 'Jira', icon: '📋', description: 'Tickets, sprints, project tracking' },
+  { type: 'gitlab', name: 'GitLab', icon: '🦊', description: 'Repos, merge requests, CI/CD' },
   { type: 'airtable', name: 'Airtable', icon: '📊', description: 'Bases, tables, records' },
-  { type: 'monday', name: 'Monday.com', icon: '🟣', description: 'Boards, items, project management' },
-  { type: 'asana', name: 'Asana', icon: '🔺', description: 'Tasks, projects, workspaces' },
+  { type: 'mailchimp', name: 'Mailchimp', icon: '🐵', description: 'Email campaigns, audiences' },
+  { type: 'sendgrid', name: 'SendGrid', icon: '📨', description: 'Transactional email, templates' },
+  { type: 'datadog', name: 'Datadog', icon: '🐕', description: 'Metrics, monitors, dashboards' },
   { type: 'trello', name: 'Trello', icon: '📌', description: 'Boards, cards, lists' },
+  { type: 'zendesk', name: 'Zendesk', icon: '🎧', description: 'Support tickets, users, orgs' },
+  { type: 'asana', name: 'Asana', icon: '🔺', description: 'Tasks, projects, workspaces' },
+  { type: 'monday', name: 'Monday.com', icon: '🟣', description: 'Boards, items, project management' },
   { type: 'confluence', name: 'Confluence', icon: '📘', description: 'Pages, spaces, team wiki' },
+  { type: 'xero', name: 'Xero', icon: '📗', description: 'Invoices, contacts, bank transactions' },
+  { type: 'calendly', name: 'Calendly', icon: '📅', description: 'Scheduling, events, availability' },
+  { type: 'pandadoc', name: 'PandaDoc', icon: '🐼', description: 'Proposals, contracts, e-signatures' },
+  // Deferred — show "Coming Soon"
+  { type: 'salesforce', name: 'Salesforce', icon: '☁️', description: 'Leads, opportunities, accounts' },
+  { type: 'google_workspace', name: 'Google Workspace', icon: '📧', description: 'Gmail, Calendar, Drive' },
   { type: 'quickbooks', name: 'QuickBooks', icon: '💰', description: 'Invoices, expenses, reports' },
   { type: 'docusign', name: 'DocuSign', icon: '✍️', description: 'Envelopes, signatures, templates' },
-  { type: 'xero', name: 'Xero', icon: '📗', description: 'Invoices, contacts, bank transactions' },
-  { type: 'twilio', name: 'Twilio', icon: '📞', description: 'SMS, voice calls, phone numbers' },
-  { type: 'zendesk', name: 'Zendesk', icon: '🎧', description: 'Support tickets, users, orgs' },
+  { type: 'vercel', name: 'Vercel', icon: '▲', description: 'Deployments, domains, projects' },
 ];
+
+// v1 integrations that have MCP packages — clicking opens IntegrationSetupModal.
+const V1_INTEGRATION_IDS = new Set<ChannelType>([
+  'stripe_integration', 'github', 'gitlab', 'linear', 'sentry',
+  'airtable', 'mailchimp', 'sendgrid', 'datadog', 'trello',
+  'zendesk', 'hubspot', 'notion', 'jira', 'confluence',
+  'monday', 'asana', 'xero', 'calendly', 'pandadoc',
+]);
+
+// Deferred — require OAuth or have no npm package. Show "Coming Soon" badge.
+const DEFERRED_INTEGRATION_IDS = new Set<ChannelType>([
+  'salesforce', 'google_workspace', 'quickbooks', 'docusign', 'vercel',
+]);
 
 // Channels that OpenClaw v2026.3.13 actually supports
 const SUPPORTED_MESSAGING_CHANNELS = new Set<ChannelType>([
@@ -96,6 +108,8 @@ export function LobbyConnections() {
   const [wizardType, setWizardType] = useState<ChannelType | null>(null);
   const [showMoonPaySetup, setShowMoonPaySetup] = useState(false);
   const [moonPayConnected, setMoonPayConnected] = useState(false);
+  const [integrationModalType, setIntegrationModalType] = useState<ChannelType | null>(null);
+  const [connectedIntegrations, setConnectedIntegrations] = useState<Set<string>>(new Set());
 
   useEffect(() => { void fetchChannels(); }, [fetchChannels]);
 
@@ -103,6 +117,19 @@ export function LobbyConnections() {
   useEffect(() => {
     invokeIpc<{ authenticated: boolean }>('moonpay:check-auth')
       .then((r) => setMoonPayConnected(r.authenticated))
+      .catch(() => {});
+  }, []);
+
+  // Check business integration statuses on mount
+  useEffect(() => {
+    invokeIpc<Record<string, { configured: boolean }>>('integration:status-all')
+      .then((statuses) => {
+        const connected = new Set<string>();
+        for (const [id, s] of Object.entries(statuses)) {
+          if (s.configured) connected.add(id);
+        }
+        setConnectedIntegrations(connected);
+      })
       .catch(() => {});
   }, []);
 
@@ -341,26 +368,44 @@ export function LobbyConnections() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginBottom: 32 }}>
               {INTEGRATION_TYPES.map((ch) => {
-                const isConnected = connectedTypes.has(ch.type);
+                const isDeferred = DEFERRED_INTEGRATION_IDS.has(ch.type);
+                const isConnected = connectedIntegrations.has(ch.type);
+                const isClickable = V1_INTEGRATION_IDS.has(ch.type);
                 return (
                   <div key={ch.type}
-                    onClick={() => handleChannelClick(ch.type)}
+                    onClick={isClickable ? () => setIntegrationModalType(ch.type) : undefined}
                     style={{
                       background: isConnected ? 'rgba(13,148,136,0.06)' : 'hsl(var(--card))',
                       border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'}`,
                       borderRadius: 12,
                       padding: '16px',
-                      cursor: 'pointer',
+                      cursor: isClickable ? 'pointer' : 'default',
                       transition: 'all 0.15s',
+                      opacity: isDeferred ? 0.5 : 1,
+                      position: 'relative' as const,
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--primary))'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'; }}
+                    onMouseEnter={isClickable ? (e) => { e.currentTarget.style.borderColor = 'hsl(var(--primary))'; } : undefined}
+                    onMouseLeave={isClickable ? (e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'; } : undefined}
                   >
+                    {isDeferred && (
+                      <div style={{
+                        position: 'absolute', top: -6, right: 12,
+                        background: 'hsl(var(--muted))',
+                        color: 'hsl(var(--muted-foreground))', fontSize: 8, fontWeight: 800,
+                        padding: '2px 8px', borderRadius: 4,
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>
+                        Coming Soon
+                      </div>
+                    )}
                     <div style={{ fontSize: 28, marginBottom: 8 }}>{ch.icon}</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{ch.name}</div>
                     <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>{ch.description}</div>
                     {isConnected && (
-                      <div style={{ marginTop: 8, fontSize: 11, color: '#0d9488', fontWeight: 600 }}>● Connected</div>
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
+                        <span style={{ fontSize: 10, fontWeight: 600, color: '#34d399' }}>CONNECTED</span>
+                      </div>
                     )}
                   </div>
                 );
@@ -370,6 +415,17 @@ export function LobbyConnections() {
 
         </div>
       </div>
+
+      {/* === Integration Setup Modal (MCP business integrations) === */}
+      {integrationModalType && (
+        <IntegrationSetupModal
+          type={integrationModalType}
+          onClose={() => setIntegrationModalType(null)}
+          onConnected={() => {
+            setConnectedIntegrations((prev) => new Set([...prev, integrationModalType]));
+          }}
+        />
+      )}
 
       {/* === MoonPay Setup Modal === */}
       {showMoonPaySetup && (

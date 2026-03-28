@@ -91,7 +91,6 @@ const electronAPI = {
         'channel:listConfigured',
         'channel:setEnabled',
         'channel:validate',
-        'channel:validate',
         'channel:validateCredentials',
         // WhatsApp
         'channel:requestWhatsAppQr',
@@ -146,6 +145,11 @@ const electronAPI = {
         'ollama:preload-model',
         'ollama:check-version',
         'ollama:check-disk-space',
+        // Business integrations
+        'integration:configure',
+        'integration:remove',
+        'integration:status',
+        'integration:status-all',
       ];
 
       if (validChannels.includes(channel)) {

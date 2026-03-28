@@ -168,6 +168,9 @@ export function registerIpcHandlers(
 
   // Ollama local AI handlers
   registerOllamaHandlers(mainWindow);
+
+  // Business integration handlers
+  registerIntegrationHandlers();
 }
 
 type HostApiFetchRequest = {
@@ -3144,5 +3147,34 @@ function registerLicenseHandlers(): void {
     } catch (err) {
       return { error: 'Failed to open billing portal' };
     }
+  });
+}
+
+/**
+ * Business Integration IPC handlers
+ * Configure/remove/status for MCP-based business integrations (Stripe, etc.)
+ */
+function registerIntegrationHandlers(): void {
+  const { configureIntegration, removeIntegration, getIntegrationStatus } = require('../utils/integration-config') as typeof import('../utils/integration-config');
+  const { INTEGRATION_REGISTRY } = require('../utils/integration-registry') as typeof import('../utils/integration-registry');
+
+  ipcMain.handle('integration:configure', async (_, { integrationId, credentials }: { integrationId: string; credentials: Record<string, string> }) => {
+    return configureIntegration(integrationId, credentials);
+  });
+
+  ipcMain.handle('integration:remove', async (_, integrationId: string) => {
+    return removeIntegration(integrationId);
+  });
+
+  ipcMain.handle('integration:status', async (_, integrationId: string) => {
+    return getIntegrationStatus(integrationId);
+  });
+
+  ipcMain.handle('integration:status-all', async () => {
+    const statuses: Record<string, { configured: boolean }> = {};
+    for (const id of Object.keys(INTEGRATION_REGISTRY)) {
+      statuses[id] = getIntegrationStatus(id);
+    }
+    return statuses;
   });
 }
