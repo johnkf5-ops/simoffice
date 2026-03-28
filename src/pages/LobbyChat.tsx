@@ -14,6 +14,8 @@ import { extractText } from '@/lib/message-utils';
 import { CAREERS } from '@/lib/career-templates';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
 import { WhosHerePanel } from '@/components/chat/WhosHerePanel';
+import { IntegrationsPanel } from '@/components/chat/IntegrationsPanel';
+import { invokeIpc } from '@/lib/api-client';
 import { AgentSelector } from '@/components/chat/AgentSelector';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
 import { runMeeting } from '@/lib/meeting-sequencer';
@@ -168,12 +170,20 @@ export function LobbyChat() {
   const isRoomMode = !!activeRoom;
 
   const [input, setInput] = useState('');
+  const [hasIntegrations, setHasIntegrations] = useState(false);
   const [editingHeader, setEditingHeader] = useState(false);
   const [headerName, setHeaderName] = useState('');
   const [pendingFiles, setPendingFiles] = useState<Array<{ fileName: string; mimeType: string; fileSize: number; stagedPath: string; preview: string | null }>>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { void fetchAgents(); void refreshProviders(); }, [fetchAgents, refreshProviders]);
+
+  // Check if any business integrations are connected (for sidebar)
+  useEffect(() => {
+    invokeIpc<Record<string, { configured: boolean }>>('integration:status-all')
+      .then((statuses) => setHasIntegrations(Object.values(statuses).some(s => s.configured)))
+      .catch(() => {});
+  }, []);
 
   // File upload handler — uses native dialog + IPC staging
   const handleFileSelect = async () => {
@@ -619,6 +629,11 @@ export function LobbyChat() {
           targetAgentId={targetAgentId}
           onTargetAgent={setTargetAgent}
         />
+      )}
+
+      {/* ═══ RIGHT: INTEGRATIONS (DM mode only, when connected) ═══ */}
+      {!isRoomMode && hasIntegrations && (
+        <IntegrationsPanel onSelectPrompt={(text) => setInput(text)} />
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
