@@ -49,7 +49,11 @@ export type ChannelType =
   | 'docusign'
   | 'xero'
   | 'twilio'
-  | 'zendesk';
+  | 'zendesk'
+  | 'email_gmail'
+  | 'email_outlook'
+  | 'email_fastmail'
+  | 'email_other';
 
 /**
  * Channel connection status
@@ -152,6 +156,10 @@ export const CHANNEL_ICONS: Record<ChannelType, string> = {
   xero: '📗',
   twilio: '📞',
   zendesk: '🎧',
+  email_gmail: '📧',
+  email_outlook: '📬',
+  email_fastmail: '⚡',
+  email_other: '📩',
 };
 
 /**
@@ -201,6 +209,10 @@ export const CHANNEL_NAMES: Record<ChannelType, string> = {
   xero: 'Xero',
   twilio: 'Twilio',
   zendesk: 'Zendesk',
+  email_gmail: 'Gmail',
+  email_outlook: 'Outlook',
+  email_fastmail: 'Fastmail',
+  email_other: 'Other Email',
 };
 
 /**
@@ -1145,6 +1157,83 @@ export const CHANNEL_META: Record<ChannelType, ChannelMeta> = {
       'channels:meta.mattermost.instructions.2',
     ],
     isPlugin: true,
+  },
+  email_gmail: {
+    id: 'email_gmail',
+    name: 'Gmail',
+    icon: '📧',
+    description: 'Connect your Gmail account',
+    connectionType: 'token',
+    docsUrl: 'https://myaccount.google.com/apppasswords',
+    configFields: [
+      { key: 'email', label: 'Gmail Address', type: 'text', placeholder: 'you@gmail.com', required: true },
+      { key: 'appPassword', label: 'App Password', type: 'password', placeholder: 'xxxx xxxx xxxx xxxx', required: true, description: 'NOT your Google password. Create one at myaccount.google.com/apppasswords' },
+    ],
+    instructions: [
+      'Go to myaccount.google.com/apppasswords (you need 2FA enabled)',
+      'Select app: "Mail" and device: "Other" — name it "SimOffice"',
+      'Google will show a 16-character password — copy it',
+      'Paste your Gmail address and the app password below',
+    ],
+  },
+  email_outlook: {
+    id: 'email_outlook',
+    name: 'Outlook',
+    icon: '📬',
+    description: 'Connect your Outlook or Microsoft 365 email',
+    connectionType: 'token',
+    docsUrl: 'https://account.microsoft.com/security',
+    configFields: [
+      { key: 'email', label: 'Outlook Email', type: 'text', placeholder: 'you@outlook.com', required: true },
+      { key: 'appPassword', label: 'App Password', type: 'password', placeholder: 'Paste app password...', required: true, description: 'Create at account.microsoft.com/security — App passwords' },
+    ],
+    instructions: [
+      'Go to account.microsoft.com/security',
+      'Under "Additional security options", click "Create a new app password"',
+      'Copy the generated password',
+      'Paste your Outlook email and the app password below',
+    ],
+  },
+  email_fastmail: {
+    id: 'email_fastmail',
+    name: 'Fastmail',
+    icon: '⚡',
+    description: 'Connect your Fastmail account',
+    connectionType: 'token',
+    docsUrl: 'https://www.fastmail.com/help/clients/apppassword.html',
+    configFields: [
+      { key: 'email', label: 'Fastmail Email', type: 'text', placeholder: 'you@fastmail.com', required: true },
+      { key: 'appPassword', label: 'App Password', type: 'password', placeholder: 'Paste app password...', required: true, description: 'Create at Settings — Privacy & Security — App Passwords' },
+    ],
+    instructions: [
+      'Go to Fastmail — Settings — Privacy & Security — App Passwords',
+      'Click "New App Password"',
+      'Select access: "IMAP/SMTP" and name it "SimOffice"',
+      'Copy the generated password and paste below',
+    ],
+  },
+  email_other: {
+    id: 'email_other',
+    name: 'Other Email',
+    icon: '📩',
+    description: 'Connect any email via IMAP/SMTP',
+    connectionType: 'token',
+    docsUrl: '',
+    configFields: [
+      { key: 'email', label: 'Email Address', type: 'text', placeholder: 'you@example.com', required: true },
+      { key: 'appPassword', label: 'Password or App Password', type: 'password', placeholder: 'Paste password...', required: true },
+      { key: 'imapHost', label: 'IMAP Server', type: 'text', placeholder: 'imap.example.com', required: true },
+      { key: 'smtpHost', label: 'SMTP Server', type: 'text', placeholder: 'smtp.example.com', required: true },
+      { key: 'imapPort', label: 'IMAP Port', type: 'text', placeholder: '993', required: false, description: 'Default: 993' },
+      { key: 'smtpPort', label: 'SMTP Port', type: 'text', placeholder: '465', required: false, description: 'Default: 465' },
+      { key: 'smtpStarttls', label: 'Use STARTTLS', type: 'select', required: false, options: [{ value: 'false', label: 'No (TLS — default)' }, { value: 'true', label: 'Yes (STARTTLS)' }] },
+    ],
+    instructions: [
+      'Enter your email server details below',
+      'Check your email provider\'s help docs for IMAP/SMTP server addresses',
+      'Use an app password if your provider supports it (recommended over your real password)',
+      'Custom ports and STARTTLS are optional — defaults work for most providers',
+    ],
   },
 };
 

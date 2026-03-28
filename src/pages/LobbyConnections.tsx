@@ -42,12 +42,20 @@ const INTEGRATION_TYPES: { type: ChannelType; name: string; icon: string; descri
   { type: 'vercel', name: 'Vercel', icon: '▲', description: 'Deployments, domains, projects' },
 ];
 
+const EMAIL_TYPES: { type: ChannelType; name: string; icon: string; description: string }[] = [
+  { type: 'email_gmail', name: 'Gmail', icon: '📧', description: 'Read, send, search, labels' },
+  { type: 'email_outlook', name: 'Outlook', icon: '📬', description: 'Microsoft 365 email' },
+  { type: 'email_fastmail', name: 'Fastmail', icon: '⚡', description: 'Privacy-first email' },
+  { type: 'email_other', name: 'Other', icon: '📩', description: 'Any IMAP/SMTP provider' },
+];
+
 // v1 integrations that have MCP packages — clicking opens IntegrationSetupModal.
 const V1_INTEGRATION_IDS = new Set<ChannelType>([
   'stripe_integration', 'github', 'gitlab', 'linear', 'sentry',
   'airtable', 'mailchimp', 'sendgrid', 'datadog', 'trello',
   'zendesk', 'hubspot', 'notion', 'jira', 'confluence',
   'monday', 'asana', 'xero', 'calendly', 'pandadoc',
+  'email_gmail', 'email_outlook', 'email_fastmail', 'email_other',
 ]);
 
 // Deferred — require OAuth or have no npm package. Show "Coming Soon" badge.
@@ -284,6 +292,46 @@ export function LobbyConnections() {
               <div style={{ padding: '8px 16px', borderRadius: 8, background: moonPayConnected ? 'rgba(34,211,153,0.1)' : 'linear-gradient(135deg, #7B3FE4, #a855f7)', color: moonPayConnected ? '#34d399' : 'white', fontSize: 13, fontWeight: 700, flexShrink: 0, fontFamily: 'Space Grotesk, sans-serif' }}>
                 {moonPayConnected ? 'Connected' : 'Connect →'}
               </div>
+            </div>
+          </div>
+
+          {/* Email */}
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 6 }}>
+              Email
+            </h2>
+            <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
+              Let your agents read, send, and manage email
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+              {EMAIL_TYPES.map((ch) => {
+                const isConnected = connectedIntegrations.has(ch.type);
+                return (
+                  <div key={ch.type}
+                    onClick={() => setIntegrationModalType(ch.type)}
+                    style={{
+                      background: isConnected ? 'rgba(13,148,136,0.06)' : 'hsl(var(--card))',
+                      border: `1px solid ${isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'}`,
+                      borderRadius: 12,
+                      padding: '16px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--primary))'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = isConnected ? 'rgba(13,148,136,0.3)' : 'hsl(var(--border))'; }}
+                  >
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>{ch.icon}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{ch.name}</div>
+                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>{ch.description}</div>
+                    {isConnected && (
+                      <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399' }} />
+                        <span style={{ fontSize: 10, fontWeight: 600, color: '#34d399' }}>CONNECTED</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

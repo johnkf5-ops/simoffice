@@ -110,6 +110,17 @@ const INTEGRATION_PROMPTS: Record<string, { label: string; prompt: string }[]> =
   ],
 };
 
+const EMAIL_PROMPTS: { label: string; prompt: string }[] = [
+  { label: 'Unread emails', prompt: 'Show my unread emails' },
+  { label: 'Search inbox', prompt: 'Search my emails for...' },
+  { label: 'Send email', prompt: 'Help me compose and send an email' },
+  { label: 'Email stats', prompt: 'Show my email analytics — volume and top senders' },
+];
+INTEGRATION_PROMPTS.email_gmail = EMAIL_PROMPTS;
+INTEGRATION_PROMPTS.email_outlook = EMAIL_PROMPTS;
+INTEGRATION_PROMPTS.email_fastmail = EMAIL_PROMPTS;
+INTEGRATION_PROMPTS.email_other = EMAIL_PROMPTS;
+
 export function IntegrationsPanel({ onSelectPrompt }: IntegrationsPanelProps) {
   const navigate = useNavigate();
   const [connectedIds, setConnectedIds] = useState<string[]>([]);

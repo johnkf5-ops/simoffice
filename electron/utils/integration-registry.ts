@@ -17,6 +17,7 @@ export interface IntegrationDef {
   mcpArgs: string[];    // Extra args after bin path. Usually [].
   envMap: Record<string, string>;  // { CHANNEL_META_field_key: 'ENV_VAR_NAME' } — required
   optionalEnvMap?: Record<string, string>; // Same shape, passed through if present, not validated
+  staticEnv?: Record<string, string>;     // Static env vars not entered by user (e.g., IMAP/SMTP hosts for known providers)
   requiredFields?: string[];       // Extra CHANNEL_META keys validated but not in envMap (special cases)
   beta?: boolean;
 }
@@ -240,5 +241,54 @@ export const INTEGRATION_REGISTRY: Record<string, IntegrationDef> = {
     mcpBin: 'dist/proxy.js', mcpArgs: [],
     envMap: {},
     requiredFields: ['apiKey'],  // Used by --header CLI arg special case
+  },
+
+  // ── Email Integrations ──────────────────────────────────────────
+  // All 4 use the same MCP package: @diskd-ai/email-mcp@0.3.2 (ESM)
+  // 47 tools: read, send, reply, search, drafts, labels, schedule, analytics
+  // Known providers auto-fill IMAP/SMTP settings via staticEnv
+
+  // ── 21. Gmail ───────────────────────────────────────────────────
+  email_gmail: {
+    id: 'email_gmail', name: 'Gmail',
+    mcpPackage: '@diskd-ai/email-mcp', mcpVersion: '0.3.2',
+    mcpBin: 'dist/main.js', mcpArgs: [],
+    envMap: { email: 'MCP_EMAIL_ADDRESS', appPassword: 'MCP_EMAIL_PASSWORD' },
+    staticEnv: { MCP_EMAIL_IMAP_HOST: 'imap.gmail.com', MCP_EMAIL_SMTP_HOST: 'smtp.gmail.com' },
+  },
+
+  // ── 22. Outlook ─────────────────────────────────────────────────
+  // Outlook SMTP uses port 587 with STARTTLS (not TLS on 465)
+  email_outlook: {
+    id: 'email_outlook', name: 'Outlook',
+    mcpPackage: '@diskd-ai/email-mcp', mcpVersion: '0.3.2',
+    mcpBin: 'dist/main.js', mcpArgs: [],
+    envMap: { email: 'MCP_EMAIL_ADDRESS', appPassword: 'MCP_EMAIL_PASSWORD' },
+    staticEnv: {
+      MCP_EMAIL_IMAP_HOST: 'outlook.office365.com',
+      MCP_EMAIL_SMTP_HOST: 'smtp.office365.com',
+      MCP_EMAIL_SMTP_PORT: '587',
+      MCP_EMAIL_SMTP_STARTTLS: 'true',
+      MCP_EMAIL_SMTP_TLS: 'false',
+    },
+  },
+
+  // ── 23. Fastmail ────────────────────────────────────────────────
+  email_fastmail: {
+    id: 'email_fastmail', name: 'Fastmail',
+    mcpPackage: '@diskd-ai/email-mcp', mcpVersion: '0.3.2',
+    mcpBin: 'dist/main.js', mcpArgs: [],
+    envMap: { email: 'MCP_EMAIL_ADDRESS', appPassword: 'MCP_EMAIL_PASSWORD' },
+    staticEnv: { MCP_EMAIL_IMAP_HOST: 'imap.fastmail.com', MCP_EMAIL_SMTP_HOST: 'smtp.fastmail.com' },
+  },
+
+  // ── 24. Other (generic IMAP/SMTP) ──────────────────────────────
+  // User enters IMAP/SMTP hosts manually. Optional port/STARTTLS fields.
+  email_other: {
+    id: 'email_other', name: 'Email (IMAP)',
+    mcpPackage: '@diskd-ai/email-mcp', mcpVersion: '0.3.2',
+    mcpBin: 'dist/main.js', mcpArgs: [],
+    envMap: { email: 'MCP_EMAIL_ADDRESS', appPassword: 'MCP_EMAIL_PASSWORD', imapHost: 'MCP_EMAIL_IMAP_HOST', smtpHost: 'MCP_EMAIL_SMTP_HOST' },
+    optionalEnvMap: { imapPort: 'MCP_EMAIL_IMAP_PORT', smtpPort: 'MCP_EMAIL_SMTP_PORT', smtpStarttls: 'MCP_EMAIL_SMTP_STARTTLS' },
   },
 };

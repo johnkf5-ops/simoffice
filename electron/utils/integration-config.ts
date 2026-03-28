@@ -51,6 +51,10 @@ export async function configureIntegration(
           env[envVar] = credentials[fieldKey].trim();
         }
       }
+      // Merge static env vars (provider-specific settings like IMAP/SMTP hosts)
+      if (def.staticEnv) {
+        Object.assign(env, def.staticEnv);
+      }
 
       // 4. Build MCP server entry
       //    Universal launcher: require() for CJS (+ call main() if guarded by

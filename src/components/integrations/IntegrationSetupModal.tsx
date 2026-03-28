@@ -193,22 +193,43 @@ export function IntegrationSetupModal({ type, onClose, onConnected }: Integratio
                     {field.description}
                   </div>
                 )}
-                <input
-                  type={field.type === 'password' ? 'password' : 'text'}
-                  value={credentials[field.key] || ''}
-                  onChange={(e) => {
-                    setCredentials({ ...credentials, [field.key]: e.target.value });
-                    setError(null);
-                  }}
-                  placeholder={field.placeholder}
-                  style={{
-                    width: '100%', padding: '10px 12px', borderRadius: 8,
-                    border: '1px solid rgba(13,148,136,0.3)',
-                    background: 'rgba(0,0,0,0.2)', color: 'hsl(var(--foreground))',
-                    fontSize: 13, outline: 'none', boxSizing: 'border-box',
-                    fontFamily: field.type === 'password' ? 'monospace' : 'inherit',
-                  }}
-                />
+                {field.type === 'select' && field.options ? (
+                  <select
+                    value={credentials[field.key] || ''}
+                    onChange={(e) => {
+                      setCredentials({ ...credentials, [field.key]: e.target.value });
+                      setError(null);
+                    }}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 8,
+                      border: '1px solid rgba(13,148,136,0.3)',
+                      background: 'rgba(0,0,0,0.2)', color: 'hsl(var(--foreground))',
+                      fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="">Select...</option>
+                    {field.options.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type === 'password' ? 'password' : 'text'}
+                    value={credentials[field.key] || ''}
+                    onChange={(e) => {
+                      setCredentials({ ...credentials, [field.key]: e.target.value });
+                      setError(null);
+                    }}
+                    placeholder={field.placeholder}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: 8,
+                      border: '1px solid rgba(13,148,136,0.3)',
+                      background: 'rgba(0,0,0,0.2)', color: 'hsl(var(--foreground))',
+                      fontSize: 13, outline: 'none', boxSizing: 'border-box',
+                      fontFamily: field.type === 'password' ? 'monospace' : 'inherit',
+                    }}
+                  />
+                )}
               </div>
             ))}
             {error && <p style={{ fontSize: 12, color: '#f87171', marginBottom: 8 }}>{error}</p>}
