@@ -2088,7 +2088,10 @@ function registerShellHandlers(): void {
 
   // MoonPay: open a URL in an in-app popup (checkout, block explorer, etc.)
   ipcMain.handle('moonpay:open-url', async (_, url: string) => {
-    if (!url || (!url.startsWith('https://buy.moonpay.com') && !url.startsWith('https://agents.moonpay.com'))) {
+    const ALLOWED_MOONPAY_HOSTS = new Set(['buy.moonpay.com', 'agents.moonpay.com']);
+    let parsedHost: string | undefined;
+    try { parsedHost = new URL(url).hostname; } catch { /* invalid URL */ }
+    if (!parsedHost || !ALLOWED_MOONPAY_HOSTS.has(parsedHost)) {
       return { success: false, error: 'Invalid URL' };
     }
     // Use the same 'persist:moonpay' partition as the login popup so that the

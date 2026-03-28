@@ -30,16 +30,11 @@ const electronAPI = {
         'openclaw:isReady',
         // Shell
         'shell:openExternal',
-        'shell:showItemInFolder',
-        'shell:openPath',
         // Dialog
         'dialog:open',
-        'dialog:save',
-        'dialog:message',
         // App
         'app:version',
         'app:name',
-        'app:getPath',
         'app:platform',
         'app:quit',
         'app:relaunch',
@@ -64,10 +59,6 @@ const electronAPI = {
         'update:install',
         'update:setChannel',
         'update:setAutoDownload',
-        // Env
-        'env:getConfig',
-        'env:setApiKey',
-        'env:deleteApiKey',
         // Provider
         'provider:list',
         'provider:get',
@@ -126,24 +117,11 @@ const electronAPI = {
         'skill:getAllConfigs',
         // Logs
         'log:getRecent',
-        'log:readFile',
-        'log:getFilePath',
-        'log:getDir',
-        'log:listFiles',
         // File staging & media
         'file:stage',
-        'file:stageBuffer',
         'media:getThumbnails',
-        'media:saveImage',
-        // Chat send with media (reads staged files in main process)
-        'chat:sendWithMedia',
         // Session management
         'session:delete',
-        // OpenClaw extras
-        'openclaw:getDir',
-        'openclaw:getConfigDir',
-        'openclaw:getSkillsDir',
-        'openclaw:getCliCommand',
         // License
         'license:get',
         'license:store',
