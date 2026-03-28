@@ -74,6 +74,8 @@ import { validateApiKeyWithProvider } from '../services/providers/provider-valid
 import { appUpdater } from './updater';
 import { PORTS } from '../utils/config';
 import { getLicenseData, setLicenseKey, cacheLicenseValidation, clearLicenseData } from '../utils/license-store';
+import { configureIntegration, removeIntegration, getIntegrationStatus } from '../utils/integration-config';
+import { INTEGRATION_REGISTRY } from '../utils/integration-registry';
 
 type AppRequest = {
   id?: string;
@@ -3155,9 +3157,6 @@ function registerLicenseHandlers(): void {
  * Configure/remove/status for MCP-based business integrations (Stripe, etc.)
  */
 function registerIntegrationHandlers(): void {
-  const { configureIntegration, removeIntegration, getIntegrationStatus } = require('../utils/integration-config') as typeof import('../utils/integration-config');
-  const { INTEGRATION_REGISTRY } = require('../utils/integration-registry') as typeof import('../utils/integration-registry');
-
   ipcMain.handle('integration:configure', async (_, { integrationId, credentials }: { integrationId: string; credentials: Record<string, string> }) => {
     return configureIntegration(integrationId, credentials);
   });
