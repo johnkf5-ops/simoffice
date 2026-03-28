@@ -180,6 +180,33 @@ function handleGatewayNotification(notification: { method?: string; params?: Rec
         }
       })
       .catch(() => {});
+
+    // ── Cron completion notification ──
+    const resolvedSK = sessionKey != null ? String(sessionKey) : '';
+    if (resolvedSK.includes(':cron:')) {
+      const cronParts = resolvedSK.split(':');
+      const cronIdx = cronParts.indexOf('cron');
+      const jobId = cronIdx >= 0 && cronIdx + 1 < cronParts.length ? cronParts[cronIdx + 1] : '';
+
+      Promise.all([
+        import('./cron'),
+        import('sonner'),
+        import('@/lib/api-client'),
+      ]).then(([{ useCronStore }, { toast }, { invokeIpc }]) => {
+        const jobs = useCronStore.getState().jobs;
+        const job = jobs.find((j) => j.id === jobId);
+        const jobName = job?.name || 'Automation';
+
+        toast.success(`${jobName} completed`);
+
+        if (typeof document !== 'undefined' && !document.hasFocus()) {
+          invokeIpc('notification:show', { title: `${jobName} completed`, body: 'Tap to open SimOffice' })
+            .catch(() => {});
+        }
+
+        useCronStore.getState().fetchJobs();
+      }).catch(() => {});
+    }
   }
 }
 

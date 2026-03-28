@@ -1,83 +1,58 @@
 /**
- * SimOffice Automations — Built from scratch. No ClawX UI.
- * Dark buddy panel + automations management matching SimOffice design.
+ * SimOffice Automations — Redesigned for everyone.
+ * Grandma-friendly creation flow, plain English schedules, smart agent picker.
  */
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { useCronStore } from '@/stores/cron';
 import { useAgentsStore } from '@/stores/agents';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
+import { hostApiFetch } from '@/lib/host-api';
 import type { CronJob, CronRunEntry, CronSchedule } from '@/types/cron';
-import { AUTOMATION_TEMPLATES, type AutomationTemplate } from '@/lib/cron/templates';
+import { INSPIRATION_CARDS, type InspirationCard } from '@/lib/cron/templates';
 
-// ─── Schedule presets ────────────────────────────────────────────────────────
+// ─── Friendly schedule presets ──────────────────────────────────────────────
 
-const SCHEDULE_PRESETS = [
-  { label: 'Every 5 minutes', value: '*/5 * * * *' },
-  { label: 'Every 15 minutes', value: '*/15 * * * *' },
-  { label: 'Every 30 minutes', value: '*/30 * * * *' },
-  { label: 'Every hour', value: '0 * * * *' },
-  { label: 'Every day at 9am', value: '0 9 * * *' },
-  { label: 'Weekdays at 9am', value: '0 9 * * 1-5' },
-  { label: 'Weekdays at 5pm', value: '0 17 * * 1-5' },
-  { label: 'Every Monday at 8am', value: '0 8 * * 1' },
-  { label: 'Every day at midnight', value: '0 0 * * *' },
-  { label: 'Every Sunday at midnight', value: '0 0 * * 0' },
+const FRIENDLY_SCHEDULES = [
+  { label: 'Every morning at 8am', value: '0 8 * * *', group: 'daily' },
+  { label: 'Every morning at 9am', value: '0 9 * * *', group: 'daily' },
+  { label: 'Every afternoon at 12pm', value: '0 12 * * *', group: 'daily' },
+  { label: 'Every evening at 6pm', value: '0 18 * * *', group: 'daily' },
+  { label: 'Every weekday morning', value: '0 9 * * 1-5', group: 'daily' },
+  { label: 'Every hour', value: '0 * * * *', group: 'frequent' },
+  { label: 'Every 15 minutes', value: '*/15 * * * *', group: 'frequent' },
+  { label: 'Every 30 minutes', value: '*/30 * * * *', group: 'frequent' },
+  { label: 'Every Monday morning', value: '0 9 * * 1', group: 'weekly' },
+  { label: 'Every Friday evening', value: '0 18 * * 5', group: 'weekly' },
+  { label: 'Once a week (Sunday)', value: '0 10 * * 0', group: 'weekly' },
+  { label: 'Every day at midnight', value: '0 0 * * *', group: 'daily' },
 ] as const;
 
-const PRESET_VALUES: Set<string> = new Set(SCHEDULE_PRESETS.map((p) => p.value));
+const SCHEDULE_LABEL_MAP = new Map<string, string>(FRIENDLY_SCHEDULES.map((s) => [s.value, s.label]));
+const PRESET_VALUES: Set<string> = new Set(FRIENDLY_SCHEDULES.map((s) => s.value));
 
-// ─── Common timezones ────────────────────────────────────────────────────────
+// ─── Delivery prefix helpers ────────────────────────────────────────────────
 
-const COMMON_TIMEZONES = [
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'America/Anchorage',
-  'Pacific/Honolulu',
-  'America/Toronto',
-  'America/Vancouver',
-  'Europe/London',
-  'Europe/Paris',
-  'Europe/Berlin',
-  'Europe/Amsterdam',
-  'Europe/Zurich',
-  'Europe/Moscow',
-  'Asia/Dubai',
-  'Asia/Kolkata',
-  'Asia/Singapore',
-  'Asia/Shanghai',
-  'Asia/Tokyo',
-  'Asia/Seoul',
-  'Australia/Sydney',
-  'Australia/Melbourne',
-  'Pacific/Auckland',
-  'UTC',
-];
+const DELIVERY_PREFIX_TEMPLATE =
+  '[IMPORTANT: After completing this task, you MUST send your full response to the user via {channel} using the message tool. Do not skip this step.]\n\n';
 
-function getLocalTz(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch {
-    return 'UTC';
-  }
+function buildMessageWithDelivery(userPrompt: string, channelType?: string): string {
+  if (!channelType) return userPrompt;
+  return DELIVERY_PREFIX_TEMPLATE.replace('{channel}', channelType) + userPrompt;
 }
 
-function formatTzLabel(tz: string): string {
-  try {
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' });
-    const parts = formatter.formatToParts(now);
-    const abbr = parts.find((p) => p.type === 'timeZoneName')?.value || '';
-    return `${tz.replace(/_/g, ' ')} (${abbr})`;
-  } catch {
-    return tz;
-  }
+function stripDeliveryPrefix(message: string): string {
+  return message.replace(/^\[IMPORTANT:[^\]]*\]\n\n/, '');
 }
 
-// ─── Cron validation & human-readable preview ────────────────────────────────
+function getDeliveryChannelFromMessage(message: string): string | undefined {
+  const match = message.match(/^\[IMPORTANT:.*?via (\w+) using the message tool/);
+  return match?.[1];
+}
+
+// ─── Cron expression helpers (preserved from previous implementation) ───────
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -85,30 +60,25 @@ function validateCron(expr: string): { valid: boolean; preview: string } {
   const parts = expr.trim().split(/\s+/);
   if (parts.length !== 5) return { valid: false, preview: 'Expected 5 fields: min hour day month weekday' };
 
-  const [min, hour, dom, month, dow] = parts;
-  // Basic field validation: each field should match cron syntax
   const fieldPattern = /^(\*|(\d+(-\d+)?(,\d+(-\d+)?)*))(\/\d+)?$/;
   for (const field of parts) {
     if (!fieldPattern.test(field)) return { valid: false, preview: `Invalid field: ${field}` };
   }
 
-  // Range checks
   const checkRange = (field: string, max: number): boolean => {
     const nums = field.replace(/\*|\/\d+/g, '').split(/[,-]/).filter(Boolean);
     return nums.every((n) => { const v = Number(n); return Number.isFinite(v) && v >= 0 && v <= max; });
   };
-  if (!checkRange(min, 59)) return { valid: false, preview: 'Minutes must be 0-59' };
-  if (!checkRange(hour, 23)) return { valid: false, preview: 'Hours must be 0-23' };
-  if (!checkRange(dom, 31)) return { valid: false, preview: 'Day of month must be 0-31' };
-  if (!checkRange(month, 12)) return { valid: false, preview: 'Month must be 0-12' };
-  if (!checkRange(dow, 7)) return { valid: false, preview: 'Day of week must be 0-7' };
+  if (!checkRange(parts[0], 59)) return { valid: false, preview: 'Minutes must be 0-59' };
+  if (!checkRange(parts[1], 23)) return { valid: false, preview: 'Hours must be 0-23' };
+  if (!checkRange(parts[2], 31)) return { valid: false, preview: 'Day of month must be 0-31' };
+  if (!checkRange(parts[3], 12)) return { valid: false, preview: 'Month must be 0-12' };
+  if (!checkRange(parts[4], 7)) return { valid: false, preview: 'Day of week must be 0-7' };
 
-  // Build human-readable preview
-  return { valid: true, preview: describeCron(min, hour, dom, month, dow) };
+  return { valid: true, preview: describeCron(parts[0], parts[1], parts[2], parts[3], parts[4]) };
 }
 
 function describeCron(min: string, hour: string, _dom: string, _month: string, dow: string): string {
-  // Handle common interval patterns
   if (min.startsWith('*/') && hour === '*' && dow === '*') {
     const interval = Number(min.slice(2));
     return `Every ${interval} minute${interval > 1 ? 's' : ''}`;
@@ -118,7 +88,6 @@ function describeCron(min: string, hour: string, _dom: string, _month: string, d
     return `Every ${interval} hour${interval > 1 ? 's' : ''}`;
   }
 
-  // Time string
   const hourNum = Number(hour);
   const minNum = Number(min);
   let timeStr = '';
@@ -128,7 +97,6 @@ function describeCron(min: string, hour: string, _dom: string, _month: string, d
     timeStr = `${h}:${String(minNum).padStart(2, '0')} ${ampm}`;
   }
 
-  // Weekday handling
   if (dow !== '*') {
     const dayNames = dow.split(',').map((d) => {
       if (d === '1-5') return 'Weekdays';
@@ -143,12 +111,12 @@ function describeCron(min: string, hour: string, _dom: string, _month: string, d
   return `${min} ${hour} (custom)`;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Schedule display helpers ───────────────────────────────────────────────
 
 function formatSchedule(schedule: string | CronSchedule): string {
   if (typeof schedule === 'string') {
-    const preset = SCHEDULE_PRESETS.find((p) => p.value === schedule);
-    if (preset) return preset.label;
+    const preset = SCHEDULE_LABEL_MAP.get(schedule);
+    if (preset) return preset;
     const { valid, preview } = validateCron(schedule);
     return valid ? preview : schedule;
   }
@@ -160,12 +128,23 @@ function formatSchedule(schedule: string | CronSchedule): string {
   }
   if (schedule.kind === 'at') return `Once at ${schedule.at}`;
   if (schedule.kind === 'cron') {
-    const preset = SCHEDULE_PRESETS.find((p) => p.value === schedule.expr);
-    if (preset) return preset.label;
+    const preset = SCHEDULE_LABEL_MAP.get(schedule.expr);
+    if (preset) return preset;
     const { valid, preview } = validateCron(schedule.expr);
     return valid ? preview : schedule.expr;
   }
   return String(schedule);
+}
+
+function extractCronExpr(schedule: string | CronSchedule): string {
+  if (typeof schedule === 'string') return schedule;
+  if (schedule.kind === 'cron') return schedule.expr;
+  return '';
+}
+
+function extractTz(schedule: string | CronSchedule): string {
+  if (typeof schedule === 'object' && schedule.kind === 'cron' && schedule.tz) return schedule.tz;
+  return '';
 }
 
 function formatDate(dateStr: string | undefined): string {
@@ -183,21 +162,39 @@ function formatDate(dateStr: string | undefined): string {
   }
 }
 
-function extractCronExpr(schedule: string | CronSchedule): string {
-  if (typeof schedule === 'string') return schedule;
-  if (schedule.kind === 'cron') return schedule.expr;
-  return '';
+function getLocalTz(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return 'UTC';
+  }
 }
 
-function extractTz(schedule: string | CronSchedule): string {
-  if (typeof schedule === 'object' && schedule.kind === 'cron' && schedule.tz) return schedule.tz;
-  return '';
+// ─── Custom time picker helpers ─────────────────────────────────────────────
+
+function buildCronFromPicker(hour24: number, minute: number, days: number[]): string {
+  const allDays = days.length === 0 || days.length === 7;
+  const dow = allDays ? '*' : days.join(',');
+  return `${minute} ${hour24} * * ${dow}`;
 }
 
-// ─── Status badge ────────────────────────────────────────────────────────────
+function describePickerSchedule(hour24: number, minute: number, days: number[]): string {
+  const h = hour24 % 12 || 12;
+  const ampm = hour24 < 12 ? 'AM' : 'PM';
+  const timeStr = `${h}:${String(minute).padStart(2, '0')} ${ampm}`;
+
+  if (days.length === 0 || days.length === 7) return `Every day at ${timeStr}`;
+  if (days.length === 5 && [1, 2, 3, 4, 5].every((d) => days.includes(d))) return `Weekdays at ${timeStr}`;
+  if (days.length === 2 && days.includes(0) && days.includes(6)) return `Weekends at ${timeStr}`;
+
+  const names = days.map((d) => DAYS_OF_WEEK[d]?.slice(0, 3) || String(d));
+  return `${names.join(', ')} at ${timeStr}`;
+}
+
+// ─── Status dot ─────────────────────────────────────────────────────────────
 
 function StatusDot({ job }: { job: CronJob }) {
-  let color = 'hsl(var(--muted-foreground))'; // gray — never run
+  let color = 'hsl(var(--muted-foreground))';
   let title = 'Never run';
   if (job.lastRun) {
     if (job.lastRun.success) {
@@ -208,21 +205,18 @@ function StatusDot({ job }: { job: CronJob }) {
   }
   return (
     <div title={title} style={{
-      width: 8, height: 8, borderRadius: '50%', background: color,
-      flexShrink: 0,
+      width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0,
     }} />
   );
 }
 
-// ─── Run history formatting ──────────────────────────────────────────────────
+// ─── Run history formatting ─────────────────────────────────────────────────
 
 function formatRunTimestamp(entry: CronRunEntry): string {
   const ms = entry.ts ?? entry.runAtMs;
   if (!ms) return 'Unknown';
   const d = new Date(ms < 1e12 ? ms * 1000 : ms);
-  return d.toLocaleString(undefined, {
-    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-  });
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 function formatDurationMs(ms: number | undefined): string {
@@ -232,7 +226,7 @@ function formatDurationMs(ms: number | undefined): string {
   return `${Math.round(ms / 1000)}s`;
 }
 
-// ─── Shared styles ───────────────────────────────────────────────────────────
+// ─── Shared styles ──────────────────────────────────────────────────────────
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 14px', borderRadius: 10, boxSizing: 'border-box',
@@ -245,7 +239,15 @@ const labelStyle: React.CSSProperties = {
   fontSize: 12, fontWeight: 600, color: 'hsl(var(--muted-foreground))', display: 'block', marginBottom: 4,
 };
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Channel option type ────────────────────────────────────────────────────
+
+interface ChannelOption {
+  label: string;
+  channelType: string;
+  accountId: string;
+}
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export function LobbyAutomations() {
   const navigate = useNavigate();
@@ -264,162 +266,208 @@ export function LobbyAutomations() {
   const agents = useAgentsStore((s) => s.agents);
   const fetchAgents = useAgentsStore((s) => s.fetchAgents);
 
-  // Form state — shared between create and edit modes
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  // ── Form state ──────────────────────────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
-  const [formName, setFormName] = useState('');
   const [formMessage, setFormMessage] = useState('');
-  const [formSchedule, setFormSchedule] = useState('0 * * * *');
-  const [formCustomCron, setFormCustomCron] = useState('');
-  const [isCustomSchedule, setIsCustomSchedule] = useState(false);
+  const [formSchedule, setFormSchedule] = useState('0 9 * * *');
   const [formAgentId, setFormAgentId] = useState('');
-  const [formTz, setFormTz] = useState(getLocalTz());
+  const [formDeliveryChannel, setFormDeliveryChannel] = useState('');
   const [saving, setSaving] = useState(false);
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+
+  // ── Custom time picker state ────────────────────────────────────────────
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [pickerHour, setPickerHour] = useState(9);
+  const [pickerMinute, setPickerMinute] = useState(0);
+  const [pickerDays, setPickerDays] = useState<number[]>([]);
+
+  // ── Advanced (raw cron + timezone) ──────────────────────────────────────
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [formCustomCron, setFormCustomCron] = useState('');
+  const [formTz, setFormTz] = useState(getLocalTz());
+
+  // ── Activity feed ────────────────────────────────────────────────────────
+  const [recentRuns, setRecentRuns] = useState<Array<CronRunEntry & { jobName: string }>>([]);
+
+  // ── Connected channels for delivery ─────────────────────────────────────
+  const [connectedChannels, setConnectedChannels] = useState<ChannelOption[]>([]);
+
+  // ── Agent search (for 6+ agents) ────────────────────────────────────────
+  const [showAllAgents, setShowAllAgents] = useState(false);
+  const [agentSearch, setAgentSearch] = useState('');
 
   useEffect(() => { void fetchJobs(); }, [fetchJobs]);
   useEffect(() => { void fetchAgents(); }, [fetchAgents]);
 
-  // Build timezone list: local tz first, then common, deduped
-  const timezones = useMemo(() => {
-    const localTz = getLocalTz();
-    const seen = new Set<string>();
-    const result: string[] = [];
-    for (const tz of [localTz, ...COMMON_TIMEZONES]) {
-      if (!seen.has(tz)) { seen.add(tz); result.push(tz); }
-    }
-    return result;
+  // Fetch recent runs for activity feed
+  useEffect(() => {
+    if (jobs.length === 0) { setRecentRuns([]); return; }
+    Promise.all(
+      jobs.slice(0, 20).map(async (job) => {
+        try {
+          const data = await hostApiFetch<{ runs: CronRunEntry[] }>(
+            `/api/cron/runs/${encodeURIComponent(job.id)}?limit=3`,
+          );
+          return data.runs.map((r) => ({ ...r, jobName: job.name }));
+        } catch { return []; }
+      }),
+    ).then((results) => {
+      const merged = results.flat().sort((a, b) => {
+        const tsA = a.ts ?? a.runAtMs ?? 0;
+        const tsB = b.ts ?? b.runAtMs ?? 0;
+        return tsB - tsA;
+      });
+      setRecentRuns(merged.slice(0, 10));
+    });
+  }, [jobs]);
+
+  // Fetch connected channels for delivery picker
+  useEffect(() => {
+    hostApiFetch<{ success: boolean; channels: Array<{
+      channelType: string;
+      accounts: Array<{ accountId: string; name: string; connected: boolean }>;
+    }> }>('/api/channels/accounts')
+      .then((data) => {
+        const options: ChannelOption[] = [];
+        for (const ch of data.channels) {
+          for (const acc of ch.accounts) {
+            if (acc.connected) {
+              options.push({
+                label: `${ch.channelType.charAt(0).toUpperCase() + ch.channelType.slice(1)}${acc.name ? ` \u2014 ${acc.name}` : ''}`,
+                channelType: ch.channelType,
+                accountId: acc.accountId,
+              });
+            }
+          }
+        }
+        setConnectedChannels(options);
+      })
+      .catch(() => {});
   }, []);
 
-  // Cron validation for custom input
-  const cronValidation = useMemo(() => {
-    if (!isCustomSchedule || !formCustomCron.trim()) return null;
-    return validateCron(formCustomCron.trim());
-  }, [isCustomSchedule, formCustomCron]);
+  // Auto-select agent if only 1
+  useEffect(() => {
+    if (agents.length === 1 && !formAgentId && showForm) {
+      setFormAgentId(agents[0].id);
+    }
+  }, [agents, formAgentId, showForm]);
 
-  const effectiveSchedule = isCustomSchedule ? formCustomCron.trim() : formSchedule;
-  const agentValid = formAgentId !== '';
-  const formValid = formName.trim() && formMessage.trim() && agentValid
-    && (!isCustomSchedule || (cronValidation?.valid ?? false));
+  // ── Derived data ────────────────────────────────────────────────────────
 
-  // Agent lookup for job cards
   const agentMap = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
     for (const a of agents) map.set(a.id, a);
     return map;
   }, [agents]);
 
-  // Group jobs by agent
-  const groupedJobs = useMemo(() => {
-    const groups: { agentId: string; agentName: string; jobs: CronJob[] }[] = [];
-    const byAgent = new Map<string, CronJob[]>();
-    const ungrouped: CronJob[] = [];
+  const agentUsageCounts = useMemo(() => {
+    const counts = new Map<string, number>();
     for (const job of jobs) {
-      if (job.agentId) {
-        const list = byAgent.get(job.agentId) ?? [];
-        list.push(job);
-        byAgent.set(job.agentId, list);
-      } else {
-        ungrouped.push(job);
-      }
+      if (job.agentId) counts.set(job.agentId, (counts.get(job.agentId) ?? 0) + 1);
     }
-    for (const [agentId, agentJobs] of byAgent) {
-      const agent = agentMap.get(agentId);
-      groups.push({ agentId, agentName: agent?.name ?? agentId, jobs: agentJobs });
-    }
-    groups.sort((a, b) => a.agentName.localeCompare(b.agentName));
-    if (ungrouped.length > 0) {
-      groups.push({ agentId: '__ungrouped__', agentName: 'Unassigned', jobs: ungrouped });
-    }
-    return groups;
-  }, [jobs, agentMap]);
+    return counts;
+  }, [jobs]);
 
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const topAgents = useMemo(() => {
+    return [...agents].sort((a, b) => (agentUsageCounts.get(b.id) ?? 0) - (agentUsageCounts.get(a.id) ?? 0));
+  }, [agents, agentUsageCounts]);
 
-  function toggleGroupCollapse(agentId: string) {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(agentId)) next.delete(agentId); else next.add(agentId);
-      return next;
-    });
-  }
+  const cronValidation = useMemo(() => {
+    if (!showAdvanced || !formCustomCron.trim()) return null;
+    return validateCron(formCustomCron.trim());
+  }, [showAdvanced, formCustomCron]);
 
-  // ─── Form actions ──────────────────────────────────────────────────────────
+  const effectiveSchedule = showAdvanced && formCustomCron.trim()
+    ? formCustomCron.trim()
+    : showCustomPicker
+      ? buildCronFromPicker(pickerHour, pickerMinute, pickerDays)
+      : formSchedule;
+
+  const formName = useMemo(() => {
+    // Auto-generate name from first few words of prompt
+    const raw = stripDeliveryPrefix(formMessage).trim();
+    if (!raw) return '';
+    const words = raw.split(/\s+/).slice(0, 5).join(' ');
+    return words.length > 40 ? words.slice(0, 40) + '\u2026' : words;
+  }, [formMessage]);
+
+  const formValid = formMessage.trim() && formAgentId
+    && (!showAdvanced || !formCustomCron.trim() || cronValidation?.valid);
+
+  const activeCount = jobs.filter((j) => j.enabled).length;
+
+  // ── Form actions ────────────────────────────────────────────────────────
 
   function resetForm() {
-    setShowTemplatePicker(false);
     setShowForm(false);
     setEditingJobId(null);
-    setFormName('');
     setFormMessage('');
-    setFormSchedule('0 * * * *');
+    setFormSchedule('0 9 * * *');
+    setFormAgentId('');
+    setFormDeliveryChannel('');
+    setSaving(false);
+    setShowCustomPicker(false);
+    setPickerHour(9);
+    setPickerMinute(0);
+    setPickerDays([]);
+    setShowAdvanced(false);
     setFormCustomCron('');
-    setIsCustomSchedule(false);
-    setFormAgentId('');
     setFormTz(getLocalTz());
+    setShowAllAgents(false);
+    setAgentSearch('');
   }
 
-  function openCreate() {
+  function openCreate(card?: InspirationCard) {
     resetForm();
-    setShowTemplatePicker(true);
-  }
-
-  function selectTemplate(template: AutomationTemplate | null) {
-    setShowTemplatePicker(false);
     setShowForm(true);
-    setEditingJobId(null);
-    if (template) {
-      setFormName(template.name);
-      setFormMessage(template.prompt);
-      const isPreset = PRESET_VALUES.has(template.schedule);
-      if (isPreset) {
-        setFormSchedule(template.schedule);
-        setIsCustomSchedule(false);
-        setFormCustomCron('');
-      } else {
-        setIsCustomSchedule(true);
-        setFormCustomCron(template.schedule);
-      }
-    } else {
-      setFormName('');
-      setFormMessage('');
-      setFormSchedule('0 * * * *');
-      setIsCustomSchedule(false);
-      setFormCustomCron('');
+    if (card) {
+      setFormMessage(card.promptStart);
+      setFormSchedule(card.defaultSchedule);
     }
-    setFormAgentId('');
-    setFormTz(getLocalTz());
-  }
-
-  function toggleHistory(jobId: string) {
-    if (expandedHistoryId === jobId) {
-      setExpandedHistoryId(null);
-    } else {
-      setExpandedHistoryId(jobId);
-      void fetchRunHistory(jobId);
-    }
+    if (agents.length === 1) setFormAgentId(agents[0].id);
   }
 
   function openEdit(job: CronJob) {
     const cronExpr = extractCronExpr(job.schedule);
     const tz = extractTz(job.schedule);
-    const isCustom = cronExpr ? !PRESET_VALUES.has(cronExpr) : false;
+    const delivery = getDeliveryChannelFromMessage(job.message);
+    const rawMessage = stripDeliveryPrefix(job.message);
 
     setEditingJobId(job.id);
-    setFormName(job.name);
-    setFormMessage(job.message);
+    setFormMessage(rawMessage);
     setFormAgentId(job.agentId || '');
+    setFormDeliveryChannel(delivery || '');
     setFormTz(tz || getLocalTz());
-    if (isCustom) {
-      setIsCustomSchedule(true);
-      setFormCustomCron(cronExpr);
-      setFormSchedule('0 * * * *');
-    } else {
-      setIsCustomSchedule(false);
-      setFormSchedule(cronExpr || '0 * * * *');
-      setFormCustomCron('');
+
+    if (cronExpr && PRESET_VALUES.has(cronExpr)) {
+      setFormSchedule(cronExpr);
+      setShowCustomPicker(false);
+      setShowAdvanced(false);
+    } else if (cronExpr) {
+      // Non-preset: try to parse into the custom picker
+      const parts = cronExpr.trim().split(/\s+/);
+      if (parts.length === 5) {
+        const min = Number(parts[0]);
+        const hr = Number(parts[1]);
+        const dow = parts[4];
+        if (Number.isFinite(min) && Number.isFinite(hr) && parts[2] === '*' && parts[3] === '*') {
+          setShowCustomPicker(true);
+          setPickerHour(hr);
+          setPickerMinute(min);
+          if (dow === '*') {
+            setPickerDays([]);
+          } else {
+            setPickerDays(dow.split(',').map(Number).filter(Number.isFinite));
+          }
+        } else {
+          // Too complex for picker, show advanced
+          setShowAdvanced(true);
+          setFormCustomCron(cronExpr);
+        }
+      }
     }
+
     setShowForm(true);
   }
 
@@ -428,23 +476,27 @@ export function LobbyAutomations() {
     setSaving(true);
     try {
       const tz = formTz !== 'UTC' ? formTz : undefined;
+      const finalMessage = buildMessageWithDelivery(formMessage.trim(), formDeliveryChannel || undefined);
+      const name = formName || 'Automation';
+
       if (editingJobId) {
         await updateJob(editingJobId, {
-          name: formName.trim(),
-          message: formMessage.trim(),
+          name,
+          message: finalMessage,
           schedule: effectiveSchedule,
           agentId: formAgentId,
           tz,
         });
       } else {
         await createJob({
-          name: formName.trim(),
-          message: formMessage.trim(),
+          name,
+          message: finalMessage,
           schedule: effectiveSchedule,
           enabled: true,
           agentId: formAgentId,
           tz,
         });
+        toast.success('Automation created!');
       }
       resetForm();
     } catch { /* error handled by store */ }
@@ -453,27 +505,39 @@ export function LobbyAutomations() {
 
   async function handleDelete(id: string) {
     if (!confirm('Remove this automation?')) return;
-    try { await deleteJob(id); } catch { /* error handled by store */ }
+    try { await deleteJob(id); } catch { /* */ }
   }
 
   function handleScheduleChange(value: string) {
     if (value === '__custom__') {
-      setIsCustomSchedule(true);
+      setShowCustomPicker(true);
     } else {
-      setIsCustomSchedule(false);
+      setShowCustomPicker(false);
       setFormSchedule(value);
     }
   }
 
-  const activeCount = jobs.filter((j) => j.enabled).length;
+  function toggleDay(day: number) {
+    setPickerDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()
+    );
+  }
+
+  const toggleHistory = useCallback((jobId: string) => {
+    if (expandedHistoryId === jobId) {
+      setExpandedHistoryId(null);
+    } else {
+      setExpandedHistoryId(jobId);
+      void fetchRunHistory(jobId);
+    }
+  }, [expandedHistoryId, fetchRunHistory]);
+
+  // ── Render ──────────────────────────────────────────────────────────────
 
   return (
     <div style={{ display: 'flex', height: '100%' }}>
-
-      {/* BUDDY PANEL */}
       <BuddyPanel currentPage="/automations" />
 
-      {/* CONTENT AREA */}
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: 'hsl(var(--background))' }}>
 
         {/* Section Header */}
@@ -506,7 +570,7 @@ export function LobbyAutomations() {
             </div>
             <div style={{ flex: 1 }} />
             <button
-              onClick={openCreate}
+              onClick={() => openCreate()}
               style={{
                 padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',
                 background: 'linear-gradient(135deg, #0284c7, #38bdf8)', color: 'white',
@@ -516,75 +580,30 @@ export function LobbyAutomations() {
             </button>
           </div>
 
-          {/* ═══ TEMPLATE PICKER ═══ */}
-          {showTemplatePicker && (
-            <div style={{
-              background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: 16,
-              padding: 24,
-              marginBottom: 24,
-            }}>
-              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 4 }}>
-                Choose a template
+          {/* ═══ ACTIVITY FEED ═══ */}
+          {recentRuns.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--muted-foreground))', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Recent Activity
               </div>
-              <div style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 16 }}>
-                Start from a template or create a blank automation.
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                gap: 10,
-              }}>
-                {/* Blank option */}
-                <button
-                  onClick={() => selectTemplate(null)}
-                  style={{
-                    padding: '14px 16px', borderRadius: 12, textAlign: 'left',
-                    border: '1px dashed hsl(var(--border))', background: 'transparent',
-                    cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--border))'; }}
-                >
-                  <div style={{ fontSize: 20, marginBottom: 2 }}>+</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))' }}>Blank</div>
-                  <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', lineHeight: 1.3 }}>
-                    Start from scratch
-                  </div>
-                </button>
-
-                {/* Templates */}
-                {AUTOMATION_TEMPLATES.map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    onClick={() => selectTemplate(tpl)}
-                    style={{
-                      padding: '14px 16px', borderRadius: 12, textAlign: 'left',
-                      border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
-                      cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.background = 'rgba(56,189,248,0.05)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--border))'; e.currentTarget.style.background = 'hsl(var(--background))'; }}
-                  >
-                    <div style={{ fontSize: 20, marginBottom: 2 }}>{tpl.icon}</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{tpl.name}</div>
-                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', lineHeight: 1.3 }}>
-                      {tpl.description}
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                {recentRuns.map((run, i) => {
+                  const isError = run.status === 'error';
+                  const ms = run.ts ?? run.runAtMs ?? 0;
+                  const ago = ms ? formatDate(new Date(ms < 1e12 ? ms * 1000 : ms).toISOString()) : '';
+                  return (
+                    <div key={run.sessionId ?? ms ?? i} style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
+                      background: isError ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.04)',
+                      border: `1px solid ${isError ? 'rgba(239,68,68,0.12)' : 'rgba(34,197,94,0.08)'}`,
+                      whiteSpace: 'nowrap', flexShrink: 0, fontSize: 12,
+                    }}>
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: isError ? '#ef4444' : '#22c55e' }} />
+                      <span style={{ fontWeight: 600, color: 'hsl(var(--foreground))' }}>{run.jobName}</span>
+                      <span style={{ color: 'hsl(var(--muted-foreground))' }}>{ago}</span>
                     </div>
-                  </button>
-                ))}
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <button
-                  onClick={resetForm}
-                  style={{
-                    padding: '8px 16px', borderRadius: 10,
-                    border: '1px solid hsl(var(--border))', background: 'transparent',
-                    color: 'hsl(var(--muted-foreground))', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  }}>
-                  Cancel
-                </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -594,65 +613,18 @@ export function LobbyAutomations() {
             <div style={{
               background: 'hsl(var(--card))',
               border: '1px solid hsl(var(--border))',
-              borderRadius: 16,
-              padding: 24,
-              marginBottom: 24,
+              borderRadius: 16, padding: 24, marginBottom: 24,
             }}>
               <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))', marginBottom: 16 }}>
                 {editingJobId ? 'Edit Automation' : 'New Automation'}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-                {/* Name */}
+                {/* What should happen? */}
                 <div>
-                  <label style={labelStyle}>Name</label>
-                  <input
-                    autoFocus
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder="Daily summary, Morning briefing..."
-                    style={inputStyle}
-                  />
-                </div>
-
-                {/* Agent Picker */}
-                <div>
-                  <label style={labelStyle}>Agent</label>
-                  <div style={{ position: 'relative' }}>
-                    <select
-                      value={formAgentId}
-                      onChange={(e) => setFormAgentId(e.target.value)}
-                      style={{
-                        ...inputStyle,
-                        appearance: 'none',
-                        paddingLeft: formAgentId ? 42 : 14,
-                      }}
-                    >
-                      <option value="">Select an agent...</option>
-                      {agents.map((agent) => (
-                        <option key={agent.id} value={agent.id}>{agent.name}</option>
-                      ))}
-                    </select>
-                    {formAgentId && (() => {
-                      const agent = agentMap.get(formAgentId);
-                      return agent ? (
-                        <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                          <AgentAvatar agentId={agent.id} name={agent.name} size={22} />
-                        </div>
-                      ) : null;
-                    })()}
-                  </div>
-                  {!formAgentId && formName.trim() && (
-                    <div style={{ fontSize: 11, color: '#f87171', marginTop: 4 }}>
-                      An agent is required
-                    </div>
-                  )}
-                </div>
-
-                {/* Prompt */}
-                <div>
-                  <label style={labelStyle}>What should the AI do?</label>
+                  <label style={labelStyle}>What should happen?</label>
                   <textarea
+                    autoFocus
                     value={formMessage}
                     onChange={(e) => setFormMessage(e.target.value)}
                     placeholder="Summarize my unread messages and highlight anything urgent..."
@@ -661,71 +633,232 @@ export function LobbyAutomations() {
                   />
                 </div>
 
-                {/* Schedule */}
+                {/* When? */}
                 <div>
-                  <label style={labelStyle}>Schedule</label>
-                  <select
-                    value={isCustomSchedule ? '__custom__' : formSchedule}
-                    onChange={(e) => handleScheduleChange(e.target.value)}
-                    style={inputStyle}
-                  >
-                    {SCHEDULE_PRESETS.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                    <option value="__custom__">Custom cron expression...</option>
-                  </select>
+                  <label style={labelStyle}>When?</label>
+                  {!showCustomPicker && !showAdvanced && (
+                    <select
+                      value={PRESET_VALUES.has(formSchedule) ? formSchedule : '__custom__'}
+                      onChange={(e) => handleScheduleChange(e.target.value)}
+                      style={inputStyle}
+                    >
+                      {FRIENDLY_SCHEDULES.map((p) => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                      <option value="__custom__">Custom time...</option>
+                    </select>
+                  )}
 
-                  {/* Custom cron input */}
-                  {isCustomSchedule && (
-                    <div style={{ marginTop: 8 }}>
-                      <input
-                        value={formCustomCron}
-                        onChange={(e) => setFormCustomCron(e.target.value)}
-                        placeholder="*/10 * * * *"
-                        style={{
-                          ...inputStyle,
-                          fontFamily: 'monospace',
-                          borderColor: cronValidation
-                            ? (cronValidation.valid ? 'hsl(var(--border))' : '#f87171')
-                            : 'hsl(var(--border))',
-                        }}
-                      />
-                      {cronValidation && (
-                        <div style={{
-                          fontSize: 11, marginTop: 4,
-                          color: cronValidation.valid ? '#38bdf8' : '#f87171',
-                        }}>
-                          {cronValidation.preview}
+                  {/* Custom time picker */}
+                  {showCustomPicker && !showAdvanced && (
+                    <div style={{
+                      background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))',
+                      borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 12,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <select value={pickerHour % 12 || 12} onChange={(e) => {
+                          const h12 = Number(e.target.value);
+                          const isPM = pickerHour >= 12;
+                          setPickerHour(isPM ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12));
+                        }} style={{ ...inputStyle, width: 70 }}>
+                          {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((h) => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
+                        <span style={{ color: 'hsl(var(--muted-foreground))', fontWeight: 600 }}>:</span>
+                        <select value={pickerMinute} onChange={(e) => setPickerMinute(Number(e.target.value))}
+                          style={{ ...inputStyle, width: 70 }}>
+                          {[0, 15, 30, 45].map((m) => (
+                            <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => setPickerHour((h) => h < 12 ? h + 12 : h - 12)}
+                          style={{
+                            padding: '8px 14px', borderRadius: 8, border: '1px solid hsl(var(--border))',
+                            background: 'hsl(var(--card))', color: 'hsl(var(--foreground))',
+                            fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                          }}>
+                          {pickerHour >= 12 ? 'PM' : 'AM'}
+                        </button>
+                      </div>
+
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--muted-foreground))', marginBottom: 6 }}>Which days?</div>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                            <button key={i} onClick={() => toggleDay(i)}
+                              style={{
+                                width: 36, height: 36, borderRadius: 8, border: 'none', cursor: 'pointer',
+                                fontSize: 12, fontWeight: 700,
+                                background: pickerDays.includes(i) || pickerDays.length === 0
+                                  ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'hsl(var(--muted))',
+                                color: pickerDays.includes(i) || pickerDays.length === 0 ? 'white' : 'hsl(var(--muted-foreground))',
+                              }}>
+                              {d}
+                            </button>
+                          ))}
                         </div>
-                      )}
-                      {!cronValidation && formCustomCron.trim() === '' && (
-                        <div style={{ fontSize: 11, marginTop: 4, color: 'hsl(var(--muted-foreground))' }}>
-                          Format: minute hour day-of-month month day-of-week
+                        <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>
+                          {pickerDays.length === 0 ? 'All days selected' : ''}
                         </div>
-                      )}
+                      </div>
+
+                      <div style={{ fontSize: 13, color: '#38bdf8', fontWeight: 600 }}>
+                        {describePickerSchedule(pickerHour, pickerMinute, pickerDays)}
+                      </div>
+
+                      <button onClick={() => { setShowCustomPicker(false); setFormSchedule('0 9 * * *'); }}
+                        style={{ alignSelf: 'flex-start', fontSize: 12, color: 'hsl(var(--muted-foreground))', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Back to presets
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>
+                    Times are in {getLocalTz().replace(/_/g, ' ')}
+                    {!showAdvanced && (
+                      <button onClick={() => setShowAdvanced(true)}
+                        style={{ marginLeft: 8, fontSize: 11, color: 'hsl(var(--muted-foreground))', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Advanced
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Advanced: raw cron + timezone */}
+                  {showAdvanced && (
+                    <div style={{
+                      marginTop: 8, background: 'hsl(var(--background))', border: '1px solid hsl(var(--border))',
+                      borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8,
+                    }}>
+                      <div>
+                        <label style={labelStyle}>Cron expression</label>
+                        <input value={formCustomCron} onChange={(e) => setFormCustomCron(e.target.value)}
+                          placeholder="*/10 * * * *" style={{ ...inputStyle, fontFamily: 'monospace' }} />
+                        {cronValidation && (
+                          <div style={{ fontSize: 11, marginTop: 4, color: cronValidation.valid ? '#38bdf8' : '#f87171' }}>
+                            {cronValidation.preview}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Timezone</label>
+                        <input value={formTz} onChange={(e) => setFormTz(e.target.value)}
+                          placeholder="America/New_York" style={inputStyle} />
+                      </div>
+                      <button onClick={() => { setShowAdvanced(false); setFormCustomCron(''); }}
+                        style={{ alignSelf: 'flex-start', fontSize: 12, color: 'hsl(var(--muted-foreground))', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                        Back to simple schedule
+                      </button>
                     </div>
                   )}
                 </div>
 
-                {/* Timezone */}
+                {/* Which agent? */}
                 <div>
-                  <label style={labelStyle}>Timezone</label>
-                  <select
-                    value={formTz}
-                    onChange={(e) => setFormTz(e.target.value)}
-                    style={inputStyle}
-                  >
-                    {timezones.map((tz) => (
-                      <option key={tz} value={tz}>{formatTzLabel(tz)}</option>
-                    ))}
-                  </select>
+                  <label style={labelStyle}>Which agent?</label>
+                  {agents.length <= 5 ? (
+                    /* Card picker for 1-5 agents */
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {agents.map((agent) => (
+                        <button key={agent.id} onClick={() => setFormAgentId(agent.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10,
+                            border: formAgentId === agent.id ? '2px solid #38bdf8' : '1px solid hsl(var(--border))',
+                            background: formAgentId === agent.id ? 'rgba(56,189,248,0.08)' : 'hsl(var(--background))',
+                            cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))',
+                          }}>
+                          <AgentAvatar agentId={agent.id} name={agent.name} size={24} />
+                          {agent.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    /* Searchable list for 6+ agents */
+                    <div>
+                      {!showAllAgents ? (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {topAgents.slice(0, 3).map((agent) => (
+                            <button key={agent.id} onClick={() => setFormAgentId(agent.id)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 10,
+                                border: formAgentId === agent.id ? '2px solid #38bdf8' : '1px solid hsl(var(--border))',
+                                background: formAgentId === agent.id ? 'rgba(56,189,248,0.08)' : 'hsl(var(--background))',
+                                cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'hsl(var(--foreground))',
+                              }}>
+                              <AgentAvatar agentId={agent.id} name={agent.name} size={24} />
+                              {agent.name}
+                            </button>
+                          ))}
+                          <button onClick={() => setShowAllAgents(true)}
+                            style={{
+                              padding: '8px 14px', borderRadius: 10, border: '1px dashed hsl(var(--border))',
+                              background: 'transparent', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                              color: 'hsl(var(--muted-foreground))',
+                            }}>
+                            Browse all...
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <input value={agentSearch} onChange={(e) => setAgentSearch(e.target.value)}
+                            placeholder="Search agents..." style={inputStyle} autoFocus />
+                          <div style={{ maxHeight: 180, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {agents
+                              .filter((a) => !agentSearch || a.name.toLowerCase().includes(agentSearch.toLowerCase()))
+                              .map((agent) => (
+                                <button key={agent.id} onClick={() => { setFormAgentId(agent.id); setShowAllAgents(false); setAgentSearch(''); }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8,
+                                    border: formAgentId === agent.id ? '2px solid #38bdf8' : '1px solid hsl(var(--border))',
+                                    background: formAgentId === agent.id ? 'rgba(56,189,248,0.08)' : 'transparent',
+                                    cursor: 'pointer', fontSize: 13, color: 'hsl(var(--foreground))', textAlign: 'left',
+                                  }}>
+                                  <AgentAvatar agentId={agent.id} name={agent.name} size={22} />
+                                  {agent.name}
+                                </button>
+                              ))}
+                          </div>
+                          <button onClick={() => { setShowAllAgents(false); setAgentSearch(''); }}
+                            style={{ alignSelf: 'flex-start', fontSize: 12, color: 'hsl(var(--muted-foreground))', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                            Back
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {formAgentId && (
+                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', marginTop: 4 }}>
+                      Handled by: {agentMap.get(formAgentId)?.name || formAgentId}
+                    </div>
+                  )}
                 </div>
+
+                {/* How do you want to hear back? (delivery) */}
+                {connectedChannels.length > 0 && (
+                  <div>
+                    <label style={labelStyle}>How do you want to hear back?</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'hsl(var(--foreground))' }}>
+                        <input type="radio" name="delivery" checked={!formDeliveryChannel}
+                          onChange={() => setFormDeliveryChannel('')} />
+                        In SimOffice
+                      </label>
+                      {connectedChannels.map((ch) => (
+                        <label key={`${ch.channelType}-${ch.accountId}`}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'hsl(var(--foreground))' }}>
+                          <input type="radio" name="delivery" checked={formDeliveryChannel === ch.channelType}
+                            onChange={() => setFormDeliveryChannel(ch.channelType)} />
+                          {ch.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Buttons */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                  <button
-                    onClick={handleSave}
-                    disabled={!formValid || saving}
+                  <button onClick={handleSave} disabled={!formValid || saving}
                     style={{
                       padding: '10px 24px', borderRadius: 10, border: 'none',
                       cursor: formValid && !saving ? 'pointer' : 'default',
@@ -734,12 +867,9 @@ export function LobbyAutomations() {
                       color: 'white', fontSize: 13, fontWeight: 700,
                       opacity: formValid && !saving ? 1 : 0.5,
                     }}>
-                    {saving
-                      ? (editingJobId ? 'Saving...' : 'Creating...')
-                      : (editingJobId ? 'Save Changes' : 'Create Automation')}
+                    {saving ? (editingJobId ? 'Saving...' : 'Creating...') : (editingJobId ? 'Save Changes' : 'Create Automation')}
                   </button>
-                  <button
-                    onClick={resetForm}
+                  <button onClick={resetForm}
                     style={{
                       padding: '10px 20px', borderRadius: 10,
                       border: '1px solid hsl(var(--border))', background: 'transparent',
@@ -758,307 +888,295 @@ export function LobbyAutomations() {
             </div>
           )}
 
+          {/* ═══ EMPTY STATE — Inspiration Cards ═══ */}
           {!loading && jobs.length === 0 && !showForm && (
             <div style={{
               background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))',
               borderRadius: 16, padding: '40px 32px', textAlign: 'center',
             }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🔄</div>
               <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif', color: 'hsl(var(--foreground))' }}>
-                No automations yet
+                What would you like to happen automatically?
               </div>
-              <div style={{ fontSize: 14, color: 'hsl(var(--muted-foreground))', marginTop: 8, maxWidth: 400, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
-                Automations let your agents work on a schedule. Try a daily summary, morning briefing, or end-of-day report.
+              <div style={{ fontSize: 14, color: 'hsl(var(--muted-foreground))', marginTop: 8, maxWidth: 460, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.5 }}>
+                Pick an idea below or create your own. Your AI agent will handle it on a schedule.
               </div>
-              <button
-                onClick={openCreate}
-                style={{
-                  marginTop: 20, padding: '10px 24px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #0284c7, #38bdf8)', color: 'white',
-                  fontSize: 13, fontWeight: 700, fontFamily: 'Inter, sans-serif',
-                }}>
-                Create your first automation
-              </button>
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: 10, marginTop: 24, textAlign: 'left',
+              }}>
+                {INSPIRATION_CARDS.map((card) => (
+                  <button key={card.id} onClick={() => openCreate(card)}
+                    style={{
+                      padding: '14px 16px', borderRadius: 12, textAlign: 'left',
+                      border: '1px solid hsl(var(--border))', background: 'hsl(var(--background))',
+                      cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; e.currentTarget.style.background = 'rgba(56,189,248,0.05)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--border))'; e.currentTarget.style.background = 'hsl(var(--background))'; }}>
+                    <div style={{ fontSize: 20, marginBottom: 2 }}>{card.icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))' }}>{card.title}</div>
+                    <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', lineHeight: 1.3 }}>{card.description}</div>
+                  </button>
+                ))}
+                <button onClick={() => openCreate()}
+                  style={{
+                    padding: '14px 16px', borderRadius: 12, textAlign: 'left',
+                    border: '1px dashed hsl(var(--border))', background: 'transparent',
+                    cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--border))'; }}>
+                  <div style={{ fontSize: 20, marginBottom: 2 }}>+</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))' }}>Custom</div>
+                  <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', lineHeight: 1.3 }}>Start from scratch</div>
+                </button>
+              </div>
             </div>
           )}
 
-          {/* ═══ JOB CARDS — grouped by agent ═══ */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {groupedJobs.map((group) => {
-              const isCollapsed = collapsedGroups.has(group.agentId);
-              const groupAgent = group.agentId !== '__ungrouped__' ? agentMap.get(group.agentId) : undefined;
-              const showGroupHeader = groupedJobs.length > 1 || group.agentId === '__ungrouped__';
+          {/* ═══ JOB CARDS ═══ */}
+          {jobs.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {jobs.map((job) => {
+                const agent = job.agentId ? agentMap.get(job.agentId) : undefined;
+                const tz = extractTz(job.schedule);
+                const isEditing = editingJobId === job.id;
+                const historyExpanded = expandedHistoryId === job.id;
+                const runs = runHistory[job.id] ?? [];
+                const historyLoading = runHistoryLoading[job.id] ?? false;
+                const deliveryChannel = getDeliveryChannelFromMessage(job.message);
 
-              return (
-                <div key={group.agentId}>
-                  {/* Group header */}
-                  {showGroupHeader && (
+                return (
+                  <div key={job.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                    {/* Card row */}
                     <div
-                      onClick={() => toggleGroupCollapse(group.agentId)}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8,
-                        cursor: 'pointer', userSelect: 'none',
+                        background: isEditing ? 'hsl(var(--accent))' : 'hsl(var(--card))',
+                        border: `1px solid ${isEditing ? '#38bdf8' : job.enabled ? 'rgba(2,132,199,0.25)' : 'hsl(var(--border))'}`,
+                        borderRadius: historyExpanded ? '14px 14px 0 0' : 14,
+                        padding: 20, display: 'flex', alignItems: 'center', gap: 16,
+                        transition: 'all 0.2s',
+                        opacity: job.enabled ? 1 : 0.6,
                       }}
+                      onMouseEnter={(e) => { if (!isEditing) e.currentTarget.style.boxShadow = '0 3px 16px rgba(2,132,199,0.1)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
                     >
-                      <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-                        {isCollapsed ? '▸' : '▾'}
-                      </span>
-                      {groupAgent && <AgentAvatar agentId={groupAgent.id} name={groupAgent.name} size={20} />}
-                      <span style={{
-                        fontSize: 13, fontWeight: 700, color: 'hsl(var(--foreground))',
-                        fontFamily: 'Space Grotesk, sans-serif',
-                      }}>
-                        {group.agentName}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-                        ({group.jobs.length})
-                      </span>
+                      {/* Avatar + status */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        {agent ? (
+                          <AgentAvatar agentId={agent.id} name={agent.name} size={48} />
+                        ) : (
+                          <div style={{
+                            width: 48, height: 48, borderRadius: 12,
+                            background: job.enabled ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'hsl(var(--muted))',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 22, flexShrink: 0,
+                          }}>
+                            {'\u{1F504}'}
+                          </div>
+                        )}
+                        <StatusDot job={job} />
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
+                          color: 'hsl(var(--foreground))',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {job.name}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {stripDeliveryPrefix(job.message)}
+                        </div>
+                        <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>
+                            {formatSchedule(job.schedule)}
+                            {tz && tz !== 'UTC' ? ` (${tz.split('/').pop()?.replace(/_/g, ' ')})` : ''}
+                          </span>
+                          {deliveryChannel && (
+                            <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
+                              via {deliveryChannel.charAt(0).toUpperCase() + deliveryChannel.slice(1)}
+                            </span>
+                          )}
+                          {job.lastRun && (
+                            <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+                              Last: {formatDate(job.lastRun.time)}
+                              {job.lastRun.success === false && (
+                                <span style={{ color: '#f87171', marginLeft: 4 }}>failed</span>
+                              )}
+                            </span>
+                          )}
+                          {job.nextRun && (
+                            <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
+                              Next: {formatDate(job.nextRun)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button onClick={() => toggleHistory(job.id)} title="Run history"
+                          style={{
+                            width: 34, height: 34, borderRadius: 8,
+                            border: `1px solid ${historyExpanded ? '#38bdf8' : 'hsl(var(--border))'}`,
+                            background: historyExpanded ? 'rgba(56,189,248,0.1)' : 'transparent',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 13, color: historyExpanded ? '#38bdf8' : 'hsl(var(--foreground))',
+                          }}>
+                          {historyExpanded ? '\u25BE' : '\u25B8'}
+                        </button>
+                        <button onClick={() => { if (!showForm) openEdit(job); }} title="Edit"
+                          style={{
+                            width: 34, height: 34, borderRadius: 8,
+                            border: `1px solid ${isEditing ? '#38bdf8' : 'hsl(var(--border))'}`,
+                            background: isEditing ? 'rgba(56,189,248,0.1)' : 'transparent',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 13, color: isEditing ? '#38bdf8' : 'hsl(var(--foreground))',
+                          }}>
+                          {'\u270E'}
+                        </button>
+                        <button onClick={() => triggerJob(job.id)} title="Run now"
+                          style={{
+                            width: 34, height: 34, borderRadius: 8,
+                            border: '1px solid hsl(var(--border))', background: 'transparent',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 13,
+                          }}>
+                          {'\u25B6'}
+                        </button>
+                        <button onClick={() => toggleJob(job.id, !job.enabled)}
+                          style={{
+                            width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                            background: job.enabled
+                              ? 'linear-gradient(135deg, #0284c7, #38bdf8)' : 'hsl(var(--muted))',
+                            position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                          }}>
+                          <div style={{
+                            width: 18, height: 18, borderRadius: '50%', background: 'white',
+                            position: 'absolute', top: 3,
+                            left: job.enabled ? 23 : 3, transition: 'left 0.2s',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                          }} />
+                        </button>
+                        <button onClick={() => handleDelete(job.id)} title="Remove"
+                          style={{
+                            width: 34, height: 34, borderRadius: 8,
+                            border: '1px solid hsl(var(--border))', background: 'transparent',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 13, color: '#ef4444',
+                          }}>
+                          {'\u2715'}
+                        </button>
+                      </div>
                     </div>
-                  )}
 
-                  {/* Cards in this group */}
-                  {!isCollapsed && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {group.jobs.map((job) => {
-                        const agent = job.agentId ? agentMap.get(job.agentId) : undefined;
-                        const tz = extractTz(job.schedule);
-                        const isEditing = editingJobId === job.id;
-                        const historyExpanded = expandedHistoryId === job.id;
-                        const runs = runHistory[job.id] ?? [];
-                        const historyLoading = runHistoryLoading[job.id] ?? false;
+                    {/* Run History Panel */}
+                    {historyExpanded && (
+                      <div style={{
+                        background: 'hsl(var(--card))',
+                        borderLeft: '1px solid rgba(2,132,199,0.25)',
+                        borderRight: '1px solid rgba(2,132,199,0.25)',
+                        borderBottom: '1px solid rgba(2,132,199,0.25)',
+                        borderRadius: '0 0 14px 14px',
+                        padding: '12px 20px 16px 20px',
+                      }}>
+                        <div style={{
+                          fontSize: 12, fontWeight: 700, color: 'hsl(var(--muted-foreground))',
+                          marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px',
+                        }}>
+                          Run History
+                        </div>
 
-                        return (
-                          <div key={job.id} style={{ display: 'flex', flexDirection: 'column' }}>
-                            {/* Card row */}
-                            <div
-                              style={{
-                                background: isEditing ? 'hsl(var(--accent))' : 'hsl(var(--card))',
-                                border: `1px solid ${isEditing ? '#38bdf8' : job.enabled ? 'rgba(2,132,199,0.25)' : 'hsl(var(--border))'}`,
-                                borderRadius: historyExpanded ? '14px 14px 0 0' : 14,
-                                padding: 20,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 16,
-                                transition: 'all 0.2s',
-                                opacity: job.enabled ? 1 : 0.6,
-                              }}
-                              onMouseEnter={(e) => { if (!isEditing) e.currentTarget.style.boxShadow = '0 3px 16px rgba(2,132,199,0.1)'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
-                            >
-                              {/* Status dot + Agent avatar */}
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                                {agent ? (
-                                  <AgentAvatar agentId={agent.id} name={agent.name} size={48} />
-                                ) : (
-                                  <div style={{
-                                    width: 48, height: 48, borderRadius: 12,
-                                    background: job.enabled
-                                      ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
-                                      : 'hsl(var(--muted))',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 22, flexShrink: 0,
-                                  }}>
-                                    🔄
-                                  </div>
-                                )}
-                                <StatusDot job={job} />
-                              </div>
+                        {historyLoading && (
+                          <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', padding: '8px 0' }}>
+                            Loading...
+                          </div>
+                        )}
 
-                              {/* Info */}
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{
-                                  fontSize: 16, fontWeight: 700, fontFamily: 'Space Grotesk, sans-serif',
-                                  color: 'hsl(var(--foreground))',
-                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        {!historyLoading && runs.length === 0 && (
+                          <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', padding: '8px 0' }}>
+                            No runs yet. Trigger manually or wait for the next scheduled run.
+                          </div>
+                        )}
+
+                        {!historyLoading && runs.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {runs.slice(0, 5).map((run, i) => {
+                              const isError = run.status === 'error';
+                              const ts = formatRunTimestamp(run);
+                              const duration = formatDurationMs(run.durationMs);
+
+                              return (
+                                <div key={run.sessionId ?? run.ts ?? i} style={{
+                                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                                  padding: '8px 10px', borderRadius: 8,
+                                  background: isError ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.04)',
+                                  border: `1px solid ${isError ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)'}`,
                                 }}>
-                                  {job.name}
-                                </div>
-                                <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {job.message}
-                                </div>
-                                <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                                  <span style={{ fontSize: 11, color: '#38bdf8', fontWeight: 600 }}>
-                                    {formatSchedule(job.schedule)}
-                                    {tz && tz !== 'UTC' ? ` (${tz.split('/').pop()?.replace(/_/g, ' ')})` : ''}
-                                  </span>
-                                  {job.lastRun && (
-                                    <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-                                      Last: {formatDate(job.lastRun.time)}
-                                      {job.lastRun.success === false && (
-                                        <span style={{ color: '#f87171', marginLeft: 4 }}>failed</span>
-                                      )}
-                                    </span>
-                                  )}
-                                  {job.nextRun && (
-                                    <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>
-                                      Next: {formatDate(job.nextRun)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Actions */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <button
-                                  onClick={() => toggleHistory(job.id)}
-                                  title="Run history"
-                                  style={{
-                                    width: 34, height: 34, borderRadius: 8,
-                                    border: `1px solid ${historyExpanded ? '#38bdf8' : 'hsl(var(--border))'}`,
-                                    background: historyExpanded ? 'rgba(56,189,248,0.1)' : 'transparent',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 13, color: historyExpanded ? '#38bdf8' : 'hsl(var(--foreground))',
-                                  }}>
-                                  {historyExpanded ? '▾' : '▸'}
-                                </button>
-                                <button
-                                  onClick={() => { if (!showForm) openEdit(job); }}
-                                  title="Edit"
-                                  style={{
-                                    width: 34, height: 34, borderRadius: 8,
-                                    border: `1px solid ${isEditing ? '#38bdf8' : 'hsl(var(--border))'}`,
-                                    background: isEditing ? 'rgba(56,189,248,0.1)' : 'transparent',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 13, color: isEditing ? '#38bdf8' : 'hsl(var(--foreground))',
-                                  }}>
-                                  ✎
-                                </button>
-                                <button
-                                  onClick={() => triggerJob(job.id)}
-                                  title="Run now"
-                                  style={{
-                                    width: 34, height: 34, borderRadius: 8,
-                                    border: '1px solid hsl(var(--border))', background: 'transparent',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 13,
-                                  }}>
-                                  ▶
-                                </button>
-                                <button
-                                  onClick={() => toggleJob(job.id, !job.enabled)}
-                                  style={{
-                                    width: 44, height: 24, borderRadius: 12, border: 'none',
-                                    cursor: 'pointer',
-                                    background: job.enabled
-                                      ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
-                                      : 'hsl(var(--muted))',
-                                    position: 'relative',
-                                    transition: 'background 0.2s',
-                                    flexShrink: 0,
-                                  }}
-                                >
                                   <div style={{
-                                    width: 18, height: 18, borderRadius: '50%',
-                                    background: 'white',
-                                    position: 'absolute',
-                                    top: 3,
-                                    left: job.enabled ? 23 : 3,
-                                    transition: 'left 0.2s',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 5,
+                                    background: isError ? '#ef4444' : '#22c55e',
                                   }} />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(job.id)}
-                                  title="Remove"
-                                  style={{
-                                    width: 34, height: 34, borderRadius: 8,
-                                    border: '1px solid hsl(var(--border))', background: 'transparent',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 13, color: '#ef4444',
-                                  }}>
-                                  ✕
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* ═══ RUN HISTORY PANEL ═══ */}
-                            {historyExpanded && (
-                              <div style={{
-                                background: 'hsl(var(--card))',
-                                borderLeft: '1px solid rgba(2,132,199,0.25)',
-                                borderRight: '1px solid rgba(2,132,199,0.25)',
-                                borderBottom: '1px solid rgba(2,132,199,0.25)',
-                                borderRadius: '0 0 14px 14px',
-                                padding: '12px 20px 16px 20px',
-                              }}>
-                                <div style={{
-                                  fontSize: 12, fontWeight: 700, color: 'hsl(var(--muted-foreground))',
-                                  marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px',
-                                }}>
-                                  Run History
-                                </div>
-
-                                {historyLoading && (
-                                  <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', padding: '8px 0' }}>
-                                    Loading...
-                                  </div>
-                                )}
-
-                                {!historyLoading && runs.length === 0 && (
-                                  <div style={{ fontSize: 12, color: 'hsl(var(--muted-foreground))', padding: '8px 0' }}>
-                                    No runs yet. Trigger manually or wait for the next scheduled run.
-                                  </div>
-                                )}
-
-                                {!historyLoading && runs.length > 0 && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                    {runs.slice(0, 20).map((run, i) => {
-                                      const isError = run.status === 'error';
-                                      const ts = formatRunTimestamp(run);
-                                      const duration = formatDurationMs(run.durationMs);
-                                      const model = run.provider && run.model
-                                        ? `${run.provider}/${run.model}`
-                                        : run.model || '';
-
-                                      return (
-                                        <div key={run.sessionId ?? run.ts ?? i} style={{
-                                          display: 'flex', alignItems: 'flex-start', gap: 10,
-                                          padding: '8px 10px', borderRadius: 8,
-                                          background: isError ? 'rgba(239,68,68,0.06)' : 'rgba(34,197,94,0.04)',
-                                          border: `1px solid ${isError ? 'rgba(239,68,68,0.15)' : 'rgba(34,197,94,0.1)'}`,
-                                        }}>
-                                          <div style={{
-                                            width: 6, height: 6, borderRadius: '50%', flexShrink: 0, marginTop: 5,
-                                            background: isError ? '#ef4444' : '#22c55e',
-                                          }} />
-                                          <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                                              <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{ts}</span>
-                                              {duration && <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{duration}</span>}
-                                              {model && <span style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', fontFamily: 'monospace' }}>{model}</span>}
-                                            </div>
-                                            {(run.summary || run.error) && (
-                                              <div style={{
-                                                fontSize: 12, marginTop: 3,
-                                                color: isError ? '#f87171' : 'hsl(var(--muted-foreground))',
-                                                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-                                                maxHeight: 80, overflow: 'hidden',
-                                              }}>
-                                                {isError ? run.error : run.summary}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                    {runs.length > 20 && (
-                                      <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', textAlign: 'center', padding: 4 }}>
-                                        Showing 20 of {runs.length} runs
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                      <span style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--foreground))' }}>{ts}</span>
+                                      {duration && <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>{duration}</span>}
+                                    </div>
+                                    {(run.summary || run.error) && (
+                                      <div style={{
+                                        fontSize: 12, marginTop: 3,
+                                        color: isError ? '#f87171' : 'hsl(var(--muted-foreground))',
+                                        whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                                        maxHeight: 60, overflow: 'hidden',
+                                      }}>
+                                        {isError ? run.error : run.summary}
                                       </div>
                                     )}
                                   </div>
-                                )}
+                                </div>
+                              );
+                            })}
+                            {runs.length > 5 && (
+                              <div style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', textAlign: 'center', padding: 4 }}>
+                                Showing 5 of {runs.length} runs
                               </div>
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Inspiration cards when jobs exist (shown below job list) */}
+          {jobs.length > 0 && !showForm && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'hsl(var(--muted-foreground))', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Ideas
+              </div>
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                {INSPIRATION_CARDS.map((card) => (
+                  <button key={card.id} onClick={() => openCreate(card)}
+                    style={{
+                      padding: '8px 14px', borderRadius: 10, border: '1px solid hsl(var(--border))',
+                      background: 'hsl(var(--background))', cursor: 'pointer', whiteSpace: 'nowrap',
+                      display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600,
+                      color: 'hsl(var(--foreground))', flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#38bdf8'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'hsl(var(--border))'; }}>
+                    {card.icon} {card.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

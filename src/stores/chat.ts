@@ -304,10 +304,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     const load = async () => {
       try {
-        const data = await useGatewayStore.getState().rpc<Record<string, unknown>>(
-          'chat.history',
-          { sessionKey: currentSessionKey, limit: 200 },
-        );
+        let data: Record<string, unknown>;
+        if (currentSessionKey.includes(':cron:')) {
+          // Cron sessions use the dedicated session-history endpoint
+          // which builds fallback messages from run logs
+          const encoded = encodeURIComponent(currentSessionKey);
+          data = await hostApiFetch<Record<string, unknown>>(
+            `/api/cron/session-history?sessionKey=${encoded}&limit=200`,
+          );
+        } else {
+          data = await useGatewayStore.getState().rpc<Record<string, unknown>>(
+            'chat.history',
+            { sessionKey: currentSessionKey, limit: 200 },
+          );
+        }
 
         const rawMessages = Array.isArray(data?.messages) ? (data.messages as RawMessage[]) : [];
         const filtered = rawMessages.filter((msg) => !isToolResultRole(msg.role));

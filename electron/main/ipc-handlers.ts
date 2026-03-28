@@ -2,7 +2,7 @@
  * IPC Handlers
  * Registers all IPC handlers for main-renderer communication
  */
-import { ipcMain, BrowserWindow, shell, dialog, app, nativeImage } from 'electron';
+import { ipcMain, BrowserWindow, shell, dialog, app, nativeImage, Notification } from 'electron';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, extname, basename } from 'node:path';
@@ -2411,6 +2411,18 @@ function registerAppHandlers(): void {
   ipcMain.handle('app:relaunch', () => {
     app.relaunch();
     app.quit();
+  });
+
+  // Desktop notification (used by cron completion alerts)
+  ipcMain.handle('notification:show', (_, opts: { title: string; body: string }) => {
+    if (Notification.isSupported()) {
+      const notif = new Notification({ title: opts.title, body: opts.body, silent: false });
+      notif.on('click', () => {
+        const wins = BrowserWindow.getAllWindows();
+        if (wins[0]) { wins[0].show(); wins[0].focus(); }
+      });
+      notif.show();
+    }
   });
 }
 

@@ -39,6 +39,8 @@ const electronAPI = {
         'app:quit',
         'app:relaunch',
         'app:request',
+        // Notifications
+        'notification:show',
         // Window controls
         'window:minimize',
         'window:maximize',

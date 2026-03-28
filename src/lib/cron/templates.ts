@@ -1,66 +1,73 @@
 /**
- * Automation template definitions.
- * Each template pre-fills the create form with a name, prompt, and schedule.
- * Only includes templates that work with what agents can actually do —
- * summarize their own context, report status, and review available work.
+ * Automation inspiration cards.
+ * Each card pre-fills the create form with a prompt start and default schedule.
+ * Designed for non-technical users — relatable everyday use cases.
  */
 
-export interface AutomationTemplate {
+export interface InspirationCard {
   id: string;
-  name: string;
+  title: string;
   description: string;
-  prompt: string;
-  schedule: string;       // cron expression
-  icon: string;           // emoji
+  promptStart: string;       // Pre-filled text, user completes it
+  defaultSchedule: string;   // Cron expression
+  icon: string;              // Emoji
 }
 
-export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
+export const INSPIRATION_CARDS: InspirationCard[] = [
   {
-    id: 'morning-briefing',
-    name: 'Morning Briefing',
-    description: 'Summarize priorities, blockers, and what changed overnight.',
-    prompt: 'Create a concise morning briefing. Summarize current priorities, blocked work, recent notable changes, and the next recommended actions.',
-    schedule: '0 9 * * *',
-    icon: '🌅',
+    id: 'price-alert',
+    title: 'Price Alert',
+    description: 'Get notified when a crypto or stock hits your target',
+    promptStart: 'Watch the price of Bitcoin and alert me when it ',
+    defaultSchedule: '*/15 * * * *',
+    icon: '\u{1F4C8}',
   },
   {
-    id: 'end-of-day-report',
-    name: 'End-of-Day Report',
-    description: 'Summarize what happened today and what needs follow-up.',
-    prompt: 'Write an end-of-day report. Summarize completed work, open items, any issues encountered, and what needs attention tomorrow.',
-    schedule: '0 17 * * 1-5',
-    icon: '🌙',
+    id: 'daily-digest',
+    title: 'Daily Digest',
+    description: 'A summary of the most important things each morning',
+    promptStart: 'Summarize the most important things I should know today, including ',
+    defaultSchedule: '0 8 * * *',
+    icon: '\u{1F4CB}',
   },
   {
-    id: 'weekly-progress',
-    name: 'Weekly Progress Report',
-    description: 'Every Monday — roll up wins, unfinished work, and next steps.',
-    prompt: 'Write a weekly progress report. Include completed work, unfinished work, risks, and the most important next steps for the coming week.',
-    schedule: '0 8 * * 1',
-    icon: '📊',
+    id: 'email-summary',
+    title: 'Email Summary',
+    description: 'Highlights from your inbox so you never miss what matters',
+    promptStart: 'Check my recent emails and highlight anything urgent or important, especially ',
+    defaultSchedule: '0 9 * * *',
+    icon: '\u{1F4E7}',
   },
   {
-    id: 'health-check',
-    name: 'Health Check',
-    description: 'Report status, errors, blocked tasks, and whether a human needs to step in.',
-    prompt: 'Run a health check. Summarize your current status, errors, blocked tasks, pending approvals, and whether a human needs to step in.',
-    schedule: '0 * * * *',
-    icon: '🩺',
+    id: 'reminder',
+    title: 'Reminder',
+    description: 'Set up a recurring reminder for anything',
+    promptStart: 'Remind me to ',
+    defaultSchedule: '0 9 * * *',
+    icon: '\u{1F514}',
   },
   {
-    id: 'code-review-digest',
-    name: 'Nightly Code Review',
-    description: 'Review the day and summarize risky changes or regressions.',
-    prompt: 'Review the latest work available to you and produce a digest of risky changes, unresolved questions, and follow-up recommendations for the team.',
-    schedule: '0 0 * * *',
-    icon: '🔍',
+    id: 'news-brief',
+    title: 'News Brief',
+    description: 'Stay on top of topics you care about',
+    promptStart: 'Give me a quick summary of today\'s top news about ',
+    defaultSchedule: '0 8 * * *',
+    icon: '\u{1F4F0}',
   },
   {
-    id: 'continuous-monitor',
-    name: 'Continuous Monitor',
-    description: 'Watch for drift, silent failures, or anything unusual.',
-    prompt: 'Monitor your current context and report only if you detect unusual behavior, blocked progress, repeated failures, or opportunities that need attention.',
-    schedule: '*/15 * * * *',
-    icon: '📡',
+    id: 'health-checkin',
+    title: 'Health Check-In',
+    description: 'A gentle daily check-in to track how you\'re doing',
+    promptStart: 'Ask me how I\'m feeling today and suggest ',
+    defaultSchedule: '0 18 * * *',
+    icon: '\u{1F49A}',
+  },
+  {
+    id: 'weekly-review',
+    title: 'Weekly Review',
+    description: 'Look back at the week and plan ahead',
+    promptStart: 'Summarize what happened this week and suggest priorities for next week, focusing on ',
+    defaultSchedule: '0 9 * * 1',
+    icon: '\u{1F4C5}',
   },
 ];

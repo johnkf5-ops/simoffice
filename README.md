@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.8-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.0.9-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -70,15 +70,22 @@ pnpm run package:mac                                # build DMG
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-## What's New in v2.0.8
+## What's New in v2.0.9
 
-- **Reliable Auto-Updater** — Replaced Squirrel.Mac with direct DMG download. Progress bar with ETA, SHA512 verification, drag-and-drop install. No more silent hangs.
-- **OpenClaw 2026.3.24** — OpenAI-compatible `/v1/models` and `/v1/embeddings` endpoints, Teams SDK migration, channel boot isolation.
-- **29 Business Integrations** — HubSpot, Salesforce, GitHub, Jira, Stripe, Notion, and 23 more — all restored with setup wizards.
-- **Analytics Redesign** — Cleaner layout, compact KPI cards, theme-aware chart.
+- **Automations Redesign** — Grandma-friendly creation flow. Inspiration cards (Price Alerts, Reminders, News Briefs, etc.) replace developer templates. Plain English schedule picker — no cron expressions. Smart agent picker adapts to your agent count.
+- **Channel Delivery** — Send automation results to Telegram, Discord, or Slack. Pick a connected channel and the agent delivers via the message tool.
+- **Cron Notifications** — Toast alerts when automations complete. Desktop notifications when SimOffice is in the background.
+- **Activity Feed** — See recent automation runs at a glance on the Automations page.
+- **Cron Chat Fix** — Clicking a cron session in the buddy list now loads the correct run history.
 
 <details>
 <summary>Previous versions</summary>
+
+### v2.0.8
+- Reliable Auto-Updater — Replaced Squirrel.Mac with direct DMG download. Progress bar with ETA, SHA512 verification, drag-and-drop install.
+- OpenClaw 2026.3.24 — OpenAI-compatible `/v1/models` and `/v1/embeddings` endpoints, Teams SDK migration.
+- 29 Business Integrations — HubSpot, Salesforce, GitHub, Jira, Stripe, Notion, and 23 more.
+- Analytics Redesign — Cleaner layout, compact KPI cards, theme-aware chart.
 
 ### v2.0.7
 - Analytics Dashboard — Agent spending, token usage, model breakdown, and budget alerts.
