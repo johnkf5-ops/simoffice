@@ -518,7 +518,8 @@ if (gotTheLock) {
     // "Cannot create BrowserWindow before app is ready" on macOS.
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        createMainWindow();
+        const win = createMainWindow();
+        appUpdater.setMainWindow(win);
       } else {
         focusMainWindow();
       }

@@ -165,6 +165,22 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
 
       if (!result.success) {
         set({ status: 'error', error: result.error || 'Failed to download update' });
+      } else {
+        // Push events (`update:status-changed`) may have been lost (e.g. stale
+        // window reference after macOS activate). Sync from main process so the
+        // UI never stays stuck on 'downloading' after a successful download.
+        const current = await invokeIpc<{
+          status: UpdateStatus;
+          info?: UpdateInfo;
+          progress?: ProgressInfo;
+          error?: string;
+        }>('update:status');
+        set({
+          status: current.status,
+          updateInfo: current.info || null,
+          progress: current.progress || null,
+          error: current.error || null,
+        });
       }
     } catch (error) {
       set({ status: 'error', error: String(error) });
