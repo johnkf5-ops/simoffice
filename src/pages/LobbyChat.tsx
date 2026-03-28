@@ -188,8 +188,6 @@ export function LobbyChat() {
   // File upload handler — uses native dialog + IPC staging
   const handleFileSelect = async () => {
     try {
-      const { invokeIpc } = await import('@/lib/api-client');
-
       // Open native file dialog
       const result = await invokeIpc<{ canceled: boolean; filePaths: string[] }>('dialog:open', {
         properties: ['openFile', 'multiSelections'],
