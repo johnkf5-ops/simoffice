@@ -29,9 +29,17 @@ import { proxyAwareFetch } from './proxy-fetch';
 import {
     loginMiniMaxPortalOAuth,
 } from '../../node_modules/openclaw/dist/extensions/minimax/oauth.js';
-import {
-    loginQwenPortalOAuth,
-} from '../../node_modules/openclaw/dist/extensions/qwen-portal-auth/oauth.js';
+// qwen-portal-auth was removed in openclaw 2026.3.28 — Qwen migrated to
+// Model Studio API key auth. Dynamic import avoids crashing app startup
+// when the extension doesn't exist. The Qwen OAuth flow will gracefully
+// error if attempted on 2026.3.28+.
+let loginQwenPortalOAuth: ((opts: any) => Promise<any>) | null = null;
+try {
+    const mod = await import('../../node_modules/openclaw/dist/extensions/qwen-portal-auth/oauth.js');
+    loginQwenPortalOAuth = mod.loginQwenPortalOAuth;
+} catch {
+    // Extension removed — Qwen OAuth unavailable, API key flow only
+}
 
 interface MiniMaxOAuthToken {
     access: string;
@@ -185,9 +193,12 @@ class DeviceOAuthManager extends EventEmitter {
         if (!isOpenClawPresent()) {
             throw new Error('OpenClaw package not found');
         }
+        if (!loginQwenPortalOAuth) {
+            throw new Error('Qwen Portal OAuth is no longer available. Use an API key instead — go to Model Studio at dashscope.console.aliyun.com to create one.');
+        }
         const provider = this.activeProvider!;
 
-        const token: QwenOAuthToken = await this.runWithProxyAwareFetch(() => loginQwenPortalOAuth({
+        const token: QwenOAuthToken = await this.runWithProxyAwareFetch(() => loginQwenPortalOAuth!({
             openUrl: async (url) => {
                 logger.info(`[DeviceOAuth] Qwen opening browser: ${url}`);
                 shell.openExternal(url).catch((err) =>
