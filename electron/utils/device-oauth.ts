@@ -30,12 +30,16 @@ import {
     loginMiniMaxPortalOAuth,
 } from '../../node_modules/openclaw/dist/extensions/minimax/oauth.js';
 // qwen-portal-auth was removed in openclaw 2026.3.28 — Qwen migrated to
-// Model Studio API key auth. Dynamic import avoids crashing app startup
+// Model Studio API key auth. Dynamic require avoids crashing app startup
 // when the extension doesn't exist. The Qwen OAuth flow will gracefully
 // error if attempted on 2026.3.28+.
+// Note: uses require() with a variable path so Rollup/Vite can't statically
+// resolve it at build time (the file may not exist in newer openclaw versions).
 let loginQwenPortalOAuth: ((opts: any) => Promise<any>) | null = null;
 try {
-    const mod = await import('../../node_modules/openclaw/dist/extensions/qwen-portal-auth/oauth.js');
+    const qwenOAuthPath = require.resolve('openclaw/dist/extensions/qwen-portal-auth/oauth.js');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require(qwenOAuthPath);
     loginQwenPortalOAuth = mod.loginQwenPortalOAuth;
 } catch {
     // Extension removed — Qwen OAuth unavailable, API key flow only
