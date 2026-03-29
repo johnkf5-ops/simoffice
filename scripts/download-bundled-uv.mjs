@@ -13,10 +13,6 @@ const TARGETS = {
     filename: 'uv-aarch64-apple-darwin.tar.gz',
     binName: 'uv',
   },
-  'darwin-x64': {
-    filename: 'uv-x86_64-apple-darwin.tar.gz',
-    binName: 'uv',
-  },
   'win32-arm64': {
     filename: 'uv-aarch64-pc-windows-msvc.zip',
     binName: 'uv.exe',
@@ -37,7 +33,7 @@ const TARGETS = {
 
 // Platform groups for building multi-arch packages
 const PLATFORM_GROUPS = {
-  'mac': ['darwin-x64', 'darwin-arm64'],
+  'mac': ['darwin-arm64'],
   'win': ['win32-x64', 'win32-arm64'],
   'linux': ['linux-x64', 'linux-arm64']
 };

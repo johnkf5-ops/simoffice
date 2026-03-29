@@ -47,17 +47,16 @@
 |---|---|---|
 | **macOS** | 12 Monterey | 14 Sonoma+ |
 | **RAM** | 8 GB (cloud AI only) | 16 GB+ (local AI) |
-| **Chip** | Intel or Apple Silicon | Apple Silicon (M1/M2/M3/M4) |
+| **Chip** | Apple Silicon (M1+) | Apple Silicon (M2/M3/M4) |
 | **Disk** | 500 MB | 5 GB+ (with local AI models) |
 
 ## Download
 
 Grab the latest DMG from [Releases](https://github.com/johnkf5-ops/simoffice/releases/latest):
 
-- **Apple Silicon (M1/M2/M3/M4):** `SimOffice-*-mac-arm64.dmg`
-- **Intel Mac:** `SimOffice-*-mac-x64.dmg`
+- **macOS (Apple Silicon):** `SimOffice-*-mac-arm64.dmg`
 
-Both builds are signed and notarized by Apple.
+Signed and notarized by Apple. Requires Apple Silicon (M1 or later).
 
 ## Development
 

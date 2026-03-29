@@ -54,9 +54,7 @@ coverage/
 # Ignore binary content in resources/bin but track shell wrapper scripts
 resources/bin/**
 !resources/bin/darwin-arm64/
-!resources/bin/darwin-x64/
 !resources/bin/darwin-arm64/mp
-!resources/bin/darwin-x64/mp
 
 # Secrets
 *.p12
