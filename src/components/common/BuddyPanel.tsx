@@ -45,6 +45,8 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
   const switchSession = useChatStore((s) => s.switchSession);
   const newSession = useChatStore((s) => s.newSession);
   const deleteSession = useChatStore((s) => s.deleteSession);
+  const loadSessions = useChatStore((s) => s.loadSessions);
+  const loadHistory = useChatStore((s) => s.loadHistory);
 
   // Provider
   const defaultAccountId = useProviderStore((s) => s.defaultAccountId);
@@ -60,6 +62,19 @@ export function BuddyPanel({ hideBackButton = false, currentPage }: BuddyPanelPr
   useEffect(() => {
     if (isOnline && !providerAccounts.length) void refreshProviderSnapshot();
   }, [isOnline, providerAccounts.length, refreshProviderSnapshot]);
+
+  // Load chat sessions + history on startup (once gateway is ready)
+  useEffect(() => {
+    if (!isOnline) return;
+    let cancelled = false;
+    const hasExistingMessages = useChatStore.getState().messages.length > 0;
+    (async () => {
+      await loadSessions();
+      if (cancelled) return;
+      await loadHistory(hasExistingMessages);
+    })();
+    return () => { cancelled = true; };
+  }, [isOnline, loadSessions, loadHistory]);
 
   // Room creation state
   const [showCreateRoom, setShowCreateRoom] = useState(false);
