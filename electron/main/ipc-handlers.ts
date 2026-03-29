@@ -44,6 +44,8 @@ import {
   validateChannelConfig,
   validateChannelCredentials,
 } from '../utils/channel-config';
+import { getOpenClawControlsSnapshot, applyOpenClawGlobalPatch } from '../utils/openclaw-controls';
+import type { OpenClawGlobalPatch } from '../../shared/openclaw-controls';
 import { checkUvInstalled, installUv, setupManagedPython } from '../utils/uv-setup';
 import {
   ensureDingTalkPluginInstalled,
@@ -173,6 +175,9 @@ export function registerIpcHandlers(
 
   // Business integration handlers
   registerIntegrationHandlers();
+
+  // OpenClaw Controls handlers (session config UI)
+  registerOpenClawControlsHandlers(gatewayManager);
 }
 
 type HostApiFetchRequest = {
@@ -3175,5 +3180,19 @@ function registerIntegrationHandlers(): void {
       statuses[id] = getIntegrationStatus(id);
     }
     return statuses;
+  });
+}
+
+function registerOpenClawControlsHandlers(gatewayManager: GatewayManager): void {
+  ipcMain.handle('openclawControls:getSnapshot', async () => {
+    return getOpenClawControlsSnapshot();
+  });
+
+  ipcMain.handle('openclawControls:applyGlobalPatch', async (_, patch: OpenClawGlobalPatch) => {
+    const result = await applyOpenClawGlobalPatch(patch);
+    if (result.success && gatewayManager.getStatus().state === 'running') {
+      gatewayManager.debouncedReload();
+    }
+    return result;
   });
 }

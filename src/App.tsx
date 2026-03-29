@@ -18,6 +18,7 @@ import { LobbyPowers } from './pages/LobbyPowers';
 import { LobbyAutomations } from './pages/LobbyAutomations';
 import { LobbyAISetup } from './pages/LobbyAISetup';
 import { LobbySettings } from './pages/LobbySettings';
+import { OpenClawControls } from './pages/OpenClawControls';
 import { Onboarding } from './pages/Onboarding';
 import { WebGLTest } from './pages/WebGLTest';
 import { Office3D } from './pages/Office3D';
@@ -181,6 +182,7 @@ function App() {
             <Route path="/automations" element={<LobbyAutomations />} />
             <Route path="/ai-setup" element={<LobbyAISetup />} />
             <Route path="/settings" element={<LobbySettings />} />
+            <Route path="/settings/openclaw-controls" element={<OpenClawControls />} />
             <Route path="/settings/*" element={<LobbySettings />} />
             <Route path="/webgl-test" element={<WebGLTest />} />
             <Route path="/office" element={<Office3D />} />

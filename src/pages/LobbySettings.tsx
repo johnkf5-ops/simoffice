@@ -387,6 +387,20 @@ export function LobbySettings() {
                   />
                 </div>
               )}
+
+              <div style={row}>
+                <div>
+                  <div style={label}>OpenClaw Controls</div>
+                  <div style={desc}>Session management, reset policies, maintenance settings</div>
+                </div>
+                <button onClick={() => navigate('/settings/openclaw-controls')} style={{
+                  padding: '8px 16px', borderRadius: 8, border: '1px solid hsl(var(--border))',
+                  background: 'hsl(var(--card))', color: 'hsl(var(--foreground))',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  Open
+                </button>
+              </div>
             </>
           )}
 

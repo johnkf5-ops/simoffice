@@ -83,6 +83,9 @@ const electronAPI = {
         'cron:delete',
         'cron:toggle',
         'cron:trigger',
+        // OpenClaw Controls
+        'openclawControls:getSnapshot',
+        'openclawControls:applyGlobalPatch',
         // Channel Config
         'channel:saveConfig',
         'channel:getConfig',
