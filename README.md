@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.2-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.2.0-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -37,6 +37,7 @@
 - **Email Integration** — Connect Gmail, Outlook, Fastmail, or any IMAP/SMTP email. Agents can read, search, send, and manage your inbox.
 - **Integrations Sidebar** — Connected tools appear in the chat sidebar with suggested prompts so you know what to ask.
 - **Messaging Integrations** — Connect Discord, Telegram, WhatsApp, iMessage, Slack, Google Chat, and more with step-by-step wizards
+- **Agent Memory** — Agents remember context across sessions. Local-only persistent memory powered by GigaBrain — no cloud, no vector DB.
 - **SOUL.md Personalities** — Each agent gets a unique personality file that shapes how they respond
 - **Dark & Light Themes** — Full theme support with CSS variable-driven styling
 - **Auto-Updates** — App updates automatically via GitHub Releases
@@ -71,14 +72,17 @@ pnpm run package:mac                                # build DMG
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-## What's New in v2.1.2
+## What's New in v2.2.0
 
-- **Email Automations** — Schedule email tasks: inbox digest, urgent alerts, draft replies. Deliver automation results to your inbox. Multi-account picker when multiple email providers are connected.
-- **Business Integration Automations** — 13 integration-specific templates (Stripe revenue, GitHub PRs, Jira sprint, Sentry errors, and more). Cards appear automatically when you connect the integration.
-- **OpenClaw 2026.3.28** — Upgraded from 2026.3.24. Stability fixes for WhatsApp, Discord, Telegram, BlueBubbles. OAuth imports made resilient to future extension removals.
+- **Agent Memory (GigaBrain)** — Give agents persistent memory across sessions. Agents automatically recall relevant context before each turn. Enable with one toggle in Settings. Local-only storage, no cloud — powered by [GigaBrain](https://github.com/legendaryvibecoder/gigabrain).
 
 <details>
 <summary>Previous versions</summary>
+
+### v2.1.2
+- **Email Automations** — Schedule email tasks: inbox digest, urgent alerts, draft replies. Deliver automation results to your inbox. Multi-account picker when multiple email providers are connected.
+- **Business Integration Automations** — 13 integration-specific templates (Stripe revenue, GitHub PRs, Jira sprint, Sentry errors, and more). Cards appear automatically when you connect the integration.
+- **OpenClaw 2026.3.28** — Upgraded from 2026.3.24. Stability fixes for WhatsApp, Discord, Telegram, BlueBubbles. OAuth imports made resilient to future extension removals.
 
 ### v2.1.1
 - **OpenClaw Controls** — New settings page at Settings → Advanced → OpenClaw Controls. Manage sessions (rename, model, thinking level, reset, delete), configure global reset policies and maintenance settings, or type plain-English commands with real-time preview.
