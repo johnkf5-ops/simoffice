@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.9-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.1.1-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -33,7 +33,9 @@
 - **File Upload** — Send files directly in chat for agents to analyze and respond to
 - **Crypto Trading with MoonPay** — Trade crypto, DCA, scan markets, and research tokens. Powered by MoonPay with in-app setup, no terminal required.
 - **Multi-Provider AI** — Connect Claude, ChatGPT, Grok, Gemini, or run locally with Ollama
-- **29 Business Integrations** — HubSpot, Salesforce, GitHub, Jira, Stripe, Notion, and more with setup wizards
+- **20 Business Integrations** — Stripe, GitHub, Jira, Notion, HubSpot, Sentry, Linear, and more. MCP-powered — agents get tools automatically after you connect.
+- **Email Integration** — Connect Gmail, Outlook, Fastmail, or any IMAP/SMTP email. Agents can read, search, send, and manage your inbox.
+- **Integrations Sidebar** — Connected tools appear in the chat sidebar with suggested prompts so you know what to ask.
 - **Messaging Integrations** — Connect Discord, Telegram, WhatsApp, iMessage, Slack, Google Chat, and more with step-by-step wizards
 - **SOUL.md Personalities** — Each agent gets a unique personality file that shapes how they respond
 - **Dark & Light Themes** — Full theme support with CSS variable-driven styling
@@ -70,21 +72,24 @@ pnpm run package:mac                                # build DMG
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-## What's New in v2.0.9
+## What's New in v2.1.1
 
-- **Automations Redesign** — Grandma-friendly creation flow. Inspiration cards (Price Alerts, Reminders, News Briefs, etc.) replace developer templates. Plain English schedule picker — no cron expressions. Smart agent picker adapts to your agent count.
-- **Channel Delivery** — Send automation results to Telegram, Discord, or Slack. Pick a connected channel and the agent delivers via the message tool.
-- **Cron Notifications** — Toast alerts when automations complete. Desktop notifications when SimOffice is in the background.
-- **Activity Feed** — See recent automation runs at a glance on the Automations page.
-- **Cron Chat Fix** — Clicking a cron session in the buddy list now loads the correct run history.
+- **OpenClaw Controls** — New settings page at Settings → Advanced → OpenClaw Controls. Manage sessions (rename, model, thinking level, reset, delete), configure global reset policies and maintenance settings, or type plain-English commands with real-time preview.
 
 <details>
 <summary>Previous versions</summary>
 
+### v2.1.0
+- 20 Business Integrations — Stripe, GitHub, GitLab, Linear, Sentry, and 15 more. MCP-powered, agents get tools automatically.
+- Email Integration — Gmail, Outlook, Fastmail, IMAP/SMTP. 47 email tools.
+- Integrations Sidebar — Connected tools in chat with suggested prompts.
+
+### v2.0.9
+- Automations Redesign — Grandma-friendly creation flow. Inspiration cards, plain English schedules, channel delivery, notifications, activity feed.
+
 ### v2.0.8
 - Reliable Auto-Updater — Replaced Squirrel.Mac with direct DMG download. Progress bar with ETA, SHA512 verification, drag-and-drop install.
 - OpenClaw 2026.3.24 — OpenAI-compatible `/v1/models` and `/v1/embeddings` endpoints, Teams SDK migration.
-- 29 Business Integrations — HubSpot, Salesforce, GitHub, Jira, Stripe, Notion, and 23 more.
 - Analytics Redesign — Cleaner layout, compact KPI cards, theme-aware chart.
 
 ### v2.0.7
