@@ -153,6 +153,7 @@ const electronAPI = {
         'integration:remove',
         'integration:status',
         'integration:status-all',
+        'integration:email-details',
       ];
 
       if (validChannels.includes(channel)) {

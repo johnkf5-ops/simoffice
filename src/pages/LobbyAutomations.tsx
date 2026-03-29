@@ -10,6 +10,8 @@ import { useAgentsStore } from '@/stores/agents';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
 import { BuddyPanel } from '@/components/common/BuddyPanel';
 import { hostApiFetch } from '@/lib/host-api';
+import { invokeIpc } from '@/lib/api-client';
+import { CHANNEL_ICONS, CHANNEL_NAMES, type ChannelType } from '@/types/channel';
 import type { CronJob, CronRunEntry, CronSchedule } from '@/types/cron';
 import { INSPIRATION_CARDS, type InspirationCard } from '@/lib/cron/templates';
 
@@ -38,16 +40,34 @@ const PRESET_VALUES: Set<string> = new Set(FRIENDLY_SCHEDULES.map((s) => s.value
 const DELIVERY_PREFIX_TEMPLATE =
   '[IMPORTANT: After completing this task, you MUST send your full response to the user via {channel} using the message tool. Do not skip this step.]\n\n';
 
-function buildMessageWithDelivery(userPrompt: string, channelType?: string): string {
+const EMAIL_DELIVERY_PREFIX_TEMPLATE =
+  '[IMPORTANT: After completing this task, you MUST email your full response using the send_email tool. Send to: {email}. Integration: {integrationId}. Use a clear subject line summarizing the result. Do not skip this step.]\n\n';
+
+function buildMessageWithDelivery(userPrompt: string, channelType?: string, emailAddress?: string): string {
   if (!channelType) return userPrompt;
+  if (channelType.startsWith('email_')) {
+    // Guard: if email integration was removed since job creation, skip delivery — don't
+    // fall through to the message-tool path which would produce a wrong prefix.
+    if (!emailAddress) return userPrompt;
+    return EMAIL_DELIVERY_PREFIX_TEMPLATE
+      .replace('{email}', emailAddress)
+      .replace('{integrationId}', channelType)
+      + userPrompt;
+  }
   return DELIVERY_PREFIX_TEMPLATE.replace('{channel}', channelType) + userPrompt;
 }
 
 function stripDeliveryPrefix(message: string): string {
-  return message.replace(/^\[IMPORTANT:[^\]]*\]\n\n/, '');
+  return message
+    .replace(/^\[IMPORTANT:[^\]]*\]\n\n/, '')   // Strip delivery first (outermost)
+    .replace(/^\[Email account:[^\]]*\]\n\n/, ''); // Then strip account (now exposed at start)
 }
 
 function getDeliveryChannelFromMessage(message: string): string | undefined {
+  // Check for email delivery prefix — extract integration ID (e.g. 'email_gmail')
+  const emailMatch = message.match(/^\[IMPORTANT:.*?Integration: (email_\w+)\./);
+  if (emailMatch) return emailMatch[1];
+  // Check for messaging channel delivery prefix
   const match = message.match(/^\[IMPORTANT:.*?via (\w+) using the message tool/);
   return match?.[1];
 }
@@ -247,6 +267,11 @@ interface ChannelOption {
   accountId: string;
 }
 
+interface ConnectedEmail {
+  id: string;          // e.g. 'email_gmail'
+  emailAddress: string; // e.g. 'you@gmail.com'
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function LobbyAutomations() {
@@ -292,6 +317,8 @@ export function LobbyAutomations() {
 
   // ── Connected channels for delivery ─────────────────────────────────────
   const [connectedChannels, setConnectedChannels] = useState<ChannelOption[]>([]);
+  const [connectedEmails, setConnectedEmails] = useState<ConnectedEmail[]>([]);
+  const [formEmailAccountId, setFormEmailAccountId] = useState('');
 
   // ── Agent search (for 6+ agents) ────────────────────────────────────────
   const [showAllAgents, setShowAllAgents] = useState(false);
@@ -346,6 +373,21 @@ export function LobbyAutomations() {
       .catch(() => {});
   }, []);
 
+  // Fetch connected email integrations for delivery picker + card gating
+  useEffect(() => {
+    invokeIpc<Record<string, { configured: boolean; emailAddress?: string }>>('integration:email-details')
+      .then((details) => {
+        const emails: ConnectedEmail[] = [];
+        for (const [id, d] of Object.entries(details)) {
+          if (d.configured && d.emailAddress) {
+            emails.push({ id, emailAddress: d.emailAddress });
+          }
+        }
+        setConnectedEmails(emails);
+      })
+      .catch(() => {});
+  }, []);
+
   // Auto-select agent if only 1
   useEffect(() => {
     if (agents.length === 1 && !formAgentId && showForm) {
@@ -384,6 +426,13 @@ export function LobbyAutomations() {
       ? buildCronFromPicker(pickerHour, pickerMinute, pickerDays)
       : formSchedule;
 
+  const visibleCards = useMemo(() => {
+    return INSPIRATION_CARDS.filter((card) => {
+      if (card.id.startsWith('email')) return connectedEmails.length > 0;
+      return true;
+    });
+  }, [connectedEmails]);
+
   const formName = useMemo(() => {
     // Auto-generate name from first few words of prompt
     const raw = stripDeliveryPrefix(formMessage).trim();
@@ -406,6 +455,7 @@ export function LobbyAutomations() {
     setFormSchedule('0 9 * * *');
     setFormAgentId('');
     setFormDeliveryChannel('');
+    setFormEmailAccountId('');
     setSaving(false);
     setShowCustomPicker(false);
     setPickerHour(9);
@@ -424,6 +474,10 @@ export function LobbyAutomations() {
     if (card) {
       setFormMessage(card.promptStart);
       setFormSchedule(card.defaultSchedule);
+      // Auto-select email account if this is an email card
+      if (card.id.startsWith('email') && connectedEmails.length > 0) {
+        setFormEmailAccountId(connectedEmails[0].id);
+      }
     }
     if (agents.length === 1) setFormAgentId(agents[0].id);
   }
@@ -434,10 +488,18 @@ export function LobbyAutomations() {
     const delivery = getDeliveryChannelFromMessage(job.message);
     const rawMessage = stripDeliveryPrefix(job.message);
 
+    // Extract email account binding — no ^ anchor because delivery prefix may precede it
+    const emailAccountMatch = job.message.match(/\[Email account: (email_\w+)/);
+    setFormEmailAccountId(emailAccountMatch?.[1] || '');
+
     setEditingJobId(job.id);
     setFormMessage(rawMessage);
     setFormAgentId(job.agentId || '');
     setFormDeliveryChannel(delivery || '');
+    // Clear email delivery if that integration is no longer connected
+    if (delivery?.startsWith('email_') && !connectedEmails.some((em) => em.id === delivery)) {
+      setFormDeliveryChannel('');
+    }
     setFormTz(tz || getLocalTz());
 
     if (cronExpr && PRESET_VALUES.has(cronExpr)) {
@@ -476,7 +538,20 @@ export function LobbyAutomations() {
     setSaving(true);
     try {
       const tz = formTz !== 'UTC' ? formTz : undefined;
-      const finalMessage = buildMessageWithDelivery(formMessage.trim(), formDeliveryChannel || undefined);
+
+      let prompt = formMessage.trim();
+
+      // Prepend email account binding if an email account is selected
+      if (formEmailAccountId) {
+        const em = connectedEmails.find((e) => e.id === formEmailAccountId);
+        if (em) {
+          prompt = `[Email account: ${em.id} — ${em.emailAddress}. When this task involves email, use this account.]\n\n${prompt}`;
+        }
+      }
+
+      // Look up email address if delivering via email
+      const emailAddr = connectedEmails.find((em) => em.id === formDeliveryChannel)?.emailAddress;
+      const finalMessage = buildMessageWithDelivery(prompt, formDeliveryChannel || undefined, emailAddr);
       const name = formName || 'Automation';
 
       if (editingJobId) {
@@ -834,8 +909,32 @@ export function LobbyAutomations() {
                   )}
                 </div>
 
+                {/* Email account picker — only when email card + multiple accounts */}
+                {connectedEmails.length > 1 && formEmailAccountId && (
+                  <div>
+                    <label style={labelStyle}>Which email account?</label>
+                    <select
+                      value={formEmailAccountId}
+                      onChange={(e) => setFormEmailAccountId(e.target.value)}
+                      style={{
+                        width: '100%', padding: '8px 12px', borderRadius: 8,
+                        border: '1px solid hsl(var(--border))',
+                        background: 'hsl(var(--background))',
+                        color: 'hsl(var(--foreground))',
+                        fontSize: 13,
+                      }}
+                    >
+                      {connectedEmails.map((em) => (
+                        <option key={em.id} value={em.id}>
+                          {CHANNEL_NAMES[em.id as ChannelType] || 'Email'} ({em.emailAddress})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* How do you want to hear back? (delivery) */}
-                {connectedChannels.length > 0 && (
+                {(connectedChannels.length > 0 || connectedEmails.length > 0) && (
                   <div>
                     <label style={labelStyle}>How do you want to hear back?</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -844,6 +943,15 @@ export function LobbyAutomations() {
                           onChange={() => setFormDeliveryChannel('')} />
                         In SimOffice
                       </label>
+                      {connectedEmails.map((em) => (
+                        <label key={em.id}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'hsl(var(--foreground))' }}>
+                          <input type="radio" name="delivery"
+                            checked={formDeliveryChannel === em.id}
+                            onChange={() => setFormDeliveryChannel(em.id)} />
+                          {CHANNEL_ICONS[em.id as ChannelType] || '\u{1F4E7}'} {CHANNEL_NAMES[em.id as ChannelType] || 'Email'} ({em.emailAddress})
+                        </label>
+                      ))}
                       {connectedChannels.map((ch) => (
                         <label key={`${ch.channelType}-${ch.accountId}`}
                           style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'hsl(var(--foreground))' }}>
@@ -904,7 +1012,7 @@ export function LobbyAutomations() {
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
                 gap: 10, marginTop: 24, textAlign: 'left',
               }}>
-                {INSPIRATION_CARDS.map((card) => (
+                {visibleCards.map((card) => (
                   <button key={card.id} onClick={() => openCreate(card)}
                     style={{
                       padding: '14px 16px', borderRadius: 12, textAlign: 'left',
@@ -997,7 +1105,9 @@ export function LobbyAutomations() {
                           </span>
                           {deliveryChannel && (
                             <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))', fontWeight: 500 }}>
-                              via {deliveryChannel.charAt(0).toUpperCase() + deliveryChannel.slice(1)}
+                              via {deliveryChannel.startsWith('email_')
+                                ? (CHANNEL_NAMES[deliveryChannel as ChannelType] || 'Email')
+                                : deliveryChannel.charAt(0).toUpperCase() + deliveryChannel.slice(1)}
                             </span>
                           )}
                           {job.lastRun && (
@@ -1161,7 +1271,7 @@ export function LobbyAutomations() {
                 Ideas
               </div>
               <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                {INSPIRATION_CARDS.map((card) => (
+                {visibleCards.map((card) => (
                   <button key={card.id} onClick={() => openCreate(card)}
                     style={{
                       padding: '8px 14px', borderRadius: 10, border: '1px solid hsl(var(--border))',

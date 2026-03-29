@@ -76,7 +76,7 @@ import { validateApiKeyWithProvider } from '../services/providers/provider-valid
 import { appUpdater } from './updater';
 import { PORTS } from '../utils/config';
 import { getLicenseData, setLicenseKey, cacheLicenseValidation, clearLicenseData } from '../utils/license-store';
-import { configureIntegration, removeIntegration, getIntegrationStatus } from '../utils/integration-config';
+import { configureIntegration, removeIntegration, getIntegrationStatus, getEmailIntegrationDetails } from '../utils/integration-config';
 import { INTEGRATION_REGISTRY } from '../utils/integration-registry';
 
 type AppRequest = {
@@ -3180,6 +3180,15 @@ function registerIntegrationHandlers(): void {
       statuses[id] = getIntegrationStatus(id);
     }
     return statuses;
+  });
+
+  ipcMain.handle('integration:email-details', async () => {
+    const EMAIL_IDS = ['email_gmail', 'email_outlook', 'email_fastmail', 'email_other'] as const;
+    const details: Record<string, { configured: boolean; emailAddress?: string; provider?: string }> = {};
+    for (const id of EMAIL_IDS) {
+      details[id] = getEmailIntegrationDetails(id);
+    }
+    return details;
   });
 }
 

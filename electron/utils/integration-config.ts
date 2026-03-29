@@ -122,6 +122,30 @@ export function getIntegrationStatus(integrationId: string): { configured: boole
   }
 }
 
+/**
+ * Returns detailed info for a configured email integration.
+ * Used by automations page to show email delivery options with actual addresses.
+ */
+export function getEmailIntegrationDetails(integrationId: string): {
+  configured: boolean;
+  emailAddress?: string;
+  provider?: string;
+} {
+  try {
+    if (!existsSync(CONFIG_PATH)) return { configured: false };
+    const config = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
+    const entry = config?.plugins?.entries?.acpx?.config?.mcpServers?.[integrationId];
+    if (!entry) return { configured: false };
+    return {
+      configured: true,
+      emailAddress: entry.env?.MCP_EMAIL_ADDRESS || undefined,
+      provider: integrationId.replace('email_', ''),
+    };
+  } catch {
+    return { configured: false };
+  }
+}
+
 export async function removeIntegration(
   integrationId: string,
 ): Promise<{ success: boolean; error?: string }> {
