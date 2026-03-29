@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { mkdir } from 'fs/promises';
+import { mkdir, readFile, readdir, realpath } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
 import { writeSoulFiles } from '../../services/ollama/soul-manager';
@@ -254,6 +254,67 @@ export async function handleAgentRoutes(
         scheduleGatewayReload(ctx, 'soul-update');
 
         sendJson(res, 200, { success: true, agentId, path: join(workspaceDir, 'SOUL.md') });
+      } catch (error) {
+        sendJson(res, 500, { success: false, error: String(error) });
+      }
+      return true;
+    }
+  }
+
+  // GET /api/agents/{id}/workspace/{filename} — Read .md file from agent workspace
+  if (url.pathname.startsWith('/api/agents/') && req.method === 'GET') {
+    const suffix = url.pathname.slice('/api/agents/'.length);
+    const parts = suffix.split('/').filter(Boolean);
+
+    if (parts.length >= 3 && parts[1] === 'workspace') {
+      try {
+        const agentId = decodeURIComponent(parts[0]);
+        const requestedFile = parts.slice(2).join('/');
+
+        // Security: only allow MEMORY.md at root and memory/*.md for daily notes.
+        // Reject traversal, non-.md, deep paths, and bootstrap files (SOUL.md, AGENTS.md, etc.)
+        const isMemoryMd = requestedFile === 'MEMORY.md';
+        const isDailyNote = requestedFile.startsWith('memory/') && requestedFile.endsWith('.md') && parts.length === 4;
+        if (requestedFile.includes('..') || (!isMemoryMd && !isDailyNote)) {
+          sendJson(res, 400, { success: false, error: 'Invalid file path' });
+          return true;
+        }
+
+        const openclawDir = join(homedir(), '.openclaw');
+        const workspaceDir = agentId === 'main'
+          ? join(openclawDir, 'workspace')
+          : join(openclawDir, `workspace-${agentId}`);
+        const filePath = join(workspaceDir, requestedFile);
+
+        // Defense in depth: resolved path must stay inside workspace
+        const resolved = await realpath(filePath).catch(() => filePath);
+        if (!resolved.startsWith(workspaceDir)) {
+          sendJson(res, 403, { success: false, error: 'Path not allowed' });
+          return true;
+        }
+
+        const content = await readFile(filePath, 'utf8');
+        sendJson(res, 200, { success: true, content, path: requestedFile });
+      } catch (error: any) {
+        sendJson(res, error.code === 'ENOENT' ? 404 : 500, {
+          success: false,
+          error: error.code === 'ENOENT' ? 'File not found' : String(error),
+        });
+      }
+      return true;
+    }
+
+    // GET /api/agents/{id}/workspace-list/memory — List daily note files
+    if (parts.length === 3 && parts[1] === 'workspace-list' && parts[2] === 'memory') {
+      try {
+        const agentId = decodeURIComponent(parts[0]);
+        const openclawDir = join(homedir(), '.openclaw');
+        const workspaceDir = agentId === 'main'
+          ? join(openclawDir, 'workspace')
+          : join(openclawDir, `workspace-${agentId}`);
+
+        const files = await readdir(join(workspaceDir, 'memory')).catch(() => [] as string[]);
+        sendJson(res, 200, { success: true, files: files.filter(f => f.endsWith('.md')).sort().reverse() });
       } catch (error) {
         sendJson(res, 500, { success: false, error: String(error) });
       }

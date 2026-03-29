@@ -492,6 +492,7 @@ exports.default = async function afterPack(context) {
   // Chinese messaging plugins removed — not needed for SimOffice users.
   // Saves ~95MB from the app bundle.
   const BUNDLED_PLUGINS = [
+    { npmName: '@legendaryvibecoder/gigabrain', pluginId: 'gigabrain' },
   ];
 
   mkdirSync(pluginsDestRoot, { recursive: true });

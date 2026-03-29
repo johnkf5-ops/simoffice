@@ -171,6 +171,7 @@ const PLUGIN_NPM_NAMES: Record<string, string> = {
   wecom: '@wecom/wecom-openclaw-plugin',
   'feishu-openclaw-plugin': '@larksuite/openclaw-lark',
   qqbot: '@sliverp/qqbot',
+  gigabrain: '@legendaryvibecoder/gigabrain',
 };
 
 // ── Version helper ───────────────────────────────────────────────────────────
@@ -450,6 +451,10 @@ export function ensureQQBotPluginInstalled(): { installed: boolean; warning?: st
   return ensurePluginInstalled('qqbot', buildCandidateSources('qqbot'), 'QQ Bot');
 }
 
+export function ensureGigaBrainPluginInstalled(): { installed: boolean; warning?: string } {
+  return ensurePluginInstalled('gigabrain', buildCandidateSources('gigabrain'), 'GigaBrain');
+}
+
 // ── Bulk startup installer ───────────────────────────────────────────────────
 
 /**
@@ -460,6 +465,7 @@ const ALL_BUNDLED_PLUGINS = [
   { fn: ensureWeComPluginInstalled, label: 'WeCom' },
   { fn: ensureQQBotPluginInstalled, label: 'QQ Bot' },
   { fn: ensureFeishuPluginInstalled, label: 'Feishu' },
+  { fn: ensureGigaBrainPluginInstalled, label: 'GigaBrain' },
 ] as const;
 
 /**

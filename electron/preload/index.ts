@@ -154,6 +154,10 @@ const electronAPI = {
         'integration:status',
         'integration:status-all',
         'integration:email-details',
+        // Memory plugin
+        'memory:status',
+        'memory:enable',
+        'memory:disable',
       ];
 
       if (validChannels.includes(channel)) {

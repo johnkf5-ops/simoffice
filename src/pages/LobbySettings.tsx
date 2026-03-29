@@ -1,7 +1,7 @@
 /**
  * SimOffice Settings — Built from scratch. No ClawX UI.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSettingsStore } from '@/stores/settings';
 import { useGatewayStore } from '@/stores/gateway';
@@ -55,11 +55,36 @@ export function LobbySettings() {
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [memoryEnabled, setMemoryEnabled] = useState(false);
 
   const handleRestart = async () => {
     setRestarting(true);
     try { await restartGateway(); } catch {}
     setTimeout(() => setRestarting(false), 2000);
+  };
+
+  useEffect(() => {
+    window.electron.ipcRenderer.invoke('memory:status')
+      .then((result) => setMemoryEnabled((result as { enabled: boolean })?.enabled ?? false))
+      .catch(() => {});
+  }, []);
+
+  const handleMemoryToggle = async (on: boolean) => {
+    // Show confirmation when enabling — memory injects context into every turn,
+    // which increases token usage for paid API providers.
+    if (on) {
+      const confirmed = window.confirm(
+        'Agent memory adds extra context to each message. If you use a paid AI provider, this may slightly increase costs.\n\nEnable agent memory?'
+      );
+      if (!confirmed) return;
+    }
+    setMemoryEnabled(on);
+    try {
+      const result = await window.electron.ipcRenderer.invoke(on ? 'memory:enable' : 'memory:disable') as { success?: boolean; error?: string };
+      if (!result?.success) throw new Error(result?.error || 'Unknown error');
+    } catch {
+      setMemoryEnabled(!on); // revert on failure
+    }
   };
 
   // Styles
@@ -361,6 +386,14 @@ export function LobbySettings() {
                   <div style={desc}>Help improve SimOffice with anonymous usage data</div>
                 </div>
                 <Toggle on={telemetryEnabled} onChange={setTelemetryEnabled} />
+              </div>
+
+              <div style={row}>
+                <div>
+                  <div style={label}>Agent Memory</div>
+                  <div style={desc}>Give agents persistent memory across sessions</div>
+                </div>
+                <Toggle on={memoryEnabled} onChange={handleMemoryToggle} />
               </div>
 
               <div style={row}>

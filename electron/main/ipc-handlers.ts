@@ -2192,7 +2192,7 @@ function registerShellHandlers(): void {
     // gateway to exit with code 1 even when --allow-unconfigured is passed.
     if (!plugins.allow) plugins.allow = [];
     const allow = plugins.allow as string[];
-    const KNOWN_BUNDLED_PLUGINS = new Set(['acpx', 'dingtalk', 'wecom', 'qqbot', 'feishu-openclaw-plugin']);
+    const KNOWN_BUNDLED_PLUGINS = new Set(['acpx', 'dingtalk', 'wecom', 'qqbot', 'feishu-openclaw-plugin', 'gigabrain']);
     plugins.allow = allow.filter((p: string) => KNOWN_BUNDLED_PLUGINS.has(p));
     if (!(plugins.allow as string[]).includes('acpx')) (plugins.allow as string[]).push('acpx');
 
@@ -2307,6 +2307,56 @@ function registerShellHandlers(): void {
 
     // 6. Gateway picks up config on restart — caller should restart gateway
     return { success: true };
+  });
+
+  // ── Memory plugin ────────────────────────────────────────────────
+
+  ipcMain.handle('memory:status', async () => {
+    try {
+      const { isMemoryEnabled } = await import('../utils/memory-config');
+      return { enabled: await isMemoryEnabled() };
+    } catch (err) {
+      return { enabled: false };
+    }
+  });
+
+  ipcMain.handle('memory:enable', async () => {
+    try {
+      // Ensure plugin files are installed before writing config.
+      // The fire-and-forget startup installer may not have finished yet
+      // if the user toggles memory ON quickly after app launch.
+      // Bail if install fails — same pattern as channel config saves (ipc-handlers.ts line 1467).
+      const { ensureGigaBrainPluginInstalled } = await import('../utils/plugin-install');
+      const installResult = ensureGigaBrainPluginInstalled();
+      if (!installResult.installed) {
+        return { success: false, error: installResult.warning || 'GigaBrain plugin not found' };
+      }
+
+      const { enableMemory } = await import('../utils/memory-config');
+      await enableMemory();
+      // Reload gateway so it picks up the new plugin config.
+      // Use debouncedReload (SIGUSR1 in-process reload) — same pattern as
+      // channel config saves (see scheduleGatewayChannelSaveRefresh at line 1403).
+      if (gatewayManager.getStatus().state !== 'stopped') {
+        gatewayManager.debouncedReload();
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
+
+  ipcMain.handle('memory:disable', async () => {
+    try {
+      const { disableMemory } = await import('../utils/memory-config');
+      await disableMemory();
+      if (gatewayManager.getStatus().state !== 'stopped') {
+        gatewayManager.debouncedReload();
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
   });
 }
 
