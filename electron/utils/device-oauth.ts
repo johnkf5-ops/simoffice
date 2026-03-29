@@ -26,19 +26,28 @@ import { proxyAwareFetch } from './proxy-fetch';
 // OAuth functions from openclaw extensions.
 // Since v2026.3.22 these live under dist/extensions/ (ESM bundles).
 // Types are defined locally — the npm package no longer ships .d.ts for these.
-import {
-    loginMiniMaxPortalOAuth,
-} from '../../node_modules/openclaw/dist/extensions/minimax/oauth.js';
-// qwen-portal-auth was removed in openclaw 2026.3.28 — Qwen migrated to
-// Model Studio API key auth. Dynamic require avoids crashing app startup
-// when the extension doesn't exist. The Qwen OAuth flow will gracefully
-// error if attempted on 2026.3.28+.
-// Note: uses require() with a variable path so Rollup/Vite can't statically
-// resolve it at build time (the file may not exist in newer openclaw versions).
+//
+// Both imports use require.resolve() + require() with try/catch so that:
+// 1. Rollup/Vite doesn't statically resolve the paths at build time
+// 2. If OpenClaw removes an extension in a future version, the app starts
+//    normally and the affected OAuth flow shows a user-friendly error
+//    instead of crashing the entire IPC handler registration.
+//
+// qwen-portal-auth was removed in openclaw 2026.3.28.
+// minimax/oauth.js exists as of 2026.3.28 but may be removed in the future.
+
+let loginMiniMaxPortalOAuth: ((opts: any) => Promise<any>) | null = null;
+try {
+    const minimaxOAuthPath = require.resolve('openclaw/dist/extensions/minimax/oauth.js');
+    const mod = require(minimaxOAuthPath);
+    loginMiniMaxPortalOAuth = mod.loginMiniMaxPortalOAuth;
+} catch {
+    // Extension removed — MiniMax OAuth unavailable
+}
+
 let loginQwenPortalOAuth: ((opts: any) => Promise<any>) | null = null;
 try {
     const qwenOAuthPath = require.resolve('openclaw/dist/extensions/qwen-portal-auth/oauth.js');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require(qwenOAuthPath);
     loginQwenPortalOAuth = mod.loginQwenPortalOAuth;
 } catch {
@@ -147,9 +156,12 @@ class DeviceOAuthManager extends EventEmitter {
         if (!isOpenClawPresent()) {
             throw new Error('OpenClaw package not found');
         }
+        if (!loginMiniMaxPortalOAuth) {
+            throw new Error('MiniMax OAuth is no longer available in this version of OpenClaw. Use an API key instead.');
+        }
         const provider = this.activeProvider!;
 
-        const token: MiniMaxOAuthToken = await this.runWithProxyAwareFetch(() => loginMiniMaxPortalOAuth({
+        const token: MiniMaxOAuthToken = await this.runWithProxyAwareFetch(() => loginMiniMaxPortalOAuth!({
             region,
             openUrl: async (url) => {
                 logger.info(`[DeviceOAuth] MiniMax opening browser: ${url}`);
