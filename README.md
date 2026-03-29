@@ -133,6 +133,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 </details>
 
+## Acknowledgments
+
+SimOffice uses the following open source software:
+
+- **[GigaBrain](https://github.com/legendaryvibecoder/gigabrain)** — Local-first memory layer for AI agents. MIT License.
+
 ## License
 
 Copyright 2026 CrashOverride LLC. All rights reserved.

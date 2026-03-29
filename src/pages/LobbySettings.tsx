@@ -221,6 +221,17 @@ export function LobbySettings() {
             </button>
           </div>
 
+          {/* Agent Memory */}
+          <div style={sectionTitle}>Agent Memory</div>
+
+          <div style={row}>
+            <div>
+              <div style={label}>Enable memory</div>
+              <div style={desc}>Give agents persistent memory across sessions</div>
+            </div>
+            <Toggle on={memoryEnabled} onChange={handleMemoryToggle} />
+          </div>
+
           {/* Updates */}
           <div style={sectionTitle}>Updates</div>
 
@@ -386,14 +397,6 @@ export function LobbySettings() {
                   <div style={desc}>Help improve SimOffice with anonymous usage data</div>
                 </div>
                 <Toggle on={telemetryEnabled} onChange={setTelemetryEnabled} />
-              </div>
-
-              <div style={row}>
-                <div>
-                  <div style={label}>Agent Memory</div>
-                  <div style={desc}>Give agents persistent memory across sessions</div>
-                </div>
-                <Toggle on={memoryEnabled} onChange={handleMemoryToggle} />
               </div>
 
               <div style={row}>
