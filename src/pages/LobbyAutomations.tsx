@@ -319,6 +319,7 @@ export function LobbyAutomations() {
   const [connectedChannels, setConnectedChannels] = useState<ChannelOption[]>([]);
   const [connectedEmails, setConnectedEmails] = useState<ConnectedEmail[]>([]);
   const [formEmailAccountId, setFormEmailAccountId] = useState('');
+  const [connectedIntegrationIds, setConnectedIntegrationIds] = useState<Set<string>>(new Set());
 
   // ── Agent search (for 6+ agents) ────────────────────────────────────────
   const [showAllAgents, setShowAllAgents] = useState(false);
@@ -388,6 +389,19 @@ export function LobbyAutomations() {
       .catch(() => {});
   }, []);
 
+  // Fetch all connected integrations for business card gating
+  useEffect(() => {
+    invokeIpc<Record<string, { configured: boolean }>>('integration:status-all')
+      .then((statuses) => {
+        const ids = new Set<string>();
+        for (const [id, s] of Object.entries(statuses)) {
+          if (s.configured && !id.startsWith('email_')) ids.add(id);
+        }
+        setConnectedIntegrationIds(ids);
+      })
+      .catch(() => {});
+  }, []);
+
   // Auto-select agent if only 1
   useEffect(() => {
     if (agents.length === 1 && !formAgentId && showForm) {
@@ -429,9 +443,10 @@ export function LobbyAutomations() {
   const visibleCards = useMemo(() => {
     return INSPIRATION_CARDS.filter((card) => {
       if (card.id.startsWith('email')) return connectedEmails.length > 0;
+      if (card.integrationId) return connectedIntegrationIds.has(card.integrationId);
       return true;
     });
-  }, [connectedEmails]);
+  }, [connectedEmails, connectedIntegrationIds]);
 
   const formName = useMemo(() => {
     // Auto-generate name from first few words of prompt
