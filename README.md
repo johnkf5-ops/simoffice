@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.1-orange" alt="Version" />
+  <img src="https://img.shields.io/badge/version-2.1.2-orange" alt="Version" />
   <img src="https://img.shields.io/badge/platform-macOS-blue" alt="Platform" />
   <img src="https://img.shields.io/badge/license-Proprietary-red" alt="License" />
 </p>
@@ -72,12 +72,17 @@ pnpm run package:mac                                # build DMG
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
-## What's New in v2.1.1
+## What's New in v2.1.2
 
-- **OpenClaw Controls** — New settings page at Settings → Advanced → OpenClaw Controls. Manage sessions (rename, model, thinking level, reset, delete), configure global reset policies and maintenance settings, or type plain-English commands with real-time preview.
+- **Email Automations** — Schedule email tasks: inbox digest, urgent alerts, draft replies. Deliver automation results to your inbox. Multi-account picker when multiple email providers are connected.
+- **Business Integration Automations** — 13 integration-specific templates (Stripe revenue, GitHub PRs, Jira sprint, Sentry errors, and more). Cards appear automatically when you connect the integration.
+- **OpenClaw 2026.3.28** — Upgraded from 2026.3.24. Stability fixes for WhatsApp, Discord, Telegram, BlueBubbles. OAuth imports made resilient to future extension removals.
 
 <details>
 <summary>Previous versions</summary>
+
+### v2.1.1
+- **OpenClaw Controls** — New settings page at Settings → Advanced → OpenClaw Controls. Manage sessions (rename, model, thinking level, reset, delete), configure global reset policies and maintenance settings, or type plain-English commands with real-time preview.
 
 ### v2.1.0
 - 20 Business Integrations — Stripe, GitHub, GitLab, Linear, Sentry, and 15 more. MCP-powered, agents get tools automatically.
